@@ -1,2 +1,9 @@
 # Game Editor undo files
 *.ged.undo
+
+# Executables
+*.exe
+
+# Test level file
+level.c
+

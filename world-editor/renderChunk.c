@@ -45,7 +45,7 @@ typedef struct RenderChunkStruct
 RenderChunk *renderChunkHead;
 RenderChunk *renderChunkTail;
 
-
+int exportMapData(void);
 void initializeVariables();
 void initializeRenderChunk();
 void setRenderChunkUsedArea();
@@ -68,6 +68,40 @@ void freeMap();
 void testMapNode();
 int testMapEdges();
 void freeEdgeTestMap();
+
+int exportMapData(void)
+{
+    FILE *f = NULL;
+
+    if (!testMap) return 1;
+    
+    f = fopen("level.c", "w+");
+    
+    if (f)
+    {
+        int i, j;
+        
+        fprintf(f, "#define mapWidth %d\n", mapHeight/*mapWidth*/);
+        fprintf(f, "#define mapHeight %d\n\n", mapWidth/*mapHeight*/);
+        fprintf(f, "int worldMap[mapWidth][mapHeight] =\n{\n");
+        
+        for (i = 0; i < mapHeight; i ++)
+        {
+            fprintf(f, "    ");
+            for (j = 0; j < mapWidth; j ++)
+            {
+                fprintf(f, "%2d%c", testMap[i][j],
+                    (i == mapHeight - 1 && j == mapWidth -1)?' ':',');
+            }
+            fprintf(f, "\n");
+        }
+        fprintf(f, "};\n");
+        fclose(f);
+        
+        return 0;
+    }
+    else return 2;
+}
 
 //This function calculates the minimum and maximum values for an integer variable
 //and then initializes the edge coordinates to the smallest possible values
