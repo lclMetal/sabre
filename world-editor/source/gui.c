@@ -22,17 +22,17 @@ void guiItemFloat(int corner, int xOffset, int yOffset)
             x = view.x + xOffset;
             y = view.y + yOffset;
         break;
- 
+
         case UPPER_RIGHT:
             x = view.x + view.width - xOffset;
             y = view.y + yOffset;
         break;
- 
+
         case BOTTOM_LEFT:
             x = view.x + xOffset;
             y = view.y + view.height - yOffset;
         break;
- 
+
         case BOTTOM_RIGHT:
             x = view.x + view.width - xOffset;
             y = view.y + view.height - yOffset;
@@ -50,24 +50,24 @@ void guiItemFloat(int corner, int xOffset, int yOffset)
 void guiItemFloatActor(char actorName[256], int corner, int xOffset, int yOffset)
 {
     Actor *a = getclone(actorName);
- 
+
     switch(corner)
     {
         case UPPER_LEFT:
             a->x = view.x + xOffset;
             a->y = view.y + yOffset;
         break;
- 
+
         case UPPER_RIGHT:
             a->x = view.x + view.width - xOffset;
             a->y = view.y + yOffset;
         break;
- 
+
         case BOTTOM_LEFT:
             a->x = view.x + xOffset;
             a->y = view.y + view.height - yOffset;
         break;
- 
+
         case BOTTOM_RIGHT:
             a->x = view.x + view.width - xOffset;
             a->y = view.y + view.height - yOffset;
@@ -84,29 +84,29 @@ void guiItemFloatActor(char actorName[256], int corner, int xOffset, int yOffset
 void guiItemFloatRelativeToActor(char actorName[256], int corner, int xOffset, int yOffset)
 {
     Actor *a = getclone(actorName);
- 
+
     switch(corner)
     {
         case UPPER_LEFT:
             x = a->x - a->width * 0.5 + xOffset;
             y = a->y - a->height * 0.5 + yOffset;
         break;
- 
+
         case UPPER_RIGHT:
             x = a->x + a->width * 0.5 - xOffset;
             y = a->y - a->height * 0.5 + yOffset;
         break;
- 
+
         case BOTTOM_LEFT:
             x = a->x - a->width + xOffset;
             y = a->y + a->height * 0.5 - yOffset;
         break;
- 
+
         case BOTTOM_RIGHT:
             x = a->x + a->width * 0.5 - xOffset;
             y = a->y + a->height * 0.5 - yOffset;
         break;
- 
+
         case CENTER_TOP:
             x = a->x -xOffset;
             y = a->y - a->height * 0.5 + yOffset;

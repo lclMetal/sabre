@@ -32,12 +32,12 @@ typedef struct RenderChunkStruct
     int y;
     int endX;
     int endY;
- 
+
     int usedStartX;
     int usedStartY;
     int usedEndX;
     int usedEndY;
- 
+
     int chunkArray[RENDER_CHUNK_SIZE][RENDER_CHUNK_SIZE];
     struct RenderChunkStruct *next;
 }RenderChunk;
@@ -74,17 +74,17 @@ int exportMapData(void)
     FILE *f = NULL;
 
     if (!testMap) return 1;
-    
+
     f = fopen("level.c", "w+");
-    
+
     if (f)
     {
         int i, j;
-        
+
         fprintf(f, "#define mapWidth %d\n", mapHeight/*mapWidth*/);
         fprintf(f, "#define mapHeight %d\n\n", mapWidth/*mapHeight*/);
         fprintf(f, "int worldMap[mapWidth][mapHeight] =\n{\n");
-        
+
         for (i = 0; i < mapHeight; i ++)
         {
             fprintf(f, "    ");
@@ -97,7 +97,7 @@ int exportMapData(void)
         }
         fprintf(f, "};\n");
         fclose(f);
-        
+
         return 0;
     }
     else return 2;
@@ -111,7 +111,7 @@ void initializeVariables()
 {
     INT_MIN_VALUE = -pow(2, (sizeof(int)*8-1));
     INT_MAX_VALUE = pow(2, (sizeof(int)*8-1)) - 1;
- 
+
     blockMinX = INT_MAX_VALUE;
     blockMaxX = INT_MIN_VALUE;
     blockMinY = INT_MAX_VALUE;
@@ -125,15 +125,15 @@ void initializeRenderChunk(RenderChunk *this)
 {
     int i, j;
     char temp[256];
- 
+
     this->endX = this->x + RENDER_CHUNK_SIZE - 1;
     this->endY = this->y + RENDER_CHUNK_SIZE - 1;
- 
+
     this->usedStartX = this->usedStartY = RENDER_CHUNK_SIZE - 1;
     this->usedEndX = this->usedEndY = 0;
- 
+
     renderChunkCount ++;
- 
+
     for (i = 0; i < RENDER_CHUNK_SIZE; i ++)
     {
         for (j = 0; j < RENDER_CHUNK_SIZE; j ++)
@@ -166,10 +166,10 @@ void updateRenderChunkUsedArea(RenderChunk *ptr)
     int startY;
     int endX;
     int endY;
- 
+
     startX = startY = RENDER_CHUNK_SIZE - 1;
     endX = endY = 0;
- 
+
     for (i = ptr->usedStartY; i <= ptr->usedEndY; i ++)
     {
         for (j = ptr->usedStartX; j <= ptr->usedEndX; j ++)
@@ -183,7 +183,7 @@ void updateRenderChunkUsedArea(RenderChunk *ptr)
             }
         }
     }
- 
+
     if (startX == RENDER_CHUNK_SIZE - 1 && endX == 0 &&
         startY == RENDER_CHUNK_SIZE - 1 && endY == 0)
     {
@@ -255,20 +255,20 @@ void coordsFromMap(double coordX, double coordY, int worldCoords[2])
 RenderChunk *createRenderChunkList(int newX, int newY)
 {
     RenderChunk *ptr = malloc(sizeof *ptr);
- 
+
     if (ptr == NULL)
     {
         showExceptionMessage(ERROR, "Not enough memory, createChunkList failed!");
         return NULL;
     }
- 
+
     ptr->x = newX;
     ptr->y = newY;
     initializeRenderChunk(ptr);
     ptr->next = NULL;
- 
+
     renderChunkHead = renderChunkTail = ptr;
- 
+
     return ptr;
 }
 
@@ -278,25 +278,25 @@ RenderChunk *createRenderChunkList(int newX, int newY)
 RenderChunk *addRenderChunk(int newX, int newY)
 {
     RenderChunk *ptr;
- 
+
     if (renderChunkHead == NULL)return createRenderChunkList(newX, newY);
- 
+
     ptr = malloc(sizeof *ptr);
- 
+
     if (ptr == NULL)
     {
         showExceptionMessage(ERROR, "Not enough memory, addRenderChunk failed!");
         return NULL;
     }
- 
+
     ptr->x = newX;
     ptr->y = newY;
     initializeRenderChunk(ptr);
     ptr->next = NULL;
- 
+
     renderChunkTail->next = ptr;
     renderChunkTail = ptr;
- 
+
     return ptr;
 }
 
@@ -312,7 +312,7 @@ RenderChunk *searchRenderChunk(int chunkX, int chunkY, RenderChunk **prev)
 {
     RenderChunk *ptr = renderChunkHead;
     RenderChunk *temp = NULL;
- 
+
     while (ptr != NULL)
     {
         if (ptr->x == chunkX && ptr->y == chunkY)
@@ -326,7 +326,7 @@ RenderChunk *searchRenderChunk(int chunkX, int chunkY, RenderChunk **prev)
             ptr = ptr->next;
         }
     }
- 
+
     return NULL;
 }
 
@@ -336,7 +336,7 @@ RenderChunk *searchRenderChunk(int chunkX, int chunkY, RenderChunk **prev)
 RenderChunk *searchRenderChunkByCoords(int chunkX, int chunkY)
 {
     RenderChunk *ptr = renderChunkHead;
- 
+
     while (ptr != NULL)
     {
         if (ptr->x == chunkX && ptr->y == chunkY)
@@ -345,7 +345,7 @@ RenderChunk *searchRenderChunkByCoords(int chunkX, int chunkY)
         }
         ptr = ptr->next;
     }
- 
+
     return NULL;
 }
 
@@ -356,9 +356,9 @@ int deleteRenderChunk(int chunkX, int chunkY)
 {
     RenderChunk *prev = NULL;
     RenderChunk *del = NULL;
- 
+
     del = searchRenderChunk(chunkX, chunkY, &prev);
- 
+
     if (del == NULL)return - 1;
     else
     {
@@ -381,11 +381,11 @@ int deleteRenderChunk(int chunkX, int chunkY)
             else {renderChunkHead = NULL; renderChunkTail = NULL;}
         }
     }
- 
+
     free(del);
     del = NULL;
     renderChunkCount --;
- 
+
     return 1;
 }
 
@@ -394,16 +394,16 @@ int deleteRenderChunkList()
 {
     RenderChunk *ptr = renderChunkHead;
     RenderChunk *temp = NULL;
- 
+
     while (ptr != NULL)
     {
         temp = ptr->next;
         deleteRenderChunk(ptr->x, ptr->y);
         ptr = temp;
     }
- 
+
     renderChunkHead = renderChunkTail = NULL;
- 
+
     return 1;
 }
 
@@ -417,11 +417,11 @@ void plotBlock(int blockX, int blockY, int blockTexture)
     int chunkCoords[2];
     int relativeX;
     int relativeY;
- 
+
     coordsToRenderChunkCoords(blockX, blockY, chunkCoords);
- 
+
     ptr = searchRenderChunkByCoords(chunkCoords[X], chunkCoords[Y]);
- 
+
     if (ptr)
     {
         relativeX = abs(blockX - ptr->x);
@@ -454,11 +454,11 @@ void deleteBlock(int blockX, int blockY)
     int chunkCoords[2];
     int relativeX;
     int relativeY;
- 
+
     coordsToRenderChunkCoords(blockX, blockY, chunkCoords);
- 
+
     ptr = searchRenderChunkByCoords(chunkCoords[X], chunkCoords[Y]);
- 
+
     if (ptr)
     {
         relativeX = abs(blockX - ptr->x);
@@ -473,7 +473,7 @@ void deleteBlock(int blockX, int blockY)
 void drawRenderChunkEdges(RenderChunk *ptr)
 {
     int start[2], startOnScreen[2], end[2], endOnScreen[2];
- 
+
     setpen(100, 100, 100, 0, 20*zoom);
     coordsFromWorld(ptr->x, ptr->y, start);
     coordsToScreen(start[X], start[Y], startOnScreen);
@@ -497,7 +497,7 @@ void drawRenderChunkEdges(RenderChunk *ptr)
 void drawRenderChunkUsedAreaEdges(RenderChunk *ptr)
 {
     int start[2], startOnScreen[2], end[2], endOnScreen[2];
- 
+
     setpen(150, 150, 150, 0, 20*zoom);
     coordsFromWorld(ptr->x + ptr->usedStartX, ptr->y + ptr->usedStartY, start);
     coordsToScreen(start[X], start[Y], startOnScreen);
@@ -525,14 +525,14 @@ void renderChunks(int mode)
     int viewPositionRenderChunk[2];
     int viewEndPositionRenderChunk[2];
     RenderChunk *ptr = renderChunkHead;
- 
+
     coordsToRenderChunkCoords(viewX, viewY, viewPositionRenderChunk);
     coordsToRenderChunkCoords(viewEndX, viewEndY, viewEndPositionRenderChunk);
- 
+
     while (ptr != NULL)
     {
         int i, j;
- 
+
         if (mode)
         {
             switch (mode)
@@ -542,7 +542,7 @@ void renderChunks(int mode)
                 case 3: drawRenderChunkEdges(ptr); drawRenderChunkUsedAreaEdges(ptr); break;
             }
         }
- 
+
         if (ptr->endX >= viewX && ptr->endY >= viewY && ptr->x <= viewEndX && ptr->y <= viewEndY)
         {
             for (i = ptr->usedStartY; i <= ptr->usedEndY; i ++)
@@ -559,7 +559,7 @@ void renderChunks(int mode)
                 }
             }
         }
- 
+
         ptr = ptr->next;
     }
 }
@@ -570,27 +570,27 @@ void renderChunks(int mode)
 void updateMapDimensions()
 {
     RenderChunk *ptr = renderChunkHead;
- 
+
     int minX = INT_MAX_VALUE;
     int minY = INT_MAX_VALUE;
     int maxX = INT_MIN_VALUE;
     int maxY = INT_MIN_VALUE;
- 
+
     while (ptr != NULL)
     {
         minX = min(minX, ptr->x + ptr->usedStartX);
         minY = min(minY, ptr->y + ptr->usedStartY);
         maxX = max(maxX, ptr->x + ptr->usedEndX);
         maxY = max(maxY, ptr->y + ptr->usedEndY);
- 
+
         ptr = ptr->next;
     }
- 
+
     blockMinX = minX;
     blockMinY = minY;
     blockMaxX = maxX;
     blockMaxY = maxY;
- 
+
     mapWidth = abs(blockMaxX - blockMinX) + 1;
     mapHeight = abs(blockMaxY - blockMinY) + 1;
     sabreMapWidth = mapWidth;
@@ -604,22 +604,22 @@ int convertChunkDataToMap()
     int row;
     int i, j;
     int blockX, blockY;
- 
+
     RenderChunk *ptr = renderChunkHead;
- 
+
     if (renderChunkHead == NULL)return 0;
- 
+
     if (ptr != NULL)
     {
         updateMapDimensions();
- 
+
         testMap = malloc(mapHeight * sizeof(int *));
         if (testMap == NULL)
         {
             showExceptionMessage(ERROR, "Not enough memory, convertChunkDataToMap failed!");
             return 0;
         }
- 
+
         for (row = 0; row < mapHeight; row ++)
         {
             testMap[row] = malloc(mapWidth * sizeof(int));
@@ -629,7 +629,7 @@ int convertChunkDataToMap()
                 return 0;
             }
         }
- 
+
         while (ptr != NULL)
         {
             for (i = 0; i < RENDER_CHUNK_SIZE; i ++)
@@ -644,11 +644,11 @@ int convertChunkDataToMap()
                     }
                 }
             }
- 
+
             ptr = ptr->next;
         }
     }
- 
+
     return 1;
 }
 
@@ -656,14 +656,14 @@ int convertChunkDataToMap()
 void freeMap()
 {
     int row;
- 
+
     if (testMap != NULL)
     {
         for (row = 0; row < mapHeight; row ++)
         {
             free(testMap[row]);
         }
- 
+
         free(testMap);
         testMap = NULL;
     }
@@ -682,9 +682,9 @@ void testMapNode(int nodeX, int nodeY)
     if (!edgeTestMap)return;
     if (nodeX < 0 || nodeX > mapWidth - 1 || nodeY < 0 || nodeY > mapHeight - 1)return;
     if (edgeTestMap[nodeY][nodeX] != 0)return;
- 
+
     edgeTestMap[nodeY][nodeX] = -1;
- 
+
     testMapNode(nodeX - 1, nodeY);
     testMapNode(nodeX + 1, nodeY);
     testMapNode(nodeX, nodeY - 1);
@@ -702,7 +702,7 @@ int testMapEdges()
     int i, j;
     char temp[256];
     double mapCoords[2];
- 
+
     if (testMap)
     {
         edgeTestMap = malloc(mapHeight * sizeof(int *));
@@ -711,7 +711,7 @@ int testMapEdges()
             showExceptionMessage(ERROR, "Not enough memory, testMapEdges failed!");
             return 0;
         }
- 
+
         for (row = 0; row < mapHeight; row ++)
         {
             edgeTestMap[row] = malloc(mapWidth * sizeof(int));
@@ -721,7 +721,7 @@ int testMapEdges()
                 return 0;
             }
         }
- 
+
         for (i = 0; i < mapHeight; i ++)
         {
             for (j = 0; j < mapWidth; j ++)
@@ -729,7 +729,7 @@ int testMapEdges()
                 edgeTestMap[i][j] = (testMap[i][j] > 0);
             }
         }
- 
+
         coordsToMap(spawnPointPosition[X], spawnPointPosition[Y], mapCoords);
         if (mapCoords[X] < 0 || mapCoords[X] > mapWidth ||
             mapCoords[Y] < 0 || mapCoords[Y] > mapHeight)
@@ -745,15 +745,15 @@ int testMapEdges()
             return 0;
         }
         testMapNode((int)mapCoords[X], (int)mapCoords[Y]);
- 
+
         for (i = 0; i < mapWidth; i ++)
         {
             if (edgeTestMap[0][i] == -1)
             {
                 int coords[2];
- 
+
                 coordsFromMap(i, 0, coords);
- 
+
                 sprintf(temp,
                 "Detected a leak in the level edges, edge was accessed at (%i, %i)!",
                 coords[X], coords[Y]);
@@ -764,9 +764,9 @@ int testMapEdges()
             if (edgeTestMap[mapHeight - 1][i] == -1)
             {
                 int coords[2];
- 
+
                 coordsFromMap(i, mapHeight - 1, coords);
- 
+
                 sprintf(temp,
                 "Detected a leak in the level edges, edge was accessed at (%i, %i)!",
                 coords[X], coords[Y]);
@@ -775,15 +775,15 @@ int testMapEdges()
                 return 0;
             }
         }
- 
+
         for (i = 0; i < mapHeight; i ++)
         {
             if (edgeTestMap[i][0] == -1)
             {
                 int coords[2];
- 
+
                 coordsFromMap(0, i, coords);
- 
+
                 sprintf(temp,
                 "Detected a leak in the level edges, edge was accessed at (%i, %i)!",
                 coords[X], coords[Y]);
@@ -794,9 +794,9 @@ int testMapEdges()
             if (edgeTestMap[i][mapWidth - 1] == -1)
             {
                 int coords[2];
- 
+
                 coordsFromMap(mapWidth - 1, i, coords);
- 
+
                 sprintf(temp,
                 "Detected a leak in the level edges, edge was accessed at (%i, %i)!",
                 coords[X], coords[Y]);
@@ -806,9 +806,9 @@ int testMapEdges()
             }
         }
     }
- 
+
     freeEdgeTestMap();
- 
+
     return 1;
 }
 
@@ -816,14 +816,14 @@ int testMapEdges()
 void freeEdgeTestMap()
 {
     int row;
- 
+
     if (edgeTestMap != NULL)
     {
         for (row = 0; row < mapHeight; row ++)
         {
             free(edgeTestMap[row]);
         }
- 
+
         free(edgeTestMap);
         edgeTestMap = NULL;
     }

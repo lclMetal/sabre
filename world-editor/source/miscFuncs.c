@@ -15,9 +15,9 @@ void shakerSort();
 Actor *gc2(char actorName[128], int actorIndex)
 {
     char temp[256];
- 
+
     sprintf(temp, "%s.%i", actorName, actorIndex);
- 
+
     return getclone(temp);
 }
 
@@ -26,7 +26,7 @@ Actor *gc2(char actorName[128], int actorIndex)
 void disableMouseEvents(char *actorName)
 {
     char tempName[256];
- 
+
     if (!strcmp(actorName, "Event Actor"))sprintf(tempName, "%s", clonename);
     else if (!strcmp(actorName, "Collide Actor"))sprintf(tempName, "%s", collide.clonename);
     else if (!strcmp(actorName, "Parent Actor"))sprintf(tempName, "%s", parent.clonename);
@@ -43,7 +43,7 @@ void disableMouseEvents(char *actorName)
 void enableMouseEvents(char *actorName)
 {
     char tempName[256];
- 
+
     if (!strcmp(actorName, "Event Actor"))sprintf(tempName, "%s", clonename);
     else if (!strcmp(actorName, "Collide Actor"))sprintf(tempName, "%s", collide.clonename);
     else if (!strcmp(actorName, "Parent Actor"))sprintf(tempName, "%s", parent.clonename);
@@ -115,41 +115,41 @@ void shakerSort(int* orderArray, double* inputArray, int arrayCount)
     int swap;
     int orderTemp;
     double temp;
- 
+
     do
     {
         swap = 0; //no values have been swapped
- 
+
         for (i = arrayCount - 1; i > 0; i --) //go through the array starting from the end
         {
             if (inputArray[i - 1] > inputArray[i]) //if the value of the smaller index element is
             {                                    //higher than the value of the current element
- 
+
                 temp = inputArray[i - 1];       //swap the values
                 inputArray[i - 1] = inputArray[i];
                 inputArray[i] = temp;
- 
+
                 orderTemp = orderArray[i - 1];
                 orderArray[i - 1] = orderArray[i];
                 orderArray[i] = orderTemp;
- 
+
                 swap = 1; //some values have been swapped
             }
         }
- 
+
         for (i = 1; i < arrayCount; i ++) //go through the array starting from the beginning
         {
             if (inputArray[i - 1] > inputArray[i]) //if the value of the smaller index element is
             {                                    //higher than the value of the current element
- 
+
                 temp = inputArray[i - 1];         //swap the values
                 inputArray[i - 1] = inputArray[i];
                 inputArray[i] = temp;
- 
+
                 orderTemp = orderArray[i - 1];
                 orderArray[i - 1] = orderArray[i];
                 orderArray[i] = orderTemp;
- 
+
                 swap = 1; //some values have been swapped
             }
         }

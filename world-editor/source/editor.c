@@ -78,7 +78,7 @@ void setGuiColor(int rValue, int gValue, int bValue)
     a = getclone("bar");
     a2 = getclone("barTop");
     a3 = getclone("screenWindow");
- 
+
     a->r = a2->r = a3->r = rValue;
     a->g = a2->g = a3->g = gValue;
     a->b = a2->b = a3->b = bValue;
@@ -93,7 +93,7 @@ void setGuiTextColor(int rValue, int gValue, int bValue)
     Actor *a, *a2;
     a = getclone("status");
     a2 = getclone("testWindowText");
- 
+
     a->r = a2->r = rValue;
     a->g = a2->g = gValue;
     a->b = a2->b = bValue;
@@ -108,7 +108,7 @@ void setPositionIndicatorColor(int rValue, int gValue, int bValue)
 {
     Actor *xInd = getclone("xIndicator");
     Actor *yInd = getclone("yIndicator");
- 
+
     xInd->r = yInd->r = rValue;
     xInd->g = yInd->g = gValue;
     xInd->b = yInd->b = bValue;
@@ -124,7 +124,7 @@ void addTextureIndicatorColor(int rValue, int gValue, int bValue)
     a->r = rValue;
     a->g = gValue;
     a->b = bValue;
- 
+
     textureNumber ++;
 }
 
@@ -133,9 +133,9 @@ void addTextureIndicatorColor(int rValue, int gValue, int bValue)
 void copyTextureIndicatorColor(int colorIndex)
 {
     Actor *a;
- 
+
     a = gc2("block", colorIndex - 1);
- 
+
     r = a->r;
     g = a->g;
     b = a->b;
@@ -154,26 +154,26 @@ void setSpawnPointPosition(double spawnX, double spawnY)
 void drawGrid()
 {
     int i;
-
+
     int squareSize = blockSize * zoom;
- 
-   int wLim = (screenWidth / squareSize);
+
+   int wLim = (screenWidth / squareSize);
     int hLim = (screenHeight / squareSize);
- 
-   int wFix = (screenWidth % squareSize) / 2;
+
+   int wFix = (screenWidth % squareSize) / 2;
     int hFix = (screenHeight % squareSize) / 2;
- 
+
     erase(bgColor.r, bgColor.g, bgColor.b, 0);
- 
+
     setpen(gridColor.r, gridColor.g, gridColor.b, 0, 1);
- 
-   for (i = 0; i <= wLim; i ++)
+
+   for (i = 0; i <= wLim; i ++)
     {
         moveto(wFix + i * squareSize, 0);
         lineto(wFix + i * squareSize, screenHeight);
     }
- 
-   for (i = 0; i <= hLim; i ++)
+
+   for (i = 0; i <= hLim; i ++)
     {
         moveto(0, hFix + i * squareSize);
         lineto(screenWidth, hFix + i * squareSize);
@@ -186,13 +186,13 @@ void drawGrid()
 void testScreenTheater(int mode)
 {
     Actor *a = getclone("darkenCanvas");
- 
+
     switch (mode)
     {
         case OFF:
             a->var = 2;
         break;
- 
+
         case ON:
             CreateActor("darkenCanvas", "icon", "(none)", "(none)", view.x, view.y, true);
         break;
@@ -204,7 +204,7 @@ void testScreenTheater(int mode)
 void updateViewEndCoordinates()
 {
     int viewEndCoords[2];
- 
+
     coordsToGrid(screenWidth, screenHeight, viewEndCoords);
     convertToWorld(viewEndCoords);
     viewEndX = viewEndCoords[X];
@@ -231,16 +231,16 @@ void mouseCoords()
 void coordsToGrid(int inputX, int inputY, int gridCoords[2])
 {
     int squareSize = blockSize * zoom;
-
+
     int wFix = (screenWidth % squareSize) / 2;
     int hFix = (screenHeight % squareSize) / 2;
- 
+
     int maxXsize = ceil((double)(screenWidth + wFix) / (double)squareSize) - 1 * (!wFix);
     int maxYsize = ceil((double)(screenHeight + hFix) / (double)squareSize) - 1 * (!hFix);
- 
+
     int tempX = ((inputX - wFix) / squareSize) + (wFix > 0);
     int tempY = ((inputY - hFix) / squareSize) + (hFix > 0);
- 
+
     if (inputX < wFix)gridCoords[X] = 0;
     else (tempX <= maxXsize)?(gridCoords[X] = tempX):(gridCoords[X] = maxXsize);
     if (inputY < hFix)gridCoords[Y] = 0;
@@ -254,16 +254,16 @@ void coordsToGrid(int inputX, int inputY, int gridCoords[2])
 void convertToGrid(int coords[2])
 {
     int squareSize = blockSize * zoom;
-
+
     int wFix = (screenWidth % squareSize) / 2;
     int hFix = (screenHeight % squareSize) / 2;
- 
+
     int maxXsize = ceil((double)(screenWidth + wFix) / (double)squareSize) - 1 * (!wFix);
     int maxYsize = ceil((double)(screenHeight + hFix) / (double)squareSize) - 1 * (!hFix);
- 
+
     int tempX = ((coords[X] - wFix) / squareSize) + (wFix > 0);
     int tempY = ((coords[Y] - hFix) / squareSize) + (hFix > 0);
- 
+
     if (coords[X] < wFix)coords[X] = 0;
     else (tempX <= maxXsize)?(coords[X] = tempX):(coords[X] = maxXsize);
     if (coords[Y] < hFix)coords[Y] = 0;
@@ -279,10 +279,10 @@ void convertToGrid(int coords[2])
 void coordsToScreen(int inputX, int inputY, int screenCoords[2])
 {
     int squareSize = blockSize * zoom;
- 
+
     int wFix = (screenWidth % squareSize) / 2;
     int hFix = (screenHeight % squareSize) / 2;
- 
+
     if (inputX == 0)(wFix > 0)?(screenCoords[X] = wFix - floor(squareSize * 0.5)):(screenCoords[X] = ceil(squareSize * 0.5));
     else screenCoords[X] = wFix + ceil(squareSize * 0.5) + ceil(squareSize * (inputX - (wFix > 0)));
     if (inputY == 0)(hFix > 0)?(screenCoords[Y] = hFix - floor(squareSize * 0.5)):(screenCoords[Y] = ceil(squareSize * 0.5));
@@ -297,10 +297,10 @@ void coordsToScreen(int inputX, int inputY, int screenCoords[2])
 void convertToScreen(int coords[2])
 {
     int squareSize = blockSize * zoom;
- 
+
     int wFix = (screenWidth % squareSize) / 2;
     int hFix = (screenHeight % squareSize) / 2;
- 
+
     if (coords[X] == 0)(wFix > 0)?(coords[X] = wFix - floor(squareSize * 0.5)):(coords[X] = ceil(squareSize * 0.5));
     else coords[X] = wFix + ceil(squareSize * 0.5) + ceil(squareSize * (coords[X] - (wFix > 0)));
     if (coords[Y] == 0)(hFix > 0)?(coords[Y] = hFix - floor(squareSize * 0.5)):(coords[Y] = ceil(squareSize * 0.5));
@@ -373,9 +373,9 @@ void putBlock(int blockX, int blockY, int texture, int mode)
     {
         int blockOnGrid[2];
         int blockOnScreen[2];
- 
+
         plotBlock(blockX, blockY, texture+1);
- 
+
         coordsFromWorld(blockX, blockY, blockOnGrid);
         coordsToScreen(blockOnGrid[X], blockOnGrid[Y], blockOnScreen);
         if (blockOnGrid[X] >= 0 && blockOnGrid[X] <= width &&
@@ -388,7 +388,7 @@ void putBlock(int blockX, int blockY, int texture, int mode)
     {
         int blockOnGrid[2];
         int blockOnScreen[2];
- 
+
         coordsFromWorld(blockX, blockY, blockOnGrid);
         coordsToScreen(blockOnGrid[X], blockOnGrid[Y], blockOnScreen);
         if (blockOnGrid[X] >= 0 && blockOnGrid[X] <= width &&
@@ -407,11 +407,11 @@ void putBlock(int blockX, int blockY, int texture, int mode)
 void eraseBlock(int blockX, int blockY)
 {
     int blockOnScreen[2];
- 
+
     if (getBlock(blockX, blockY) > -1)
     {
         deleteBlock(blockX, blockY);
- 
+
         coordsFromWorld(blockX, blockY, blockOnScreen);
         convertToScreen(blockOnScreen);
         draw_from("transparentBlock", blockOnScreen[X], blockOnScreen[Y], zoom);
@@ -428,18 +428,18 @@ int getBlock(int blockX, int blockY)
     int chunkCoords[2];
     int relativeX;
     int relativeY;
- 
+
     coordsToRenderChunkCoords(blockX, blockY, chunkCoords);
- 
+
     ptr = searchRenderChunkByCoords(chunkCoords[X], chunkCoords[Y]);
- 
+
     if (ptr)
     {
         relativeX = abs(blockX - ptr->x);
         relativeY = abs(blockY - ptr->y);
         return ptr->chunkArray[relativeY][relativeX] - 1;
     }
- 
+
     return -1;
 }
 
@@ -452,7 +452,7 @@ int getBlock(int blockX, int blockY)
 void drawVerticalLine(int y1, int y2, int x1, int texture, int mode)
 {
     int i;
- 
+
     for (i = min(y1, y2); i <= max(y1, y2); i ++)
     {
         putBlock(x1, i, texture, mode);
@@ -468,7 +468,7 @@ void drawVerticalLine(int y1, int y2, int x1, int texture, int mode)
 void drawHorizontalLine(int x1, int x2, int y1, int texture, int mode)
 {
     int i;
- 
+
     for (i = min(x1, x2); i <= max(x1, x2); i ++)
     {
         putBlock(i, y1, texture, mode);
@@ -488,7 +488,7 @@ void drawRectangle(int x1, int y1, int x2, int y2, int texture, int mode)
     int topLeftY = min(y1, y2);
     int bottomRightX = max(x1, x2);
     int bottomRightY = max(y1, y2);
- 
+
     drawVerticalLine(topLeftY, bottomRightY, topLeftX, texture, mode);
     drawVerticalLine(topLeftY, bottomRightY, bottomRightX, texture, mode);
     drawHorizontalLine(topLeftX, bottomRightX, topLeftY, texture, mode);
@@ -507,59 +507,59 @@ void drawLine(int x1, int y1, int x2, int y2, int texture, int mode)
 {
     int dX = x2 - x1;
     int dY = y2 - y1;
- 
+
     int xx;
     int yy;
     int change;
- 
+
     double err = 0;
     double deltaError;
- 
+
     if (y1 == y2){drawHorizontalLine(x1, x2, y1, texture, mode); return;}
     if (x1 == x2){drawVerticalLine(y1, y2, x1, texture, mode); return;}
- 
+
     if (abs(dX) >= abs(dY))
     {
         int changeX = - 1 + (2 * (x2 > x1));
         deltaError = abs(dY) / max(abs(dX), 0.000001);
- 
+
         yy = y1;
         change = - 1 + (2 * (y2 > y1));
- 
+
         for (xx = x1; xx != x2 + changeX; xx += changeX)
         {
             putBlock(xx, yy, texture, mode);
             err += deltaError;
- 
+
             if (err >= 0.5)
             {
                 yy += change;
                 err -= 1.0;
             }
         }
- 
+
         return;
     }
     else if (abs(dY) > abs(dX))
     {
         int changeY = - 1 + (2 * (y2 > y1));
         deltaError = abs(dX) / max(abs(dY), 0.000001);
- 
+
         xx = x1;
         change = - 1 + (2 * (x2 > x1));
- 
+
         for (yy = y1; yy != y2 + changeY; yy += changeY)
         {
             putBlock(xx, yy, texture, mode);
             err += deltaError;
- 
+
             if (err >= 0.5)
             {
                 xx += change;
                 err -= 1.0;
             }
         }
- 
+
         return;
     }
 }
@@ -576,56 +576,56 @@ void drawEllipse(int x1, int y1, int x2, int y2, int texture, int mode)
 {
     int hDiam = abs(max(x1, x2) - min(x1, x2));
     int vDiam = abs(max(y1, y2) - min(y1, y2));
- 
+
     int hRadius = round(hDiam * 0.5);
     int vRadius = round(vDiam * 0.5);
- 
+
     int h2 = (hRadius * 2) * (hRadius * 2);
     int v2 = (vRadius * 2) * (vRadius * 2);
- 
+
     int fh2 = 4 * h2;
     int fv2 = 4 * v2;
- 
+
     int midX = min(x1, x2) + hRadius;
     int midY = min(y1, y2) + vRadius;
- 
+
     int xx, yy, sigma;
- 
+
     if (x1 == x2 ||y1 == y2)
     {
         putBlock(x1, y1, texture, mode);
         return;
     }
- 
+
     for (xx = 0, yy = vRadius, sigma = 2 * v2 + h2 * (1 - 2 * vRadius); v2 * xx <= h2 * yy; xx ++)
     {
         putBlock(midX + xx, midY + yy, texture, mode);
         putBlock(midX - xx, midY + yy, texture, mode);
         putBlock(midX + xx, midY - yy, texture, mode);
         putBlock(midX - xx, midY - yy, texture, mode);
- 
+
         if (sigma >= 0)
         {
             sigma += fh2 * (1 - yy);
             yy --;
         }
- 
+
         sigma += v2 * ((4 * xx) + 6);
     }
- 
+
     for (xx = hRadius, yy = 0, sigma = 2 * h2 + v2 * (1 - 2 * hRadius); h2 * yy <= v2 * xx; yy ++)
     {
         putBlock(midX + xx, midY + yy, texture, mode);
         putBlock(midX - xx, midY + yy, texture, mode);
         putBlock(midX + xx, midY - yy, texture, mode);
         putBlock(midX - xx, midY - yy, texture, mode);
- 
+
         if (sigma >= 0)
         {
             sigma += fv2 * (1 - xx);
             xx --;
         }
- 
+
         sigma += h2 * ((4 * yy) + 6);
     }
 }
@@ -636,13 +636,13 @@ void DrawEllipse (int x0, int y0, int width, int height, int texture, int mode)
     int b2 = height * height;
     int fa2 = 4 * a2, fb2 = 4 * b2;
     int x, y, sigma;
-
+
     if (width == 0 || height == 0)
     {
         putBlock(x0, y0, texture, mode);
         return;
     }
- 
+
     for (x = 0, y = height, sigma = 2*b2+a2*(1-2*height); b2*x <= a2*y; x++)
     {
         putBlock (x0 + x, y0 + y, texture, mode);

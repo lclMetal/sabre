@@ -3,7 +3,7 @@ typedef struct ColorStruct
     double hue;
     double saturation;
     double brightness;
- 
+
     unsigned char r;
     unsigned char g;
     unsigned char b;
@@ -26,11 +26,11 @@ Color HSBtoRGB(double hValue, double sValue, double bValue)
 
     double H = ((double)hValue / 60.0);
     double xValue = chroma * (1 - abs(fmod(H, 2) - 1));
- 
+
     color.hue = hValue;
     color.saturation = sValue;
     color.brightness = bValue;
- 
+
     if (H >= 0 && H < 1)
     {
         color.r = (chroma + m) * 255.0;
@@ -67,7 +67,7 @@ Color HSBtoRGB(double hValue, double sValue, double bValue)
         color.g = m * 255.0;
         color.b = (xValue + m) * 255.0;
     }
- 
+
     return color;
 }
 
@@ -79,30 +79,30 @@ Color HSBtoRGB(double hValue, double sValue, double bValue)
 Color RGBtoHSB(int rValue, int gValue, int bValue)
 {
     Color color;
- 
+
     int biggest = max(rValue, max(gValue, bValue));
- 
+
     double percentageR = rValue / 255.0;
     double percentageG = gValue / 255.0;
     double percentageB = bValue / 255.0;
- 
+
     double chromaMax;
     double chromaMin;
     double chroma;
- 
+
     color.r = rValue;
     color.g = gValue;
     color.b = bValue;
- 
+
     if (biggest == rValue)
     {
         chromaMax = percentageR;
         chromaMin = min(percentageR, min(percentageG, percentageB));
         chroma = chromaMax - chromaMin;
- 
+
         color.hue = 60.0 * (fmod(((percentageG - percentageB) / max(chroma, 0.0000001)), 6.0));
         if (color.hue < 0.0)color.hue += 360.0;
- 
+
         color.saturation = (chromaMax == 0) ? 0 : (chroma / chromaMax);
         color.brightness = chromaMax;
     }
@@ -111,7 +111,7 @@ Color RGBtoHSB(int rValue, int gValue, int bValue)
         chromaMax = percentageG;
         chromaMin = min(percentageR, min(percentageG, percentageB));
         chroma = chromaMax - chromaMin;
- 
+
         color.hue = 60.0 * (((percentageB - percentageR) / max(chroma, 0.0000001)) + 2.0);
         color.saturation = (chromaMax == 0) ? 0 : (chroma / chromaMax);
         color.brightness = chromaMax;
@@ -121,11 +121,11 @@ Color RGBtoHSB(int rValue, int gValue, int bValue)
         chromaMax = percentageB;
         chromaMin = min(percentageR, min(percentageG, percentageB));
         chroma = chromaMax - chromaMin;
- 
+
         color.hue = 60.0 * (((percentageR - percentageG) / max(chroma, 0.0000001)) + 4.0);
         color.saturation = (chromaMax == 0) ? 0 : (chroma / chromaMax);
         color.brightness = chromaMax;
     }
- 
+
     return color;
 }
