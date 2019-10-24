@@ -157,23 +157,23 @@ void drawGrid()
 
     int squareSize = blockSize * zoom;
 
-   int wLim = (screenWidth / squareSize);
+    int wLim = (screenWidth / squareSize);
     int hLim = (screenHeight / squareSize);
 
-   int wFix = (screenWidth % squareSize) / 2;
+    int wFix = (screenWidth % squareSize) / 2;
     int hFix = (screenHeight % squareSize) / 2;
 
     erase(bgColor.r, bgColor.g, bgColor.b, 0);
 
     setpen(gridColor.r, gridColor.g, gridColor.b, 0, 1);
 
-   for (i = 0; i <= wLim; i ++)
+    for (i = 0; i <= wLim; i ++)
     {
         moveto(wFix + i * squareSize, 0);
         lineto(wFix + i * squareSize, screenHeight);
     }
 
-   for (i = 0; i <= hLim; i ++)
+    for (i = 0; i <= hLim; i ++)
     {
         moveto(0, hFix + i * squareSize);
         lineto(screenWidth, hFix + i * squareSize);
