@@ -31,10 +31,10 @@ if (!cloneindex)
     {
         // calculate the position and direction of the ray
         cameraX = 2.0f * slice / (float)screenWidth - 1; // x on the camera plane
-        rayPosX = player.posX; // set the begin position of the ray to the player's position
-        rayPosY = player.posY;
-        rayDirX = player.dirX + player.planeX * cameraX; // set the direction of the ray
-        rayDirY = player.dirY + player.planeY * cameraX;
+        rayPosX = sabrePlayer.camera.posX; // set the begin position of the ray to the player's position
+        rayPosY = sabrePlayer.camera.posY;
+        rayDirX = sabrePlayer.camera.dirX + sabrePlayer.camera.planeX * cameraX; // set the direction of the ray
+        rayDirY = sabrePlayer.camera.dirY + sabrePlayer.camera.planeY * cameraX;
 
         // set the square the ray starts from
         rayMapX = (short)rayPosX;
@@ -100,7 +100,7 @@ if (!cloneindex)
         wallSliceHeight = screenHeight / perpWallDist;
 
         // calculate the right texture to use
-        player.textureNumber = map[rayMapY][rayMapX] - 1;
+        sabreSlice.textureNumber = map[rayMapY][rayMapX] - 1;
 
         // calculate where the wall was hit
         if (hitSide)
@@ -113,11 +113,11 @@ if (!cloneindex)
         wallHitX -= (short)wallHitX;
 
         // calculate which vertical slice from the texture has to be drawn
-        player.textureSliceToDraw = (short)(wallHitX * textureWidth);
+        sabreSlice.textureSlice = (short)(wallHitX * textureWidth);
 
         // prevent textures from being drawn as mirror images
-        if (!hitSide && rayDirX < 0) player.textureSliceToDraw = textureWidth - player.textureSliceToDraw - 1;
-        if (hitSide && rayDirY > 0) player.textureSliceToDraw = textureWidth - player.textureSliceToDraw - 1;
+        if (!hitSide && rayDirX < 0) sabreSlice.textureSlice = textureWidth - sabreSlice.textureSlice - 1;
+        if (hitSide && rayDirY > 0) sabreSlice.textureSlice = textureWidth - sabreSlice.textureSlice - 1;
 
         scale = wallSliceHeight / (float)textureHeight;
         horizontalScalingCompensation = (short)floor(scale - horizontalCompensationThreshold) + 1;
