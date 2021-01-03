@@ -1,3 +1,10 @@
+enum SABRE_GameStatesEnum
+{
+    SABRE_UNINITIALIZED = 0,
+    SABRE_RUNNING,
+    SABRE_FINISHED
+}sabreGameState = SABRE_UNINITIALIZED;
+
 struct SABRE_CameraStruct
 {
     float posX, posY;
@@ -30,3 +37,19 @@ struct SABRE_SliceStruct
     short textureSlice;
     short textureNumber;
 }sabreSlice;
+
+void SABRE_Quit()
+{
+    if (sabreGameState != SABRE_FINISHED)
+    {
+        VisibilityState("SABRE_Screen", DISABLE);
+        VisibilityState("SABRE_PlayerController", DISABLE);
+        VisibilityState("SABRE_TextureSlice", DISABLE);
+        VisibilityState("SABRE_SpriteSlice", DISABLE);
+        EventDisable("SABRE_Screen", EVENTALL);
+        EventDisable("SABRE_PlayerController", EVENTALL);
+        EventDisable("SABRE_TextureSlice", EVENTALL);
+        EventDisable("SABRE_SpriteSlice", EVENTALL);
+        sabreGameState = SABRE_FINISHED;
+    }
+}
