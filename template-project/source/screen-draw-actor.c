@@ -19,6 +19,8 @@ short horizontalScalingCompensation; // amount of pixels to shift the drawing po
                                      // to compensate for the bigger width resulting from scaling
 const float horizontalCompensationThreshold = 0.0315f; // threshold for growing the compensation
 
+struct SABRE_CameraStruct *camera = &sabrePlayer.camera; // a pointer to the camera
+
 // only the 1st clone (cloneindex 0) will execute this code, as the other ones are just going
 // to inherit everything drawn on the first clone, due to how cloned canvases work in GE
 if (!cloneindex)
@@ -31,10 +33,10 @@ if (!cloneindex)
     {
         // calculate the position and direction of the ray
         cameraX = 2.0f * slice / (float)screenWidth - 1; // x on the camera plane
-        rayPosX = sabrePlayer.camera.posX; // set the begin position of the ray to the player's position
-        rayPosY = sabrePlayer.camera.posY;
-        rayDirX = sabrePlayer.camera.dirX + sabrePlayer.camera.planeX * cameraX; // set the direction of the ray
-        rayDirY = sabrePlayer.camera.dirY + sabrePlayer.camera.planeY * cameraX;
+        rayPosX = camera->posX; // set the begin position of the ray to the player's position
+        rayPosY = camera->posY;
+        rayDirX = camera->dirX + camera->planeX * cameraX; // set the direction of the ray
+        rayDirY = camera->dirY + camera->planeY * cameraX;
 
         // set the square the ray starts from
         rayMapX = (short)rayPosX;

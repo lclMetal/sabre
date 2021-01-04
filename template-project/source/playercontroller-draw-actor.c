@@ -1,6 +1,6 @@
 char *keyboard = GetKeyState();
-struct SABRE_KeybindStruct *keys = &sabrePlayer.keys;
-struct SABRE_CameraStruct *camera = &sabrePlayer.camera;
+struct SABRE_KeybindStruct *keys = &sabrePlayer.keys; // a pointer to the player key binds
+struct SABRE_CameraStruct *camera = &sabrePlayer.camera; // a pointer to the camera
 
 float oldDirX = camera->dirX;
 float oldPlaneX = camera->planeX;
