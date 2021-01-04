@@ -34,9 +34,9 @@ struct SABRE_PlayerStruct
 
 struct SABRE_SliceStruct
 {
-    short textureSlice;
-    short textureNumber;
-}sabreSlice;
+    short animSlice;
+    short animIndex;
+}sabreTextureSlice;
 
 void SABRE_Quit()
 {

@@ -8,14 +8,14 @@ struct SABRE_TextureStruct
     char name[256];
 };
 
-typedef struct SABRE_TextureStoreStruct
+struct SABRE_TextureStoreStruct
 {
     size_t size; // the maximum amount of textures the store can hold at the moment
     size_t count; // the amount of textures the store actually holds at the moment
     struct SABRE_TextureStruct *textures;
-}SABRE_TextureStore;
+};
 
-SABRE_TextureStore sabreTextureStore;
+struct SABRE_TextureStoreStruct sabreTextureStore;
 
 int SABRE_InitTextureStore();
 int SABRE_GrowTextureStore();
@@ -61,7 +61,7 @@ int SABRE_GrowTextureStore()
 int SABRE_AddTexture(short width, short height, char name[256])
 {
     struct SABRE_TextureStruct *textures = NULL;
-    SABRE_TextureStore *sabreTS = NULL;
+    struct SABRE_TextureStoreStruct *sabreTS = NULL;
 
     if (!sabreTextureStore.size) // the texture store has not been initialized
     {

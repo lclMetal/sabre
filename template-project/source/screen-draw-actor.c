@@ -100,7 +100,7 @@ if (!cloneindex)
         wallSliceHeight = screenHeight / perpWallDist;
 
         // calculate the right texture to use
-        sabreSlice.textureNumber = map[rayMapY][rayMapX] - 1;
+        sabreTextureSlice.animIndex = map[rayMapY][rayMapX] - 1;
 
         // calculate where the wall was hit
         if (hitSide)
@@ -113,11 +113,11 @@ if (!cloneindex)
         wallHitX -= (short)wallHitX;
 
         // calculate which vertical slice from the texture has to be drawn
-        sabreSlice.textureSlice = (short)(wallHitX * textureWidth);
+        sabreTextureSlice.animSlice = (short)(wallHitX * textureWidth);
 
         // prevent textures from being drawn as mirror images
-        if (!hitSide && rayDirX < 0) sabreSlice.textureSlice = textureWidth - sabreSlice.textureSlice - 1;
-        if (hitSide && rayDirY > 0) sabreSlice.textureSlice = textureWidth - sabreSlice.textureSlice - 1;
+        if (!hitSide && rayDirX < 0) sabreTextureSlice.animSlice = textureWidth - sabreTextureSlice.animSlice - 1;
+        if (hitSide && rayDirY > 0) sabreTextureSlice.animSlice = textureWidth - sabreTextureSlice.animSlice - 1;
 
         scale = wallSliceHeight / (float)textureHeight;
         horizontalScalingCompensation = (short)floor(scale - horizontalCompensationThreshold) + 1;
