@@ -159,7 +159,7 @@ Color HSBtoRGB(double hValue, double sValue, double bValue, double aValue)
 }
 
 // This function converts given RGB color system values to corresponding HSB system color values
-// and returns a Color with the hue, saturation and brightness values 
+// and returns a Color with the hue, saturation and brightness values
 // rValue - the red component of the color to be converted to HSB
 // gValue - the green component of the color to be converted to HSB
 // bValue - the blue component of the color to be converted to HSB
