@@ -4,8 +4,8 @@
 int lowestExceptionIndex = 0;
 int highestExceptionIndex = -1;
 
-void showExceptionMessage();
-void hideExceptionMessage();
+void showExceptionMessage(int type, char message[256]);
+void hideExceptionMessage(int index);
 
 //This function shows an exception message at the bottom left corner of the screen
 //Up to ten messages can be shown on screen at the same time

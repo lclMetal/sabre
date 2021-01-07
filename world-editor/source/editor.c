@@ -17,34 +17,38 @@ int textureNumber = - 1;
 Color bgColor;
 Color gridColor;
 
-void setEditorBackgroundColor();
-void setEditorGridColor();
-void setGuiColor();
-void setGuiTextColor();
-void setPositionIndicatorColor();
-void addTextureIndicatorColor();
-void copyTextureIndicatorColor();
-void setSpawnPointPosition();
+void setEditorBackgroundColor(int rValue, int gValue, int bValue);
+void setEditorGridColor(int rValue, int gValue, int bValue);
+void setGuiColor(int rValue, int gValue, int bValue);
+void setGuiTextColor(int rValue, int gValue, int bValue);
+void setPositionIndicatorColor(int rValue, int gValue, int bValue);
+void addTextureIndicatorColor(int rValue, int gValue, int bValue);
+void copyTextureIndicatorColor(int colorIndex);
+void setSpawnPointPosition(double spawnX, double spawnY);
 void drawGrid();
-void testScreenTheater();
+void testScreenTheater(int mode);
+void updateViewEndCoordinates();
 void mouseCoords();
-void coordsToGrid();
-void convertToGrid();
-void coordsToScreen();
-void convertToScreen();
-void coordsToWorld();
-void convertToWorld();
-void coordsFromWorld();
-void convertFromWorld();
+void coordsToGrid(int inputX, int inputY, int gridCoords[2]);
+void convertToGrid(int coords[2]);
+    void coordsToScreen(int inputX, int inputY, int screenCoords[2]);
+void convertToScreen(int coords[2]);
+void coordsToWorld(int inputX, int inputY, int worldCoords[2]);
+void convertToWorld(int coords[2]);
+    void coordsFromWorld(int inputX, int inputY, int screenCoords[2]);
+void convertFromWorld(int coords[2]);
 void calculateScreenDimensions();
-void putBlock();
-void eraseBlock();
-int getBlock();
-void drawVerticalLine();
-void drawHorizontalLine();
-void drawRectangle();
-void drawLine();
-void drawEllipse();
+void putBlock(int blockX, int blockY, int texture, int mode);
+void eraseBlock(int blockX, int blockY);
+int getBlock(int blockX, int blockY);
+void drawVerticalLine(int y1, int y2, int x1, int texture, int mode);
+void drawHorizontalLine(int x1, int x2, int y1, int texture, int mode);
+void drawRectangle(int x1, int y1, int x2, int y2, int texture, int mode);
+void drawLine(int x1, int y1, int x2, int y2, int texture, int mode);
+void drawEllipse(int x1, int y1, int x2, int y2, int texture, int mode);
+void drawRenderChunkEdges(RenderChunk *ptr);
+void drawRenderChunkUsedAreaEdges(RenderChunk *ptr);
+void renderChunks(int mode);
 
 //This function sets the color used for drawing the background of the editor
 //rValue - the value for the red component of the color
@@ -668,5 +672,101 @@ void DrawEllipse (int x0, int y0, int width, int height, int texture, int mode)
             x--;
         }
         sigma += a2 * ((4 * y) + 6);
+    }
+}
+
+//This function draws the edges of a given render chunk
+//ptr - the pointer to the render chunk
+void drawRenderChunkEdges(RenderChunk *ptr)
+{
+    int start[2], startOnScreen[2], end[2], endOnScreen[2];
+
+    setpen(100, 100, 100, 0, 20*zoom);
+    coordsFromWorld(ptr->x, ptr->y, start);
+    coordsToScreen(start[X], start[Y], startOnScreen);
+    moveto(startOnScreen[X], startOnScreen[Y]);
+    coordsFromWorld(ptr->endX, ptr->y, end);
+    coordsToScreen(end[X], end[Y], endOnScreen);
+    lineto(endOnScreen[X], endOnScreen[Y]);
+    coordsFromWorld(ptr->endX, ptr->endY, end);
+    coordsToScreen(end[X], end[Y], endOnScreen);
+    lineto(endOnScreen[X], endOnScreen[Y]);
+    coordsFromWorld(ptr->x, ptr->endY, end);
+    coordsToScreen(end[X], end[Y], endOnScreen);
+    lineto(endOnScreen[X], endOnScreen[Y]);
+    coordsFromWorld(ptr->x, ptr->y, end);
+    coordsToScreen(end[X], end[Y], endOnScreen);
+    lineto(endOnScreen[X], endOnScreen[Y]);
+}
+
+//This function draws the edges of the used area of a given render chunk
+//ptr - the pointer to the render chunk
+void drawRenderChunkUsedAreaEdges(RenderChunk *ptr)
+{
+    int start[2], startOnScreen[2], end[2], endOnScreen[2];
+
+    setpen(150, 150, 150, 0, 20*zoom);
+    coordsFromWorld(ptr->x + ptr->usedStartX, ptr->y + ptr->usedStartY, start);
+    coordsToScreen(start[X], start[Y], startOnScreen);
+    moveto(startOnScreen[X], startOnScreen[Y]);
+    coordsFromWorld(ptr->x + ptr->usedEndX, ptr->y + ptr->usedStartY, end);
+    coordsToScreen(end[X], end[Y], endOnScreen);
+    lineto(endOnScreen[X], endOnScreen[Y]);
+    coordsFromWorld(ptr->x + ptr->usedEndX, ptr->y + ptr->usedEndY, end);
+    coordsToScreen(end[X], end[Y], endOnScreen);
+    lineto(endOnScreen[X], endOnScreen[Y]);
+    coordsFromWorld(ptr->x + ptr->usedStartX, ptr->y + ptr->usedEndY, end);
+    coordsToScreen(end[X], end[Y], endOnScreen);
+    lineto(endOnScreen[X], endOnScreen[Y]);
+    coordsFromWorld(ptr->x + ptr->usedStartX, ptr->y + ptr->usedStartY, end);
+    coordsToScreen(end[X], end[Y], endOnScreen);
+    lineto(endOnScreen[X], endOnScreen[Y]);
+}
+
+//This function renders the render chunks, i.e. draws the blocks from the render chunks
+//to the screen
+void renderChunks(int mode)
+{
+    int blockOnGrid[2];
+    int blockOnScreen[2];
+    int viewPositionRenderChunk[2];
+    int viewEndPositionRenderChunk[2];
+    RenderChunk *ptr = renderChunkHead;
+
+    coordsToRenderChunkCoords(viewX, viewY, viewPositionRenderChunk);
+    coordsToRenderChunkCoords(viewEndX, viewEndY, viewEndPositionRenderChunk);
+
+    while (ptr != NULL)
+    {
+        int i, j;
+
+        if (mode)
+        {
+            switch (mode)
+            {
+                case 1: drawRenderChunkEdges(ptr); break;
+                case 2: drawRenderChunkUsedAreaEdges(ptr); break;
+                case 3: drawRenderChunkEdges(ptr); drawRenderChunkUsedAreaEdges(ptr); break;
+            }
+        }
+
+        if (ptr->endX >= viewX && ptr->endY >= viewY && ptr->x <= viewEndX && ptr->y <= viewEndY)
+        {
+            for (i = ptr->usedStartY; i <= ptr->usedEndY; i ++)
+            {
+                for (j = ptr->usedStartX; j <= ptr->usedEndX; j ++)
+                {
+                    if (ptr->chunkArray[i][j] > 0)
+                    {
+                        coordsFromWorld(ptr->x + j, ptr->y + i, blockOnGrid);
+                        coordsToScreen(blockOnGrid[X], blockOnGrid[Y], blockOnScreen);
+                        currentTexture = ptr->chunkArray[i][j] - 1;
+                        draw_from(gc2("block", currentTexture)->clonename, blockOnScreen[X], blockOnScreen[Y], zoom);
+                    }
+                }
+            }
+        }
+
+        ptr = ptr->next;
     }
 }
