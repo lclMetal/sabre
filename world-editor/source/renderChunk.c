@@ -47,25 +47,24 @@ RenderChunk *renderChunkTail;
 
 int exportMapData(void);
 void initializeVariables();
-void initializeRenderChunk();
-void setRenderChunkUsedArea();
-void updateRenderChunkUsedArea();
-void coordsToRenderChunkCoords();
-void coordsToMap();
-void coordsFromMap();
-RenderChunk *createRenderChunkList();
-RenderChunk *addRenderChunk();
-RenderChunk *searchRenderChunk();
-RenderChunk *searchRenderChunkByCoords();
-int deleteRenderChunk();
+void initializeRenderChunk(RenderChunk *this);
+void setRenderChunkUsedArea(int newX, int newY, RenderChunk *ptr);
+void updateRenderChunkUsedArea(RenderChunk *ptr);
+void coordsToRenderChunkCoords(int blockX, int blockY, int renderChunkCoords[2]);
+void coordsToMap(double coordX, double coordY, double mapCoords[2]);
+void coordsFromMap(double coordX, double coordY, int worldCoords[2]);
+RenderChunk *createRenderChunkList(int newX, int newY);
+RenderChunk *addRenderChunk(int newX, int newY);
+RenderChunk *searchRenderChunk(int chunkX, int chunkY, RenderChunk **prev);
+RenderChunk *searchRenderChunkByCoords(int chunkX, int chunkY);
+int deleteRenderChunk(int chunkX, int chunkY);
 int deleteRenderChunkList();
-void plotBlock();
-void deleteBlock();
-void renderChunks();
+void plotBlock(int blockX, int blockY, int blockTexture);
+void deleteBlock(int blockX, int blockY);
 void updateMapDimensions();
 int convertChunkDataToMap();
 void freeMap();
-void testMapNode();
+void testMapNode(int nodeX, int nodeY);
 int testMapEdges();
 void freeEdgeTestMap();
 
@@ -465,102 +464,6 @@ void deleteBlock(int blockX, int blockY)
         relativeY = abs(blockY - ptr->y);
         ptr->chunkArray[relativeY][relativeX] = 0;
         updateRenderChunkUsedArea(ptr);
-    }
-}
-
-//This function draws the edges of a given render chunk
-//ptr - the pointer to the render chunk
-void drawRenderChunkEdges(RenderChunk *ptr)
-{
-    int start[2], startOnScreen[2], end[2], endOnScreen[2];
-
-    setpen(100, 100, 100, 0, 20*zoom);
-    coordsFromWorld(ptr->x, ptr->y, start);
-    coordsToScreen(start[X], start[Y], startOnScreen);
-    moveto(startOnScreen[X], startOnScreen[Y]);
-    coordsFromWorld(ptr->endX, ptr->y, end);
-    coordsToScreen(end[X], end[Y], endOnScreen);
-    lineto(endOnScreen[X], endOnScreen[Y]);
-    coordsFromWorld(ptr->endX, ptr->endY, end);
-    coordsToScreen(end[X], end[Y], endOnScreen);
-    lineto(endOnScreen[X], endOnScreen[Y]);
-    coordsFromWorld(ptr->x, ptr->endY, end);
-    coordsToScreen(end[X], end[Y], endOnScreen);
-    lineto(endOnScreen[X], endOnScreen[Y]);
-    coordsFromWorld(ptr->x, ptr->y, end);
-    coordsToScreen(end[X], end[Y], endOnScreen);
-    lineto(endOnScreen[X], endOnScreen[Y]);
-}
-
-//This function draws the edges of the used area of a given render chunk
-//ptr - the pointer to the render chunk
-void drawRenderChunkUsedAreaEdges(RenderChunk *ptr)
-{
-    int start[2], startOnScreen[2], end[2], endOnScreen[2];
-
-    setpen(150, 150, 150, 0, 20*zoom);
-    coordsFromWorld(ptr->x + ptr->usedStartX, ptr->y + ptr->usedStartY, start);
-    coordsToScreen(start[X], start[Y], startOnScreen);
-    moveto(startOnScreen[X], startOnScreen[Y]);
-    coordsFromWorld(ptr->x + ptr->usedEndX, ptr->y + ptr->usedStartY, end);
-    coordsToScreen(end[X], end[Y], endOnScreen);
-    lineto(endOnScreen[X], endOnScreen[Y]);
-    coordsFromWorld(ptr->x + ptr->usedEndX, ptr->y + ptr->usedEndY, end);
-    coordsToScreen(end[X], end[Y], endOnScreen);
-    lineto(endOnScreen[X], endOnScreen[Y]);
-    coordsFromWorld(ptr->x + ptr->usedStartX, ptr->y + ptr->usedEndY, end);
-    coordsToScreen(end[X], end[Y], endOnScreen);
-    lineto(endOnScreen[X], endOnScreen[Y]);
-    coordsFromWorld(ptr->x + ptr->usedStartX, ptr->y + ptr->usedStartY, end);
-    coordsToScreen(end[X], end[Y], endOnScreen);
-    lineto(endOnScreen[X], endOnScreen[Y]);
-}
-
-//This function renders the render chunks, i.e. draws the blocks from the render chunks
-//to the screen
-void renderChunks(int mode)
-{
-    int blockOnGrid[2];
-    int blockOnScreen[2];
-    int viewPositionRenderChunk[2];
-    int viewEndPositionRenderChunk[2];
-    RenderChunk *ptr = renderChunkHead;
-
-    coordsToRenderChunkCoords(viewX, viewY, viewPositionRenderChunk);
-    coordsToRenderChunkCoords(viewEndX, viewEndY, viewEndPositionRenderChunk);
-
-    while (ptr != NULL)
-    {
-        int i, j;
-
-        if (mode)
-        {
-            switch (mode)
-            {
-                case 1: drawRenderChunkEdges(ptr); break;
-                case 2: drawRenderChunkUsedAreaEdges(ptr); break;
-                case 3: drawRenderChunkEdges(ptr); drawRenderChunkUsedAreaEdges(ptr); break;
-            }
-        }
-
-        if (ptr->endX >= viewX && ptr->endY >= viewY && ptr->x <= viewEndX && ptr->y <= viewEndY)
-        {
-            for (i = ptr->usedStartY; i <= ptr->usedEndY; i ++)
-            {
-                for (j = ptr->usedStartX; j <= ptr->usedEndX; j ++)
-                {
-                    if (ptr->chunkArray[i][j] > 0)
-                    {
-                        coordsFromWorld(ptr->x + j, ptr->y + i, blockOnGrid);
-                        coordsToScreen(blockOnGrid[X], blockOnGrid[Y], blockOnScreen);
-                        currentTexture = ptr->chunkArray[i][j] - 1;
-                        draw_from(gc2("block", currentTexture)->clonename, blockOnScreen[X], blockOnScreen[Y], zoom);
-                    }
-                }
-            }
-        }
-
-        ptr = ptr->next;
     }
 }
 
