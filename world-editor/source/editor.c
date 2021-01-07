@@ -569,6 +569,7 @@ void drawLine(int x1, int y1, int x2, int y2, int texture, int mode)
 }
 
 //CURRENTLY UNFINISHED!
+// Currently creates unsatisfactory results when trying to draw very small ellipses.
 //This function draws an ellipse of blocks
 //x1 - the x coordinate for the top left corner of the rectangle that limits the ellipse's edges
 //y1 - the y coordinate for the top left corner of the rectangle that limits the ellipse's edges
@@ -580,6 +581,10 @@ void drawEllipse(int x1, int y1, int x2, int y2, int texture, int mode)
 {
     int hDiam = abs(max(x1, x2) - min(x1, x2));
     int vDiam = abs(max(y1, y2) - min(y1, y2));
+
+    // these are used to allow drawing ellipses of odd horizontal / vertical diameter
+    int hDiamOdd = (hDiam % 2 == 1);
+    int vDiamOdd = (vDiam % 2 == 1);
 
     int hRadius = round(hDiam * 0.5);
     int vRadius = round(vDiam * 0.5);
@@ -603,9 +608,9 @@ void drawEllipse(int x1, int y1, int x2, int y2, int texture, int mode)
 
     for (xx = 0, yy = vRadius, sigma = 2 * v2 + h2 * (1 - 2 * vRadius); v2 * xx <= h2 * yy; xx ++)
     {
-        putBlock(midX + xx, midY + yy, texture, mode);
-        putBlock(midX - xx, midY + yy, texture, mode);
-        putBlock(midX + xx, midY - yy, texture, mode);
+        putBlock(midX + xx - hDiamOdd, midY + yy - vDiamOdd, texture, mode);
+        putBlock(midX - xx, midY + yy - vDiamOdd, texture, mode);
+        putBlock(midX + xx - hDiamOdd, midY - yy, texture, mode);
         putBlock(midX - xx, midY - yy, texture, mode);
 
         if (sigma >= 0)
@@ -619,9 +624,9 @@ void drawEllipse(int x1, int y1, int x2, int y2, int texture, int mode)
 
     for (xx = hRadius, yy = 0, sigma = 2 * h2 + v2 * (1 - 2 * hRadius); h2 * yy <= v2 * xx; yy ++)
     {
-        putBlock(midX + xx, midY + yy, texture, mode);
-        putBlock(midX - xx, midY + yy, texture, mode);
-        putBlock(midX + xx, midY - yy, texture, mode);
+        putBlock(midX + xx - hDiamOdd, midY + yy - vDiamOdd, texture, mode);
+        putBlock(midX - xx, midY + yy - vDiamOdd, texture, mode);
+        putBlock(midX + xx - hDiamOdd, midY - yy, texture, mode);
         putBlock(midX - xx, midY - yy, texture, mode);
 
         if (sigma >= 0)
@@ -631,47 +636,6 @@ void drawEllipse(int x1, int y1, int x2, int y2, int texture, int mode)
         }
 
         sigma += h2 * ((4 * yy) + 6);
-    }
-}
-
-void DrawEllipse (int x0, int y0, int width, int height, int texture, int mode)
-{
-    int a2 = width * width;
-    int b2 = height * height;
-    int fa2 = 4 * a2, fb2 = 4 * b2;
-    int x, y, sigma;
-
-    if (width == 0 || height == 0)
-    {
-        putBlock(x0, y0, texture, mode);
-        return;
-    }
-
-    for (x = 0, y = height, sigma = 2*b2+a2*(1-2*height); b2*x <= a2*y; x++)
-    {
-        putBlock (x0 + x, y0 + y, texture, mode);
-        putBlock (x0 - x, y0 + y, texture, mode);
-        putBlock (x0 + x, y0 - y, texture, mode);
-        putBlock (x0 - x, y0 - y, texture, mode);
-        if (sigma >= 0)
-        {
-            sigma += fa2 * (1 - y);
-            y--;
-        }
-        sigma += b2 * ((4 * x) + 6);
-    }
-    for (x = width, y = 0, sigma = 2*a2+b2*(1-2*width); a2*y <= b2*x; y++)
-    {
-        putBlock (x0 + x, y0 + y, texture, mode);
-        putBlock (x0 - x, y0 + y, texture, mode);
-        putBlock (x0 + x, y0 - y, texture, mode);
-        putBlock (x0 - x, y0 - y, texture, mode);
-        if (sigma >= 0)
-        {
-            sigma += fb2 * (1 - x);
-            x--;
-        }
-        sigma += a2 * ((4 * y) + 6);
     }
 }
 

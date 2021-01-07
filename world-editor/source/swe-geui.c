@@ -1,4 +1,4 @@
-#define DEFAULT_ZDEPTH 0.5
+#define DEFAULT_ZDEPTH 0.8 // SABRE WORLD EDITOR (SWE) MODIFICATION, original value: 0.5
 #define USE_DEFAULT_STYLE GEUIController.sDefault
 
 #define GEUI_MOUSE_UP 0
@@ -115,6 +115,7 @@ void quitGEUI(void);
 // BEGIN SABRE WORLD EDITOR (SWE) MODIFICATION
 void enableGEUIMouse();
 void disableGEUIMouse();
+int isGEUIActive();
 // END SABRE WORLD EDITOR (SWE) MODIFICATION
 
 Actor *getTile(long index);
@@ -244,8 +245,10 @@ void enableGEUIMouse()
 
     ChangeParent("a_mouseSensor", "view");
     getclone("a_mouseSensor")->x = 0;
-    getclone("a_mouseSensor")->y = getclone("barTop")->height;
-    SendActivationEvent("a_mouseSensor");
+    getclone("a_mouseSensor")->y = 0;
+    ChangeZDepth("a_mouseSensor", 1.0);
+
+    SendActivationEvent("status"); // reset tooltip text
 }
 
 void disableGEUIMouse()
@@ -254,8 +257,13 @@ void disableGEUIMouse()
 
     ChangeParent("a_mouseSensor", "(none)");
     getclone("a_mouseSensor")->x = getclone("view")->x;
-    getclone("a_mouseSensor")->y = getclone("view")->y + getclone("barTop")->height;
-    SendActivationEvent("a_mouseSensor");
+    getclone("a_mouseSensor")->y = getclone("view")->y;
+    ChangeZDepth("a_mouseSensor", 0.0);
+}
+
+int isGEUIActive()
+{
+    return GEUIController.openWindowCount > 0;
 }
 // END SABRE WORLD EDITOR (SWE) MODIFICATION
 
@@ -1286,14 +1294,14 @@ void bringWindowToFront(Window *window)
     {
         if (ptr->index == window->index)
         {
-            ptr->zDepth = 0.6;
-            ChangeZDepth(ptr->parentCName, 0.6);
+            ptr->zDepth = 0.85; // SABRE WORLD EDITOR MODIFICATION, original value: 0.6
+            ChangeZDepth(ptr->parentCName, 0.85); // SABRE WORLD EDITOR MODIFICATION, original value: 0.6
             GEUIController.topIndex = window->index;
         }
         else
         {
-            ptr->zDepth = 0.5;
-            ChangeZDepth(ptr->parentCName, 0.5);
+            ptr->zDepth = DEFAULT_ZDEPTH;
+            ChangeZDepth(ptr->parentCName, DEFAULT_ZDEPTH);
         }
 
         ptr = ptr->next;
