@@ -43,7 +43,19 @@ char *addFileExtension(char *fileName, char *fileExtension)
 
 int actorExists(char *actorName)
 {
-    return (getclone(actorName)->cloneindex != -1);
+    // GE uses the cloneindex -1 to indicate that an actor is not a valid, existing actor.
+    // The actor count needs to be checked because:
+    //
+    // 1. IF an actor with the given base name exists in the project
+    // 2. AND the lowest indexed clone (= the actor itself, if no clones present)
+    //      in editor mode has "Create at startup" set to "No"
+    // 3. AND the actor currently has no alive instances in the game
+    //
+    // ..getclone will return an invalid Actor* that has the cloneindex of that specific
+    // clone / actor over in editor mode despite it not existing in the game.
+    // And that would break this function without the ActorCount check.
+    Actor *a = getclone(actorName);
+    return (ActorCount(a->name) > 0 && a->cloneindex != -1);
 }
 
 // ----- WARNING! -----
@@ -58,7 +70,18 @@ int actorExists(char *actorName)
 // is already at hand.
 int actorExists2(Actor *a)
 {
-    return (a->cloneindex != -1);
+    // GE uses the cloneindex -1 to indicate that an actor is not a valid, existing actor.
+    // The actor count needs to be checked because:
+    //
+    // 1. IF an actor with the given base name exists in the project
+    // 2. AND the lowest indexed clone (= the actor itself, if no clones present)
+    //      in editor mode has "Create at startup" set to "No"
+    // 3. AND the actor currently has no alive instances in the game
+    //
+    // ..getclone will return an invalid Actor* that has the cloneindex of that specific
+    // clone / actor over in editor mode despite it not existing in the game.
+    // And that would break this function without the ActorCount check.
+    return (ActorCount(a->name) > 0 && a->cloneindex != -1);
 }
 
 Actor *gc2(char *actorName, long cloneNum)
