@@ -11,3 +11,5 @@ debug.log
 # Test level file
 level.c
 
+# Local only files (ideas, concepts, etc.)
+/local

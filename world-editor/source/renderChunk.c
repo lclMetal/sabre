@@ -108,8 +108,10 @@ int exportMapData(void)
 //the map's dimensions
 void initializeVariables()
 {
-    INT_MIN_VALUE = -pow(2, (sizeof(int)*8-1));
-    INT_MAX_VALUE = pow(2, (sizeof(int)*8-1)) - 1;
+    // algorithm from: https://www.geeksforgeeks.org/computing-int_max-int_min-bitwise-operations/
+    unsigned int notZero = ~0;
+    INT_MAX_VALUE = notZero = notZero >> 1;
+    INT_MIN_VALUE = ~notZero;
 
     blockMinX = INT_MAX_VALUE;
     blockMaxX = INT_MIN_VALUE;

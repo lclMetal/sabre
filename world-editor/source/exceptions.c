@@ -7,6 +7,9 @@ int highestExceptionIndex = -1;
 void showExceptionMessage(int type, char message[256]);
 void hideExceptionMessage(int index);
 
+// TODO: Redo the exception system, current one causes ghostly bugs affecting actors
+// the Game Editor view :/
+
 //This function shows an exception message at the bottom left corner of the screen
 //Up to ten messages can be shown on screen at the same time
 //type - the type of the exeption message, is it a warning or an error
@@ -41,14 +44,13 @@ void showExceptionMessage(int type, char message[256])
 
     if (a->cloneindex > highestExceptionIndex)highestExceptionIndex = a->cloneindex;
 
-    for (i = 0; i < highestExceptionIndex; i ++)
+    for (i = lowestExceptionIndex; i < highestExceptionIndex; i ++)
     {
         Actor *moveThis;
 
         moveThis = gc2("exceptionTextActor", i);
 
-        if (moveThis->cloneindex > -1)moveThis->y -= 12;
-        //if (moveThis->cloneindex > -1)moveThis->y += 12;
+        if (actorExists2(moveThis) && ActorCount("exceptionTextActor") > 0)moveThis->y -= 12;
     }
 
     if (ActorCount("exceptionTextActor") > 10)
