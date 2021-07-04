@@ -3,21 +3,21 @@ enum SABRE_GameStatesEnum
     SABRE_UNINITIALIZED = 0,
     SABRE_RUNNING,
     SABRE_FINISHED
-}sabreGameState = SABRE_UNINITIALIZED;
+}SABRE_gameState = SABRE_UNINITIALIZED;
 
 struct SABRE_CameraStruct
 {
     float posX, posY;
     float dirX, dirY;
     float planeX, planeY;
-};
+}SABRE_camera;
 
 struct SABRE_KeybindStruct
 {
     char forward, backward;
     char turnLeft, turnRight;
     char strafeLeft, strafeRight;
-}sabreDefaultKeys =
+}SABRE_keys =
 {
     KEY_w, KEY_s, // forward, backward
     KEY_a, KEY_d, // turn left, right
@@ -30,17 +30,17 @@ struct SABRE_PlayerStruct
     float turnSpeed;
     struct SABRE_KeybindStruct keys;
     struct SABRE_CameraStruct camera;
-}sabrePlayer;
+}SABRE_player;
 
 struct SABRE_SliceStruct
 {
-    short animSlice;
-    short animIndex;
-}sabreTextureSlice;
+    short anim;
+    short slice;
+}SABRE_slice;
 
 void SABRE_Quit()
 {
-    if (sabreGameState != SABRE_FINISHED)
+    if (SABRE_gameState != SABRE_FINISHED)
     {
         VisibilityState("SABRE_Screen", DISABLE);
         VisibilityState("SABRE_PlayerController", DISABLE);
@@ -50,6 +50,6 @@ void SABRE_Quit()
         EventDisable("SABRE_PlayerController", EVENTALL);
         EventDisable("SABRE_TextureSlice", EVENTALL);
         EventDisable("SABRE_SpriteSlice", EVENTALL);
-        sabreGameState = SABRE_FINISHED;
+        SABRE_gameState = SABRE_FINISHED;
     }
 }

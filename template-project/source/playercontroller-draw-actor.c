@@ -1,11 +1,11 @@
 char *keyboard = GetKeyState();
-struct SABRE_KeybindStruct *keys = &sabrePlayer.keys; // a pointer to the player key binds
-struct SABRE_CameraStruct *camera = &sabrePlayer.camera; // a pointer to the camera
+struct SABRE_KeybindStruct *keys = &SABRE_keys; // a pointer to the player key binds
+struct SABRE_CameraStruct *camera = &SABRE_camera; // a pointer to the camera
 
 float oldDirX = camera->dirX;
 float oldPlaneX = camera->planeX;
-float rotateSpeed = sabrePlayer.turnSpeed;
-float moveSpeed = sabrePlayer.moveSpeed;
+float rotateSpeed = SABRE_player.turnSpeed;
+float moveSpeed = SABRE_player.moveSpeed;
 
 if (keyboard[keys->forward])
 {
@@ -23,7 +23,7 @@ if (keyboard[keys->backward])
     camera->posY -= camera->dirY * moveSpeed;
 }
 
-if (keyboard[keys->turnLeft])
+if (keyboard[keys->turnLeft] && !keyboard[keys->turnRight])
 {
     camera->dirX = camera->dirX * cos(-rotateSpeed) - camera->dirY * sin(-rotateSpeed);
     camera->dirY = oldDirX * sin(-rotateSpeed) + camera->dirY * cos(-rotateSpeed);
@@ -31,7 +31,7 @@ if (keyboard[keys->turnLeft])
     camera->planeY = oldPlaneX * sin(-rotateSpeed) + camera->planeY * cos(-rotateSpeed);
 }
 
-if (keyboard[keys->turnRight])
+if (keyboard[keys->turnRight] && !keyboard[keys->turnLeft])
 {
     camera->dirX = camera->dirX * cos(rotateSpeed) - camera->dirY * sin(rotateSpeed);
     camera->dirY = oldDirX * sin(rotateSpeed) + camera->dirY * cos(rotateSpeed);

@@ -19,7 +19,8 @@ short horizontalScalingCompensation; // amount of pixels to shift the drawing po
                                      // to compensate for the bigger width resulting from scaling
 const float horizontalCompensationThreshold = 0.0315f; // threshold for growing the compensation
 
-struct SABRE_CameraStruct *camera = &sabrePlayer.camera; // a pointer to the camera
+struct SABRE_TextureStruct *texture = NULL;
+struct SABRE_CameraStruct *camera = &SABRE_camera; // a pointer to the camera
 
 // only the 1st clone (cloneindex 0) will execute this code, as the other ones are just going
 // to inherit everything drawn on the first clone, due to how cloned canvases work in GE
@@ -102,7 +103,8 @@ if (!cloneindex)
         wallSliceHeight = screenHeight / perpWallDist;
 
         // calculate the right texture to use
-        sabreTextureSlice.animIndex = map[rayMapY][rayMapX] - 1;
+        SABRE_slice.anim = map[rayMapY][rayMapX] - 1;
+        texture = &(SABRE_textureStore.textures[SABRE_slice.anim]);
 
         // calculate where the wall was hit
         if (hitSide)
@@ -115,13 +117,13 @@ if (!cloneindex)
         wallHitX -= (short)wallHitX;
 
         // calculate which vertical slice from the texture has to be drawn
-        sabreTextureSlice.animSlice = (short)(wallHitX * textureWidth);
+        SABRE_slice.slice = (short)(wallHitX * texture->width);
 
         // prevent textures from being drawn as mirror images
-        if (!hitSide && rayDirX < 0) sabreTextureSlice.animSlice = textureWidth - sabreTextureSlice.animSlice - 1;
-        if (hitSide && rayDirY > 0) sabreTextureSlice.animSlice = textureWidth - sabreTextureSlice.animSlice - 1;
+        if (!hitSide && rayDirX < 0) SABRE_slice.slice = texture->width - SABRE_slice.slice - 1;
+        if (hitSide && rayDirY > 0) SABRE_slice.slice = texture->width - SABRE_slice.slice - 1;
 
-        scale = wallSliceHeight / (float)textureHeight;
+        scale = wallSliceHeight / (float)texture->height;
         horizontalScalingCompensation = (short)floor(scale - horizontalCompensationThreshold) + 1;
 
         SendActivationEvent("SABRE_TextureSlice");
