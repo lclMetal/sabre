@@ -7,19 +7,14 @@ float oldPlaneX = camera->planeX;
 float rotateSpeed = SABRE_player.turnSpeed;
 float moveSpeed = SABRE_player.moveSpeed;
 
-if (keyboard[keys->forward])
+if (keyboard[keys->forward] && !keyboard[keys->backward])
 {
-    if (!map[(short)camera->posY][(short)(camera->posX + camera->dirX * moveSpeed*5)])
     camera->posX += camera->dirX * moveSpeed;
-    if (!map[(short)(camera->posY + camera->dirY * moveSpeed*5)][(short)camera->posX])
     camera->posY += camera->dirY * moveSpeed;
 }
-
-if (keyboard[keys->backward])
+else if (keyboard[keys->backward] && !keyboard[keys->forward])
 {
-    if (!map[(short)camera->posY][(short)(camera->posX - camera->dirX * moveSpeed*5)])
     camera->posX -= camera->dirX * moveSpeed;
-    if (!map[(short)(camera->posY - camera->dirY * moveSpeed*5)][(short)camera->posX])
     camera->posY -= camera->dirY * moveSpeed;
 }
 
@@ -30,8 +25,7 @@ if (keyboard[keys->turnLeft] && !keyboard[keys->turnRight])
     camera->planeX = camera->planeX * cos(-rotateSpeed) - camera->planeY * sin(-rotateSpeed);
     camera->planeY = oldPlaneX * sin(-rotateSpeed) + camera->planeY * cos(-rotateSpeed);
 }
-
-if (keyboard[keys->turnRight] && !keyboard[keys->turnLeft])
+else if (keyboard[keys->turnRight] && !keyboard[keys->turnLeft])
 {
     camera->dirX = camera->dirX * cos(rotateSpeed) - camera->dirY * sin(rotateSpeed);
     camera->dirY = oldDirX * sin(rotateSpeed) + camera->dirY * cos(rotateSpeed);
@@ -39,18 +33,39 @@ if (keyboard[keys->turnRight] && !keyboard[keys->turnLeft])
     camera->planeY = oldPlaneX * sin(rotateSpeed) + camera->planeY * cos(rotateSpeed);
 }
 
-if (keyboard[keys->strafeLeft])
+if (keyboard[keys->strafeLeft] && !keyboard[keys->strafeRight])
 {
-    if (!map[(short)camera->posY][(short)(camera->posX - camera->planeX * moveSpeed*5)])
     camera->posX -= camera->planeX * moveSpeed;
-    if (!map[(short)(camera->posY - camera->planeY * moveSpeed*5)][(short)camera->posX])
     camera->posY -= camera->planeY * moveSpeed;
 }
-
-if (keyboard[keys->strafeRight])
+else if (keyboard[keys->strafeRight] && !keyboard[keys->strafeLeft])
 {
-    if (!map[(short)camera->posY][(short)(camera->posX + camera->planeX * moveSpeed*5)])
     camera->posX += camera->planeX * moveSpeed;
-    if (!map[(short)(camera->posY + camera->planeY * moveSpeed*5)][(short)camera->posX])
     camera->posY += camera->planeY * moveSpeed;
+}
+
+{
+    float posX = camera->posX, posY = camera->posY;
+    int coll = SABRE_GetSurroundingWalls(&posX, &posY, map);
+    float radius = 0.4f;
+
+    if ((coll & SABRE_TOP_L_MASK) == SABRE_TOP_L)
+        SABRE_KeepDistance(&posX, &posY, (int)posX, (int)posY, radius);
+    if ((coll & SABRE_TOP_MASK) == SABRE_TOP)
+        SABRE_KeepDistance(&posX, &posY, posX, (int)posY, radius);
+    if ((coll & SABRE_TOP_R_MASK) == SABRE_TOP_R)
+        SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY, radius);
+    if ((coll & SABRE_LEFT_MASK) == SABRE_LEFT)
+        SABRE_KeepDistance(&posX, &posY, (int)posX, posY, radius);
+    if ((coll & SABRE_RIGHT_MASK) == SABRE_RIGHT)
+        SABRE_KeepDistance(&posX, &posY, (int)posX +  1, posY, radius);
+    if ((coll & SABRE_LOW_L_MASK) == SABRE_LOW_L)
+        SABRE_KeepDistance(&posX, &posY, (int)posX, (int)posY + 1, radius);
+    if ((coll & SABRE_LOW_MASK) == SABRE_LOW)
+        SABRE_KeepDistance(&posX, &posY, posX, (int)posY + 1, radius);
+    if ((coll & SABRE_LOW_R_MASK) == SABRE_LOW_R)
+        SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY + 1, radius);
+
+    camera->posX = posX;
+    camera->posY = posY;
 }

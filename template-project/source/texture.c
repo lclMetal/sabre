@@ -97,13 +97,13 @@ int SABRE_PrepareTextureAddition()
     // the texture store has not been initialized, initialize it and make sure no errors occurred
     if (!SABRE_textureStore.size && SABRE_InitTextureStore() != 0)
     {
-        DEBUG_MSG_FROM("Unable to initialize texture store.", "SABRE_AddTexture");
+        DEBUG_MSG_FROM("Unable to initialize texture store.", "SABRE_PrepareTextureAddition");
         return 1;
     }
     // the texture store is full, grow it and check make sure no errors occurred
     else if (SABRE_textureStore.count == SABRE_textureStore.size && SABRE_GrowTextureStore() != 0)
     {
-        DEBUG_MSG_FROM("Unable to grow texture store.", "SABRE_AddTexture");
+        DEBUG_MSG_FROM("Unable to grow texture store.", "SABRE_PrepareTextureAddition");
         return 2;
     }
     // otherwise no-op
