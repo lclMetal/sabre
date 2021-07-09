@@ -71,29 +71,32 @@ int SABRE_GetSurroundingWalls(float *px, float *py, int map[LEVEL_HEIGHT][LEVEL_
     {
         for (i = 0; i < cols; i++)
         {
-            if (j != 1 || i != 1)
+            if (j == 1 && i == 1) mid = 1;
+            else
             {
                 int row = (int)*py - 1 + j;
                 int col = (int)*px - 1 + i;
 
                 collisions += (map[row][col] > 0) << SABRE_COLLISION_MASK_SIZE - (j * cols + i - mid);
             }
-            else mid = 1;
         }
     }
 
     return collisions;
 }
 
-void SABRE_KeepDistance(float *px, float *py, float x, float y, float dist)
+void SABRE_KeepDistance(float *x1, float *y1, float x2, float y2, float dist)
 {
-    float len = distance(*px, *py, x, y);
-    float ang = degtorad(direction(x, y, *px, *py));
+    float len = distance(*x1, *y1, x2, y2);
+    float ang = degtorad(direction(x2, y2, *x1, *y1));
 
     if (len < dist)
     {
-        *px = x + cos(ang) * dist;
-        *py = y + -sin(ang) * dist;
+        // multiply the results by 1.001 to make the above condition evaluate
+        // to false if the player hasn't moved since their position was last
+        // modified by this function
+        *x1 = x2 + cos(ang) * dist * 1.001f;
+        *y1 = y2 + -sin(ang) * dist * 1.001f;
     }
 }
 
