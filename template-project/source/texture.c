@@ -67,7 +67,7 @@ int SABRE_GrowTextureStore()
 int SABRE_AutoAddTextures()
 {
     int i = 0;
-    int err;
+    int err = 0;
     char animName[256];
 
     strcpy(animName, getAnimName(i));
@@ -113,12 +113,14 @@ int SABRE_PrepareTextureAddition()
 
 int SABRE_AddTexture(const char textureName[256])
 {
-    int err;
+    int err = 0;
 
     struct SABRE_TextureStruct *textures = NULL;
     struct SABRE_TextureStoreStruct *ts = NULL;
 
-    if (err = SABRE_PrepareTextureAddition() != 0) return err;
+    err = SABRE_PrepareTextureAddition();
+
+    if (err != 0) return err;
 
     ts = &SABRE_textureStore;
     textures = ts->textures;
