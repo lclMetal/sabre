@@ -34,10 +34,10 @@ if (!cloneindex)
     {
         // calculate the position and direction of the ray
         cameraX = 2.0f * slice / (float)screenWidth - 1; // x on the camera plane
-        rayPosX = camera->posX; // set the begin position of the ray to the player's position
-        rayPosY = camera->posY;
-        rayDirX = camera->dirX + camera->planeX * cameraX; // set the direction of the ray
-        rayDirY = camera->dirY + camera->planeY * cameraX;
+        rayPosX = camera->pos.x; // set the begin position of the ray to the player's position
+        rayPosY = camera->pos.y;
+        rayDirX = camera->dir.x + camera->plane.x * cameraX; // set the direction of the ray
+        rayDirY = camera->dir.y + camera->plane.y * cameraX;
 
         // set the square the ray starts from
         rayMapX = (short)rayPosX;

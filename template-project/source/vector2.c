@@ -3,68 +3,68 @@ struct SABRE_Vector2Struct
     float x, y;
 };
 
-SABRE_Vector2Struct SABRE_CreateVector2(float x, float y)
+struct SABRE_Vector2Struct SABRE_CreateVector2(float x, float y)
 {
-    SABRE_Vector2Struct new;
+    struct SABRE_Vector2Struct new;
     new.x = x;
     new.y = y;
     return new;
 }
 
-SABRE_Vector2Struct SABRE_ScaleVector2(SABRE_Vector2Struct vec, float scale)
+struct SABRE_Vector2Struct SABRE_ScaleVector2(struct SABRE_Vector2Struct vec, float scale)
 {
-    SABRE_Vector2Struct new;
+    struct SABRE_Vector2Struct new;
     new.x = vec.x * scale;
     new.y = vec.y * scale;
     return new;
 }
 
-void SABRE_ScaleVector2InPlace(SABRE_Vector2Struct *vec, float scale)
+void SABRE_ScaleVector2InPlace(struct SABRE_Vector2Struct *vec, float scale)
 {
     vec->x *= scale;
     vec->y *= scale;
 }
 
-SABRE_Vector2Struct SABRE_RotateVector2(SABRE_Vector2Struct vec, float rotation)
+struct SABRE_Vector2Struct SABRE_RotateVector2(struct SABRE_Vector2Struct vec, float rotation)
 {
-    SABRE_Vector2Struct new;
+    struct SABRE_Vector2Struct new;
     new.x = vec.x * cos(rotation) - vec.y * sin(rotation);
     new.y = vec.x * sin(rotation) + vec.y * cos(rotation);
     return new;
 }
 
-void SABRE_RotateVector2InPlace(SABRE_Vector2Struct *vec, float rotation)
+void SABRE_RotateVector2InPlace(struct SABRE_Vector2Struct *vec, float rotation)
 {
     float oldX = vec->x;
     vec->x = vec->x * cos(rotation) - vec->y * sin(rotation);
     vec->y = oldX   * sin(rotation) + vec->y * cos(rotation);
 }
 
-SABRE_Vector2Struct SABRE_AddVector2(SABRE_Vector2Struct a, SABRE_Vector2Struct b)
+struct SABRE_Vector2Struct SABRE_AddVector2(struct SABRE_Vector2Struct a, struct SABRE_Vector2Struct b)
 {
-    SABRE_Vector2Struct new;
+    struct SABRE_Vector2Struct new;
     new.x = a.x + b.x;
     new.y = a.y + b.y;
     return new;
 }
 
-void SABRE_AddVector2InPlace(SABRE_Vector2Struct *a, SABRE_Vector2Struct b)
+void SABRE_AddVector2InPlace(struct SABRE_Vector2Struct *a, struct SABRE_Vector2Struct b)
 {
     a->x += b.x;
     a->y += b.y;
 }
 
-float SABRE_DotProductVector2(SABRE_Vector2Struct a, SABRE_Vector2Struct b)
+float SABRE_DotProductVector2(struct SABRE_Vector2Struct a, struct SABRE_Vector2Struct b)
 {
     return a.x * b.x + a.y * b.y;
 }
 
-float SABRE_MagnitudeVector2(SABRE_Vector2Struct a)
+float SABRE_MagnitudeVector2(struct SABRE_Vector2Struct a)
 {
     return sqrt(SABRE_DotProductVector2(a, a));
 }
 
-SABRE_Vector2Struct SABRE_NormalizeVector2(SABRE_Vector2Struct vec)
+struct SABRE_Vector2Struct SABRE_NormalizeVector2(struct SABRE_Vector2Struct vec)
 {
     float magnitude = SABRE_MagnitudeVector2(vec);
 
@@ -77,7 +77,7 @@ SABRE_Vector2Struct SABRE_NormalizeVector2(SABRE_Vector2Struct vec)
     return SABRE_ScaleVector2(vec, 1.0f / magnitude);
 }
 
-void SABRE_NormalizeVector2InPlace(SABRE_Vector2Struct *vec)
+void SABRE_NormalizeVector2InPlace(struct SABRE_Vector2Struct *vec)
 {
     float magnitude = SABRE_MagnitudeVector2(*vec);
 

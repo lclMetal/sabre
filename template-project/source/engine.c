@@ -7,9 +7,9 @@ enum SABRE_GameStatesEnum
 
 struct SABRE_CameraStruct
 {
-    float posX, posY;
-    float dirX, dirY;
-    float planeX, planeY;
+    struct SABRE_Vector2Struct pos;
+    struct SABRE_Vector2Struct dir;
+    struct SABRE_Vector2Struct plane;
 }SABRE_camera;
 
 struct SABRE_KeybindStruct
