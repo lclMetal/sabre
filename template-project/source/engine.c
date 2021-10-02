@@ -7,6 +7,7 @@ enum SABRE_GameStatesEnum
 
 struct SABRE_CameraStruct
 {
+    struct SABRE_Vector2Struct prevPos;
     struct SABRE_Vector2Struct pos;
     struct SABRE_Vector2Struct dir;
     struct SABRE_Vector2Struct plane;
@@ -18,13 +19,21 @@ struct SABRE_KeybindStruct
     char turnLeft, turnRight;
     char strafeLeft, strafeRight;
     char interact;
-}SABRE_keys =
+}SABRE_binds =
 {
     KEY_w, KEY_s, // forward, backward
     KEY_a, KEY_d, // turn left, right
     KEY_q, KEY_e, // strafe left, right
     KEY_r         // interact
 };
+
+struct SABRE_KeyboardState
+{
+    char forward, backward;
+    char turnLeft, turnRight;
+    char strafeLeft, strafeRight;
+    char interact;
+}SABRE_keys;
 
 struct SABRE_PlayerStruct
 {
@@ -98,6 +107,19 @@ void SABRE_KeepDistance(float *x1, float *y1, float x2, float y2, float dist)
         *x1 = x2 + cos(ang) * dist * 1.001f;
         *y1 = y2 + -sin(ang) * dist * 1.001f;
     }
+}
+
+void SABRE_UpdateKeyboardState()
+{
+    char *keys = GetKeyState();
+
+    SABRE_keys.forward      = keys[SABRE_binds.forward];
+    SABRE_keys.backward     = keys[SABRE_binds.backward];
+    SABRE_keys.turnLeft     = keys[SABRE_binds.turnLeft];
+    SABRE_keys.turnRight    = keys[SABRE_binds.turnRight];
+    SABRE_keys.strafeLeft   = keys[SABRE_binds.strafeLeft];
+    SABRE_keys.strafeRight  = keys[SABRE_binds.strafeRight];
+    SABRE_keys.interact     = keys[SABRE_binds.interact];
 }
 
 void SABRE_Quit()

@@ -1,5 +1,4 @@
-char *keyboard = GetKeyState();
-struct SABRE_KeybindStruct *keys = &SABRE_keys; // a pointer to the player key binds
+struct SABRE_KeyboardState *keys = &SABRE_keys; // a pointer to the player key binds
 struct SABRE_CameraStruct *camera = &SABRE_camera; // a pointer to the camera
 
 struct SABRE_Vector2Struct oldDir   = camera->dir;
@@ -7,37 +6,50 @@ struct SABRE_Vector2Struct oldPlane = camera->plane;
 float rotateSpeed = SABRE_player.turnSpeed;
 float moveSpeed = SABRE_player.moveSpeed;
 
-if (keyboard[keys->forward] && !keyboard[keys->backward])
-{
-    SABRE_AddVector2InPlace(&camera->pos, SABRE_ScaleVector2(camera->dir, moveSpeed));
-}
-else if (keyboard[keys->backward] && !keyboard[keys->forward])
-{
-    SABRE_AddVector2InPlace(&camera->pos, SABRE_ScaleVector2(camera->dir, -moveSpeed));
-}
+struct SABRE_Vector2Struct prev = camera->pos;
+struct SABRE_Vector2Struct newPos = SABRE_CreateVector2(0.0f, 0.0f);
+struct SABRE_Vector2Struct normalizedForwardDir;
+struct SABRE_Vector2Struct normalizedRightDir;
 
-if (keyboard[keys->turnLeft] && !keyboard[keys->turnRight])
+SABRE_UpdateKeyboardState();
+
+if (keys->turnLeft && !keys->turnRight)
 {
     SABRE_RotateVector2InPlace(&camera->dir,    -rotateSpeed);
     SABRE_RotateVector2InPlace(&camera->plane,  -rotateSpeed);
 }
-else if (keyboard[keys->turnRight] && !keyboard[keys->turnLeft])
+else if (keys->turnRight && !keys->turnLeft)
 {
     SABRE_RotateVector2InPlace(&camera->dir,    rotateSpeed);
     SABRE_RotateVector2InPlace(&camera->plane,  rotateSpeed);
 }
 
-if (keyboard[keys->strafeLeft] && !keyboard[keys->strafeRight])
+normalizedForwardDir = SABRE_NormalizeVector2(camera->dir);
+normalizedRightDir = SABRE_NormalizeVector2(camera->plane);
+
+if (keys->forward && !keys->backward)
 {
-    SABRE_AddVector2InPlace(&camera->pos, SABRE_ScaleVector2(camera->plane, -moveSpeed));
+    SABRE_AddVector2InPlace(&newPos, SABRE_ScaleVector2(normalizedForwardDir, moveSpeed));
 }
-else if (keyboard[keys->strafeRight] && !keyboard[keys->strafeLeft])
+else if (keys->backward && !keys->forward)
 {
-    SABRE_AddVector2InPlace(&camera->pos, SABRE_ScaleVector2(camera->plane, moveSpeed));
+    SABRE_AddVector2InPlace(&newPos, SABRE_ScaleVector2(normalizedForwardDir, -moveSpeed));
 }
 
+if (keys->strafeLeft && !keys->strafeRight)
 {
-    float posX = camera->pos.x, posY = camera->pos.y;
+    SABRE_AddVector2InPlace(&newPos, SABRE_ScaleVector2(normalizedRightDir, -moveSpeed));
+}
+else if (keys->strafeRight && !keys->strafeLeft)
+{
+    SABRE_AddVector2InPlace(&newPos, SABRE_ScaleVector2(normalizedRightDir, moveSpeed));
+}
+
+SABRE_NormalizeVector2InPlace(&newPos);
+SABRE_ScaleVector2InPlace(&newPos, moveSpeed);
+
+{
+    float posX = newPos.x + camera->pos.x, posY = newPos.y + camera->pos.y;
     int coll = SABRE_GetSurroundingWalls(&posX, &posY, map);
     float radius = 0.4f;
 
@@ -59,4 +71,9 @@ else if (keyboard[keys->strafeRight] && !keyboard[keys->strafeLeft])
         SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY + 1, radius);
 
     camera->pos = SABRE_CreateVector2(posX, posY);
+}
+
+if (prev.x != camera->pos.x || prev.y != camera->pos.y)
+{
+    camera->prevPos = prev;
 }
