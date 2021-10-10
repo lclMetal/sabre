@@ -45,32 +45,35 @@ else if (keys->strafeRight && !keys->strafeLeft)
     SABRE_AddVector2InPlace(&newPos, SABRE_ScaleVector2(normalizedRightDir, moveSpeed));
 }
 
-SABRE_NormalizeVector2InPlace(&newPos);
-SABRE_ScaleVector2InPlace(&newPos, moveSpeed);
-
+if (newPos.x != 0 || newPos.y != 0)
 {
-    float posX = newPos.x + camera->pos.x, posY = newPos.y + camera->pos.y;
-    int coll = SABRE_GetSurroundingWalls(&posX, &posY, map);
-    float radius = 0.4f;
+    SABRE_NormalizeVector2InPlace(&newPos);
+    SABRE_ScaleVector2InPlace(&newPos, moveSpeed);
 
-    if ((coll & SABRE_TOP_L_MASK) == SABRE_TOP_L)
-        SABRE_KeepDistance(&posX, &posY, (int)posX, (int)posY, radius);
-    if ((coll & SABRE_TOP_MASK) == SABRE_TOP)
-        SABRE_KeepDistance(&posX, &posY, posX, (int)posY, radius);
-    if ((coll & SABRE_TOP_R_MASK) == SABRE_TOP_R)
-        SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY, radius);
-    if ((coll & SABRE_LEFT_MASK) == SABRE_LEFT)
-        SABRE_KeepDistance(&posX, &posY, (int)posX, posY, radius);
-    if ((coll & SABRE_RIGHT_MASK) == SABRE_RIGHT)
-        SABRE_KeepDistance(&posX, &posY, (int)posX +  1, posY, radius);
-    if ((coll & SABRE_LOW_L_MASK) == SABRE_LOW_L)
-        SABRE_KeepDistance(&posX, &posY, (int)posX, (int)posY + 1, radius);
-    if ((coll & SABRE_LOW_MASK) == SABRE_LOW)
-        SABRE_KeepDistance(&posX, &posY, posX, (int)posY + 1, radius);
-    if ((coll & SABRE_LOW_R_MASK) == SABRE_LOW_R)
-        SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY + 1, radius);
+    {
+        float posX = newPos.x + camera->pos.x, posY = newPos.y + camera->pos.y;
+        int coll = SABRE_GetSurroundingWalls(&posX, &posY, map);
+        float radius = 0.4f;
 
-    camera->pos = SABRE_CreateVector2(posX, posY);
+        if ((coll & SABRE_TOP_L_MASK) == SABRE_TOP_L)
+            SABRE_KeepDistance(&posX, &posY, (int)posX, (int)posY, radius);
+        if ((coll & SABRE_TOP_MASK) == SABRE_TOP)
+            SABRE_KeepDistance(&posX, &posY, posX, (int)posY, radius);
+        if ((coll & SABRE_TOP_R_MASK) == SABRE_TOP_R)
+            SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY, radius);
+        if ((coll & SABRE_LEFT_MASK) == SABRE_LEFT)
+            SABRE_KeepDistance(&posX, &posY, (int)posX, posY, radius);
+        if ((coll & SABRE_RIGHT_MASK) == SABRE_RIGHT)
+            SABRE_KeepDistance(&posX, &posY, (int)posX +  1, posY, radius);
+        if ((coll & SABRE_LOW_L_MASK) == SABRE_LOW_L)
+            SABRE_KeepDistance(&posX, &posY, (int)posX, (int)posY + 1, radius);
+        if ((coll & SABRE_LOW_MASK) == SABRE_LOW)
+            SABRE_KeepDistance(&posX, &posY, posX, (int)posY + 1, radius);
+        if ((coll & SABRE_LOW_R_MASK) == SABRE_LOW_R)
+            SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY + 1, radius);
+
+        camera->pos = SABRE_CreateVector2(posX, posY);
+    }
 }
 
 if (prev.x != camera->pos.x || prev.y != camera->pos.y)
