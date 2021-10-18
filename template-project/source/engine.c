@@ -128,11 +128,11 @@ void SABRE_Quit()
     {
         VisibilityState("SABRE_Screen", DISABLE);
         VisibilityState("SABRE_PlayerController", DISABLE);
-        VisibilityState("SABRE_TextureSlice", DISABLE);
+        VisibilityState("SABRE_TextureActor", DISABLE);
         VisibilityState("SABRE_SpriteSlice", DISABLE);
         EventDisable("SABRE_Screen", EVENTALL);
         EventDisable("SABRE_PlayerController", EVENTALL);
-        EventDisable("SABRE_TextureSlice", EVENTALL);
+        EventDisable("SABRE_TextureActor", EVENTALL);
         EventDisable("SABRE_SpriteSlice", EVENTALL);
         SABRE_gameState = SABRE_FINISHED;
     }

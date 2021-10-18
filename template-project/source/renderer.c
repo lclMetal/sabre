@@ -249,7 +249,7 @@ void SABRE_RenderObjects()
     {
         SABRE_slice.anim = iterator->slice.anim;
         SABRE_slice.slice = iterator->slice.slice;
-        SendActivationEvent("SABRE_TextureSlice");
-        draw_from("SABRE_TextureSlice", iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition, iterator->scale);
+        SendActivationEvent(SABRE_TEXTURE_ACTOR);
+        draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition, iterator->scale);
     }
 }
