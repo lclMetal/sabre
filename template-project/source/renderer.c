@@ -1,7 +1,3 @@
-#if DEBUG
-#define DEBUG_PRINT_MEMORY_USAGE 1
-#endif
-
 enum SABRE_RenderObjectTypeEnum
 {
     SABRE_TextureRO,
