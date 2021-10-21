@@ -51,6 +51,7 @@ if (newPos.x != 0 || newPos.y != 0)
     SABRE_ScaleVector2InPlace(&newPos, moveSpeed);
 
     {
+        unsigned int i;
         float posX = newPos.x + camera->pos.x, posY = newPos.y + camera->pos.y;
         int coll = SABRE_GetSurroundingWalls(&posX, &posY, map);
         float radius = 0.4f;
@@ -71,6 +72,11 @@ if (newPos.x != 0 || newPos.y != 0)
             SABRE_KeepDistance(&posX, &posY, posX, (int)posY + 1, radius);
         if ((coll & SABRE_LOW_R_MASK) == SABRE_LOW_R)
             SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY + 1, radius);
+
+        for (i = 0; i < SABRE_SPRITE_COUNT; i++)
+        {
+            SABRE_KeepDistance(&posX, &posY, sprites[i].pos.x, sprites[i].pos.y, sprites[i].radius);
+        }
 
         camera->pos = SABRE_CreateVector2(posX, posY);
     }

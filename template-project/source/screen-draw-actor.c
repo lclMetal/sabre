@@ -22,9 +22,15 @@ const float horizontalCompensationThreshold = 0.0315f; // threshold for growing 
 struct SABRE_TextureStruct *texture = NULL;
 struct SABRE_CameraStruct *camera = &SABRE_camera; // a pointer to the camera
 
+unsigned int sprite; // index of the sprite to render
+float spriteX, spriteY;
+float invDet;
+float transformX, transformY;
+float spriteScreenX;
+
 // only the 1st clone (cloneindex 0) will execute this code, as the other ones are just going
 // to inherit everything drawn on the first clone, due to how cloned canvases work in GE
-if (!cloneindex)
+if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 {
     erase(0, 0, 0, 1);
     SABRE_InitializeFrame();
@@ -45,8 +51,8 @@ if (!cloneindex)
         rayMapY = (short)rayPosY;
 
         // distance ray has to travel from one side to another
-        deltaDistX = (rayDirY == 0) ? 0 : ((rayDirX == 0) ? 1 : abs(1.0f / rayDirX));
-        deltaDistY = (rayDirX == 0) ? 0 : ((rayDirY == 0) ? 1 : abs(1.0f / rayDirY));
+        deltaDistX = (rayDirX == 0) ? 1e30 : abs(1 / rayDirX);
+        deltaDistY = (rayDirY == 0) ? 1e30 : abs(1 / rayDirY);
 
         wallHit = 0;
         hitSide = 0;
@@ -96,12 +102,12 @@ if (!cloneindex)
 
         // calculate the perpendicular distance between the wall and the camera plane
         if (!hitSide)
-            perpWallDist = ((rayMapX - rayPosX + (1 - rayStepX) / 2.0f) / rayDirX);
+            perpWallDist = (sideDistX - deltaDistX);
         else
-            perpWallDist = ((rayMapY - rayPosY + (1 - rayStepY) / 2.0f) / rayDirY);
+            perpWallDist = (sideDistY - deltaDistY);
 
         // calculate the height of the current line of the wall to be drawn
-        wallSliceHeight = screenHeight / perpWallDist;
+        wallSliceHeight = (float)screenHeight / (float)perpWallDist;
 
         // calculate the right texture to use
         SABRE_slice.anim = map[rayMapY][rayMapX] - 1;
@@ -131,6 +137,31 @@ if (!cloneindex)
 
         slice += (short)max(floor(scale) - 1, 0) + horizontalScalingCompensation * (scale > 1.0f - (horizontalCompensationThreshold - 0.0001f));
         drawCalls++;
+    }
+
+    invDet = 1.0f / (float)(camera->plane.x * camera->dir.y - camera->dir.x * camera->plane.y);
+
+    for (sprite = 0; sprite < SABRE_SPRITE_COUNT; sprite++)
+    {
+        spriteX = sprites[sprite].pos.x - camera->pos.x;
+        spriteY = sprites[sprite].pos.y - camera->pos.y;
+
+        transformX = invDet * (camera->dir.y * spriteX - camera->dir.x * spriteY);
+        transformY = invDet * (-camera->plane.y * spriteX + camera->plane.x * spriteY);
+
+        if (transformY < 0.05f)
+        {
+            transformY = -1;
+        }
+
+        spriteScreenX = (screenWidth / 2.0f) * (1 + transformX / transformY);
+
+        if (transformY > 0)
+        {
+            SABRE_slice.anim = sprites[sprite].sprite;
+            SABRE_slice.slice = 0;
+            SABRE_AddSpriteRO(transformY, 1.0f / transformY, spriteScreenX, SABRE_slice);
+        }
     }
 
     SABRE_RenderObjects();

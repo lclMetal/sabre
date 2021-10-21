@@ -1,7 +1,7 @@
 enum SABRE_RenderObjectTypeEnum
 {
-    SABRE_TextureRO,
-    SABRE_SpriteRO
+    SABRE_TEXTURE_RO,
+    SABRE_SPRITE_RO
 };
 
 typedef struct SABRE_RenderObjectStruct
@@ -207,10 +207,34 @@ SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizon
     }
 
     new->sortValue = sortValue;
-    new->objectType = SABRE_TextureRO;
+    new->objectType = SABRE_TEXTURE_RO;
     new->scale = scale;
     new->horizontalPosition = horizontalPosition;
     new->horizontalScalingCompensation = compensation;
+    new->slice = slice;
+    new->prev = NULL;
+    new->next = NULL;
+
+    err = SABRE_InsertRO(new);
+
+    return new;
+}
+
+SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizontalPosition, struct SABRE_SliceStruct slice)
+{
+    int err = 0;
+    SABRE_RenderObject *new = SABRE_GetNextUnusedRO();
+
+    if (!new)
+    {
+        return NULL;
+    }
+
+    new->sortValue = sortValue;
+    new->objectType = SABRE_SPRITE_RO;
+    new->scale = scale;
+    new->horizontalPosition = horizontalPosition;
+    new->horizontalScalingCompensation = 0;
     new->slice = slice;
     new->prev = NULL;
     new->next = NULL;
@@ -247,9 +271,19 @@ void SABRE_RenderObjects()
 
     for (iterator = SABRE_ROListManager.head; iterator != NULL; iterator = iterator->next)
     {
-        SABRE_slice.anim = iterator->slice.anim;
-        SABRE_slice.slice = iterator->slice.slice;
-        SendActivationEvent(SABRE_TEXTURE_ACTOR);
-        draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition, iterator->scale);
+        if (iterator->objectType == SABRE_TEXTURE_RO)
+        {
+            SABRE_slice.anim = iterator->slice.anim;
+            SABRE_slice.slice = iterator->slice.slice;
+            SendActivationEvent(SABRE_TEXTURE_ACTOR);
+            draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition, iterator->scale);
+        }
+        else if (iterator->objectType == SABRE_SPRITE_RO)
+        {
+            SABRE_slice.anim = iterator->slice.anim;
+            SABRE_slice.slice = iterator->slice.slice;
+            SendActivationEvent(SABRE_SPRITE_ACTOR);
+            draw_from(SABRE_SPRITE_ACTOR, iterator->horizontalPosition, verticalPosition + ((screenHeight * iterator->scale) - ((float)iterator->scale * (float)getclone("SABRE_SpriteActor.0")->height))*0.5f, iterator->scale);
+        }
     }
 }
