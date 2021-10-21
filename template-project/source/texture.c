@@ -8,6 +8,7 @@ struct SABRE_TextureStruct
     int width;
     int height;
     short slices;
+    char isWindow;
     char name[256];
 };
 
@@ -111,6 +112,19 @@ int SABRE_PrepareTextureAddition()
     return 0;
 }
 
+int SABRE_StringEndsWith(const char *str, const char *str2)
+{
+    size_t len1 = strlen(str);
+    size_t len2 = strlen(str2);
+
+    if (len1 < len2)
+    {
+        return 0;
+    }
+
+    return !strcmp(&str[len1 - len2], str2);
+}
+
 int SABRE_AddTexture(const char textureName[256])
 {
     int err = 0;
@@ -128,6 +142,7 @@ int SABRE_AddTexture(const char textureName[256])
     strcpy(textures[ts->count].name, textureName);
     textures[ts->count].width = SABRE_CalculateTextureWidth(&textures[ts->count]);
     textures[ts->count].height = SABRE_CalculateTextureHeight(&textures[ts->count]);
+    textures[ts->count].isWindow = SABRE_StringEndsWith(textureName, "-window");
     ts->count++; // new texture has been added, increment count
 
     return 0;

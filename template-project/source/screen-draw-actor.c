@@ -28,6 +28,8 @@ float invDet;
 float transformX, transformY;
 float spriteScreenX;
 
+char solidWallHit = 0;
+
 // only the 1st clone (cloneindex 0) will execute this code, as the other ones are just going
 // to inherit everything drawn on the first clone, due to how cloned canvases work in GE
 if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
@@ -79,64 +81,76 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             sideDistY = (rayMapY + 1 - rayPosY) * deltaDistY;
         }
 
-        // perform Digital Differential Analysis (DDA) for finding the wall
-        while (!wallHit) // loop until a wall has been hit
+        solidWallHit = 0;
+
+        while (!solidWallHit)
         {
-            // step to next map square in x- or y-direction, depending on which one is closer
-            if (sideDistX < sideDistY)
+            // perform Digital Differential Analysis (DDA) for finding the wall
+            while (!wallHit) // loop until a wall has been hit
             {
-                sideDistX += deltaDistX;
-                rayMapX += rayStepX;
-                hitSide = 0;
-            }
-            else
-            {
-                sideDistY += deltaDistY;
-                rayMapY += rayStepY;
-                hitSide = 1;
+                // step to next map square in x- or y-direction, depending on which one is closer
+                if (sideDistX < sideDistY)
+                {
+                    sideDistX += deltaDistX;
+                    rayMapX += rayStepX;
+                    hitSide = 0;
+                }
+                else
+                {
+                    sideDistY += deltaDistY;
+                    rayMapY += rayStepY;
+                    hitSide = 1;
+                }
+
+                // check if a wall has been hit
+                if (map[rayMapY][rayMapX] > 0) wallHit = 1;
             }
 
-            // check if a wall has been hit
-            if (map[rayMapY][rayMapX] > 0) wallHit = 1;
+            // calculate the perpendicular distance between the wall and the camera plane
+            if (!hitSide)
+                perpWallDist = (sideDistX - deltaDistX);
+            else
+                perpWallDist = (sideDistY - deltaDistY);
+
+            // calculate the height of the current line of the wall to be drawn
+            wallSliceHeight = (float)screenHeight / (float)perpWallDist;
+
+            // calculate the right texture to use
+            SABRE_slice.anim = map[rayMapY][rayMapX] - 1;
+            texture = &(SABRE_textureStore.textures[SABRE_slice.anim]);
+
+            // calculate where the wall was hit
+            if (hitSide)
+                wallHitX = rayPosX + ((rayMapY - rayPosY + (1 - rayStepY) / 2.0f) / rayDirY) * rayDirX;
+            else
+                wallHitX = rayPosY + ((rayMapX - rayPosX + (1 - rayStepX) / 2.0f) / rayDirX) * rayDirY;
+
+            // get only the decimal part, which represents the hit position along the horizontal
+            // axis of the texture
+            wallHitX -= (short)wallHitX;
+
+            // calculate which vertical slice from the texture has to be drawn
+            SABRE_slice.slice = (short)(wallHitX * texture->width);
+
+            // prevent textures from being drawn as mirror images
+            if (!hitSide && rayDirX < 0) SABRE_slice.slice = texture->width - SABRE_slice.slice - 1;
+            if (hitSide && rayDirY > 0) SABRE_slice.slice = texture->width - SABRE_slice.slice - 1;
+
+            scale = wallSliceHeight / (float)texture->height;
+            horizontalScalingCompensation = (short)floor(scale - horizontalCompensationThreshold) + 1;
+
+            SABRE_AddTextureRO(perpWallDist, scale, slice, horizontalScalingCompensation, SABRE_slice);
+
+            if (!texture->isWindow)
+            {
+                solidWallHit = 1;
+            }
+
+            wallHit = 0;
+            drawCalls++;
         }
 
-        // calculate the perpendicular distance between the wall and the camera plane
-        if (!hitSide)
-            perpWallDist = (sideDistX - deltaDistX);
-        else
-            perpWallDist = (sideDistY - deltaDistY);
-
-        // calculate the height of the current line of the wall to be drawn
-        wallSliceHeight = (float)screenHeight / (float)perpWallDist;
-
-        // calculate the right texture to use
-        SABRE_slice.anim = map[rayMapY][rayMapX] - 1;
-        texture = &(SABRE_textureStore.textures[SABRE_slice.anim]);
-
-        // calculate where the wall was hit
-        if (hitSide)
-            wallHitX = rayPosX + ((rayMapY - rayPosY + (1 - rayStepY) / 2.0f) / rayDirY) * rayDirX;
-        else
-            wallHitX = rayPosY + ((rayMapX - rayPosX + (1 - rayStepX) / 2.0f) / rayDirX) * rayDirY;
-
-        // get only the decimal part, which represents the hit position along the horizontal
-        // axis of the texture
-        wallHitX -= (short)wallHitX;
-
-        // calculate which vertical slice from the texture has to be drawn
-        SABRE_slice.slice = (short)(wallHitX * texture->width);
-
-        // prevent textures from being drawn as mirror images
-        if (!hitSide && rayDirX < 0) SABRE_slice.slice = texture->width - SABRE_slice.slice - 1;
-        if (hitSide && rayDirY > 0) SABRE_slice.slice = texture->width - SABRE_slice.slice - 1;
-
-        scale = wallSliceHeight / (float)texture->height;
-        horizontalScalingCompensation = (short)floor(scale - horizontalCompensationThreshold) + 1;
-
-        SABRE_AddTextureRO(perpWallDist, scale, slice, horizontalScalingCompensation, SABRE_slice);
-
         slice += (short)max(floor(scale) - 1, 0) + horizontalScalingCompensation * (scale > 1.0f - (horizontalCompensationThreshold - 0.0001f));
-        drawCalls++;
     }
 
     invDet = 1.0f / (float)(camera->plane.x * camera->dir.y - camera->dir.x * camera->plane.y);
