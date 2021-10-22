@@ -267,6 +267,7 @@ void SABRE_RenderObjects()
     int horizontalPosition = 0;
     float verticalPosition = height * 0.5f;
     SABRE_RenderObject *iterator = NULL;
+    float verticalResolutionFactor = screenHeight / 480.0f;
     const float horizontalCompensationThreshold = 0.0315f; // threshold for growing the compensation
 
     for (iterator = SABRE_ROListManager.head; iterator != NULL; iterator = iterator->next)
@@ -283,7 +284,7 @@ void SABRE_RenderObjects()
             SABRE_slice.anim = iterator->slice.anim;
             SABRE_slice.slice = iterator->slice.slice;
             SendActivationEvent(SABRE_SPRITE_ACTOR);
-            draw_from(SABRE_SPRITE_ACTOR, iterator->horizontalPosition, verticalPosition + ((screenHeight * iterator->scale) - ((float)iterator->scale * (float)getclone("SABRE_SpriteActor.0")->height))*0.5f, iterator->scale);
+            draw_from(SABRE_SPRITE_ACTOR, iterator->horizontalPosition, verticalPosition + (((480.0f * iterator->scale) - ((float)iterator->scale * (float)getclone("SABRE_SpriteActor.0")->height))*0.5f) * verticalResolutionFactor, iterator->scale * verticalResolutionFactor);
         }
     }
 }
