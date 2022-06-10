@@ -30,6 +30,8 @@ struct SABRE_RenderObjectListManagerStruct
 #if DEBUG
 int allocations = 0;
 int traversals = 0;
+int singleSliceTraversals = 0;
+int maxTraversals = 0;
 size_t allocatedMemory = 0;
 #endif
 
@@ -99,7 +101,10 @@ void SABRE_InitializeFrame()
         }
     }
 
+#if DEBUG
     traversals = 0;
+    maxTraversals = 0;
+#endif
 
     SABRE_ROListManager.reusableCache = SABRE_ConcatenateROList(SABRE_ROListManager.reusableCache, SABRE_ROListManager.head);
     SABRE_ROListManager.head = NULL;
@@ -126,13 +131,20 @@ int SABRE_InsertRO(SABRE_RenderObject *object)
 
     iterator = SABRE_ROListManager.curr;
 
+#if DEBUG
+    singleSliceTraversals = 0;
+#endif
+
     if (object->sortValue <= iterator->sortValue)
     {
         while (iterator && object->sortValue <= iterator->sortValue)
         {
             prev = iterator;
             iterator = iterator->next;
+#if DEBUG
             traversals++;
+            singleSliceTraversals++;
+#endif
         }
 
         if (iterator)
@@ -160,7 +172,10 @@ int SABRE_InsertRO(SABRE_RenderObject *object)
         {
             next = iterator;
             iterator = iterator->prev;
+#if DEBUG
             traversals++;
+            singleSliceTraversals++;
+#endif
         }
 
         if (iterator)
@@ -182,6 +197,10 @@ int SABRE_InsertRO(SABRE_RenderObject *object)
         }
         SABRE_ROListManager.curr = object;
     }
+
+#if DEBUG
+    if (object->objectType == SABRE_TEXTURE_RO && singleSliceTraversals > maxTraversals) maxTraversals = singleSliceTraversals;
+#endif
 
     return 0;
 }
