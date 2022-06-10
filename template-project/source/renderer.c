@@ -18,6 +18,8 @@ typedef struct SABRE_RenderObjectStruct
     struct SABRE_RenderObjectStruct *next;
 }SABRE_RenderObject;
 
+SABRE_RenderObject *mapROs[LEVEL_HEIGHT][LEVEL_WIDTH];
+
 struct SABRE_RenderObjectListManagerStruct
 {
     SABRE_RenderObject *head;
@@ -27,6 +29,7 @@ struct SABRE_RenderObjectListManagerStruct
 
 #if DEBUG
 int allocations = 0;
+int traversals = 0;
 size_t allocatedMemory = 0;
 #endif
 
@@ -86,6 +89,18 @@ SABRE_RenderObject *SABRE_ConcatenateROList(SABRE_RenderObject *dest, SABRE_Rend
 
 void SABRE_InitializeFrame()
 {
+    int i, j;
+
+    for (j = 0; j < LEVEL_HEIGHT; j++)
+    {
+        for (i = 0; i < LEVEL_WIDTH; i++)
+        {
+            mapROs[j][i] = NULL;
+        }
+    }
+
+    traversals = 0;
+
     SABRE_ROListManager.reusableCache = SABRE_ConcatenateROList(SABRE_ROListManager.reusableCache, SABRE_ROListManager.head);
     SABRE_ROListManager.head = NULL;
     SABRE_ROListManager.curr = NULL;
@@ -117,6 +132,7 @@ int SABRE_InsertRO(SABRE_RenderObject *object)
         {
             prev = iterator;
             iterator = iterator->next;
+            traversals++;
         }
 
         if (iterator)
@@ -144,6 +160,7 @@ int SABRE_InsertRO(SABRE_RenderObject *object)
         {
             next = iterator;
             iterator = iterator->prev;
+            traversals++;
         }
 
         if (iterator)

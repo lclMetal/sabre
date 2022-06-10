@@ -139,7 +139,18 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             scale = wallSliceHeight / (float)texture->height;
             horizontalScalingCompensation = (short)floor(scale - horizontalCompensationThreshold) + 1;
 
+            // If a part of this wall has already been drawn this frame, set the render object list manager's
+            // curr pointer to point to that render object in the list, as the next slice will be somewhere
+            // very near to that in depth
+            if (mapROs[rayMapY][rayMapX])
+            {
+                SABRE_ROListManager.curr = mapROs[rayMapY][rayMapX];
+            }
+
             SABRE_AddTextureRO(perpWallDist, scale, slice, horizontalScalingCompensation, SABRE_slice);
+
+            // Set the last used render object pointer for this wall
+            mapROs[rayMapY][rayMapX] = SABRE_ROListManager.curr;
 
             if (!texture->isWindow)
             {
