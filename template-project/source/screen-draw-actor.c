@@ -142,7 +142,7 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 
             // calculate the right texture to use
             SABRE_slice.anim = map[rayMapY][rayMapX] - 1;
-            texture = &(SABRE_textureStore.textures[SABRE_slice.anim]);
+            texture = &SABRE_GET_TEXTURE(&SABRE_textureStore, SABRE_slice.anim);
 
             // calculate where the wall was hit
             if (hitSide)
