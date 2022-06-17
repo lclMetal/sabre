@@ -199,7 +199,7 @@ int SABRE_InsertRO(SABRE_RenderObject *object)
     }
 
 #if DEBUG
-    if (object->objectType == SABRE_TEXTURE_RO && singleSliceTraversals > maxTraversals) maxTraversals = singleSliceTraversals;
+    if (singleSliceTraversals > maxTraversals) maxTraversals = singleSliceTraversals;
 #endif
 
     return 0;

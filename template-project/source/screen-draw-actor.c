@@ -39,6 +39,31 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 
     drawCalls = 0;
 
+    invDet = 1.0f / (float)(camera->plane.x * camera->dir.y - camera->dir.x * camera->plane.y);
+
+    for (sprite = 0; sprite < SABRE_SPRITE_COUNT; sprite++)
+    {
+        spriteX = sprites[sprite].pos.x - camera->pos.x;
+        spriteY = sprites[sprite].pos.y - camera->pos.y;
+
+        transformX = invDet * (camera->dir.y * spriteX - camera->dir.x * spriteY);
+        transformY = invDet * (-camera->plane.y * spriteX + camera->plane.x * spriteY);
+
+        if (transformY < 0.05f)
+        {
+            transformY = -1;
+        }
+
+        spriteScreenX = (screenWidth / 2.0f) * (1 + transformX / transformY);
+
+        if (transformY > 0)
+        {
+            SABRE_slice.anim = sprites[sprite].sprite;
+            SABRE_slice.slice = 0;
+            SABRE_AddSpriteRO(transformY, 1.0f / transformY, spriteScreenX, SABRE_slice);
+        }
+    }
+
     for (slice = 0; slice < screenWidth; slice++)
     {
         // calculate the position and direction of the ray
@@ -162,31 +187,6 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
         }
 
         slice += (short)max(floor(scale) - 1, 0) + horizontalScalingCompensation * (scale > 1.0f - (horizontalCompensationThreshold - 0.0001f));
-    }
-
-    invDet = 1.0f / (float)(camera->plane.x * camera->dir.y - camera->dir.x * camera->plane.y);
-
-    for (sprite = 0; sprite < SABRE_SPRITE_COUNT; sprite++)
-    {
-        spriteX = sprites[sprite].pos.x - camera->pos.x;
-        spriteY = sprites[sprite].pos.y - camera->pos.y;
-
-        transformX = invDet * (camera->dir.y * spriteX - camera->dir.x * spriteY);
-        transformY = invDet * (-camera->plane.y * spriteX + camera->plane.x * spriteY);
-
-        if (transformY < 0.05f)
-        {
-            transformY = -1;
-        }
-
-        spriteScreenX = (screenWidth / 2.0f) * (1 + transformX / transformY);
-
-        if (transformY > 0)
-        {
-            SABRE_slice.anim = sprites[sprite].sprite;
-            SABRE_slice.slice = 0;
-            SABRE_AddSpriteRO(transformY, 1.0f / transformY, spriteScreenX, SABRE_slice);
-        }
     }
 
     SABRE_RenderObjects();
