@@ -7,6 +7,7 @@ debug.log
 
 # Executables
 *.exe
+!GE-MentalHealthProtector.exe
 
 # Test level file
 level.c
