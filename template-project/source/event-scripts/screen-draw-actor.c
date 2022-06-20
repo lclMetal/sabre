@@ -15,14 +15,17 @@ float sideDistX, sideDistY; // distance from ray position to next x- or y-side T
 float deltaDistX, deltaDistY; // distance ray has to travel from one side to another
 
 float scale;
+float scaledHalfWidth;
 short horizontalScalingCompensation; // amount of pixels to shift the drawing position to right
                                      // to compensate for the bigger width resulting from scaling
 const float horizontalCompensationThreshold = 0.0315f; // threshold for growing the compensation
 
 struct SABRE_TextureStruct *texture = NULL;
+struct SABRE_EntityStruct *entity = NULL;
+struct SABRE_SpriteStruct *sprite = NULL;
 struct SABRE_CameraStruct *camera = &SABRE_camera; // a pointer to the camera
 
-unsigned int entity; // index of the entity to process
+unsigned int entityIndex; // index of the entity to process
 float spriteX, spriteY;
 float invDet;
 float transformX, transformY;
@@ -41,10 +44,12 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 
     invDet = 1.0f / (float)(camera->plane.x * camera->dir.y - camera->dir.x * camera->plane.y);
 
-    for (entity = 0; entity < SABRE_ENTITY_COUNT; entity++)
+    for (entityIndex = 0; entityIndex < SABRE_ENTITY_COUNT; entityIndex++)
     {
-        spriteX = entities[entity].pos.x - camera->pos.x;
-        spriteY = entities[entity].pos.y - camera->pos.y;
+        entity = &entities[entityIndex];
+        sprite = &SABRE_GET_SPRITE(&SABRE_spriteStore, entity->sprite);
+        spriteX = entity->pos.x - camera->pos.x;
+        spriteY = entity->pos.y - camera->pos.y;
 
         transformX = invDet * (camera->dir.y * spriteX - camera->dir.x * spriteY);
         transformY = invDet * (-camera->plane.y * spriteX + camera->plane.x * spriteY);
@@ -55,18 +60,14 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
         }
 
         spriteScreenX = (screenWidth / 2.0f) * (1 + transformX / transformY);
+        scale = 1.0f / transformY;
+        scaledHalfWidth = sprite->halfWidth * scale;
 
-        // {
-            // char temp[256];
-            // sprintf(temp, "sprite screen X: %f", spriteScreenX);
-            // DEBUG_MSG(temp);
-        // }
-
-        if (transformY > 0)
+        if (transformY > 0 && spriteScreenX > 0 - scaledHalfWidth && spriteScreenX < screenWidth + scaledHalfWidth)
         {
-            SABRE_slice.anim = entities[entity].sprite;
+            SABRE_slice.anim = entity->sprite;
             SABRE_slice.slice = 0;
-            SABRE_AddSpriteRO(transformY, 1.0f / transformY, spriteScreenX, SABRE_slice);
+            SABRE_AddSpriteRO(transformY, scale, spriteScreenX, SABRE_slice);
         }
     }
 
