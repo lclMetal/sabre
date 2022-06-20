@@ -19,6 +19,7 @@ int SABRE_CalculateTextureWidth(struct SABRE_TextureStruct *texture);
 int SABRE_CalculateTextureHeight(struct SABRE_TextureStruct *texture);
 
 void SABRE_AddTextureToDataStore(struct SABRE_DataStoreStruct *dataStore, void *texture);
+void SABRE_FreeTextureStore();
 
 // only works for non-animated textures
 int SABRE_AutoAddTextures()
@@ -41,7 +42,7 @@ int SABRE_AutoAddTextures()
 {
     char temp[256];
     sprintf(temp, "Added texture: [%d \"%s\"]", i, animName);
-    DEBUG_MSG(temp);
+    DEBUG_MSG_FROM(temp, "SABRE_AutoAddTextures");
 }
 #endif
 
@@ -78,4 +79,9 @@ int SABRE_CalculateTextureHeight(struct SABRE_TextureStruct *texture)
 void SABRE_AddTextureToDataStore(struct SABRE_DataStoreStruct *dataStore, void *texture)
 {
     SABRE_GET_TEXTURE(dataStore, dataStore->count) = (*(struct SABRE_TextureStruct *)texture);
+}
+
+void SABRE_FreeTextureStore()
+{
+    SABRE_FreeDataStore(&SABRE_textureStore);
 }

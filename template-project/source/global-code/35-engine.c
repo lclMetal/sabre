@@ -1,6 +1,8 @@
 enum SABRE_GameStatesEnum
 {
     SABRE_UNINITIALIZED = 0,
+    SABRE_TEXTURES_ADDED,
+    SABRE_SPRITES_ADDED,
     SABRE_RUNNING,
     SABRE_FINISHED
 }SABRE_gameState = SABRE_UNINITIALIZED;
@@ -122,6 +124,41 @@ void SABRE_UpdateKeyboardState()
     SABRE_keys.interact     = keys[SABRE_binds.interact];
 }
 
+void SABRE_Quit();
+
+void SABRE_Start()
+{
+    DEBUG_MSG_FROM("Signal textureActor to start adding textures.", "SABRE_Start");
+    SendActivationEvent("SABRE_TextureActor");
+    if (SABRE_gameState == SABRE_TEXTURES_ADDED)
+    {
+        DEBUG_MSG_FROM("Texture addition successful.", "SABRE_Start");
+        DEBUG_MSG_FROM("Signal spriteActor to start adding sprites.", "SABRE_Start");
+        SendActivationEvent("SABRE_SpriteActor");
+        if (SABRE_gameState == SABRE_SPRITES_ADDED)
+        {
+            DEBUG_MSG_FROM("Sprite addition successful.", "SABRE_Start");
+            CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
+            SABRE_gameState = SABRE_RUNNING;
+            DEBUG_MSG_FROM("SABRE initialization complete.", "SABRE_Start");
+        }
+        else
+        {
+            DEBUG_MSG_FROM("Sprite addition failed.", "SABRE_Start");
+            SABRE_Quit();
+        }
+    }
+    else
+    {
+        DEBUG_MSG_FROM("Texture addition failed.", "SABRE_Start");
+        SABRE_Quit();
+    }
+}
+
+void SABRE_FreeTextureStore();
+void SABRE_FreeSpriteStore();
+void SABRE_FreeRenderObjectList();
+
 void SABRE_Quit()
 {
     if (SABRE_gameState != SABRE_FINISHED)
@@ -129,11 +166,14 @@ void SABRE_Quit()
         VisibilityState("SABRE_Screen", DISABLE);
         VisibilityState("SABRE_PlayerController", DISABLE);
         VisibilityState("SABRE_TextureActor", DISABLE);
-        VisibilityState("SABRE_SpriteSlice", DISABLE);
+        VisibilityState("SABRE_SpriteActor", DISABLE);
         EventDisable("SABRE_Screen", EVENTALL);
         EventDisable("SABRE_PlayerController", EVENTALL);
         EventDisable("SABRE_TextureActor", EVENTALL);
-        EventDisable("SABRE_SpriteSlice", EVENTALL);
+        EventDisable("SABRE_SpriteActor", EVENTALL);
+        SABRE_FreeTextureStore();
+        SABRE_FreeSpriteStore();
+        SABRE_FreeRenderObjectList();
         SABRE_gameState = SABRE_FINISHED;
     }
 }

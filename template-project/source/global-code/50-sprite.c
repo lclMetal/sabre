@@ -18,6 +18,7 @@ int SABRE_AutoAddSprites();
 int SABRE_AddSprite(const char spriteName[256]);
 
 void SABRE_AddSpriteToDataStore(struct SABRE_DataStoreStruct *dataStore, void *sprite);
+void SABRE_FreeSpriteStore();
 
 int SABRE_AutoAddSprites()
 {
@@ -39,7 +40,7 @@ int SABRE_AutoAddSprites()
 {
     char temp[256];
     sprintf(temp, "Added sprite: [%d \"%s\"]", i, animName);
-    DEBUG_MSG(temp);
+    DEBUG_MSG_FROM(temp, "SABRE_AutoAddSprites");
 }
 #endif
 
@@ -65,4 +66,9 @@ int SABRE_AddSprite(const char spriteName[256])
 void SABRE_AddSpriteToDataStore(struct SABRE_DataStoreStruct *dataStore, void *sprite)
 {
     SABRE_GET_SPRITE(dataStore, dataStore->count) = (*(struct SABRE_SpriteStruct *)sprite);
+}
+
+void SABRE_FreeSpriteStore()
+{
+    SABRE_FreeDataStore(&SABRE_spriteStore);
 }
