@@ -31,19 +31,19 @@ int SABRE_AutoAddTextures()
     SABRE_SetDataStoreAddFunc(&SABRE_textureStore, SABRE_AddTextureToDataStore);
     SABRE_textureStore.elemSize = sizeof(struct SABRE_TextureStruct);
 
-    while (strcmp(animName, ""))
+    while (strcmp(animName, "") != 0)
     {
         err = SABRE_AddTexture(animName);
 
         if (err) return err;
 
-        #if DEBUG
-        {
-            char temp[256];
-            sprintf(temp, "Added texture: [%d %s]", i, animName);
-            DEBUG_MSG(temp);
-        }
-        #endif
+#if DEBUG
+{
+    char temp[256];
+    sprintf(temp, "Added texture: [%d \"%s\"]", i, animName);
+    DEBUG_MSG(temp);
+}
+#endif
 
         strcpy(animName, getAnimName(++i));
     }
@@ -72,36 +72,7 @@ int SABRE_CalculateTextureWidth(struct SABRE_TextureStruct *texture)
 
 int SABRE_CalculateTextureHeight(struct SABRE_TextureStruct *texture)
 {
-    int i;
-    int textureHeight = 0;
-    Actor *textureActor = getclone(SABRE_TEXTURE_ACTOR);
-
-    // TODO: make a check for if the animation actually exists, use getAnimIndex(), if -1, doesn't exist
-    ChangeAnimation(SABRE_TEXTURE_ACTOR, texture->name, STOPPED);
-
-    for (i = 0; i < textureActor->nframes; i++)
-    {
-        textureActor = getclone(SABRE_TEXTURE_ACTOR); // this updates the width and height values
-
-        if (textureActor->height > textureHeight)
-        {
-            textureHeight = textureActor->height;
-        }
-
-        textureActor->animpos++;
-        // Send activation event to apply the animpos advancement during this frame already.
-        // The normal behavior of Game Editor is to update the animpos of an actor in the next
-        // frame. This same trick is used for changing the TextureSlice's animpos multiple
-        // times per frame when drawing the game view. Notice, however, that if you were to
-        // inspect the actor during a frame where this trick is used you still wouldn't see
-        // the animpos changing more than once during a single frame. This is because Game Editor
-        // only draws the actor on screen once per frame. But behind the scenes the animpos
-        // still changes multiple times per frame, affecting the actor's dimensions as well as
-        // its appearance if drawn using draw_from().
-        SendActivationEvent(SABRE_TEXTURE_ACTOR);
-    }
-
-    return textureHeight;
+    return SABRE_GetAnimationDimensionInPixels(SABRE_TEXTURE_ACTOR, texture->name, SABRE_DIMENSION_Y);
 }
 
 void SABRE_AddTextureToDataStore(struct SABRE_DataStoreStruct *dataStore, void *texture)

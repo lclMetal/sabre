@@ -22,7 +22,7 @@ const float horizontalCompensationThreshold = 0.0315f; // threshold for growing 
 struct SABRE_TextureStruct *texture = NULL;
 struct SABRE_CameraStruct *camera = &SABRE_camera; // a pointer to the camera
 
-unsigned int sprite; // index of the sprite to render
+unsigned int entity; // index of the entity to process
 float spriteX, spriteY;
 float invDet;
 float transformX, transformY;
@@ -41,10 +41,10 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 
     invDet = 1.0f / (float)(camera->plane.x * camera->dir.y - camera->dir.x * camera->plane.y);
 
-    for (sprite = 0; sprite < SABRE_SPRITE_COUNT; sprite++)
+    for (entity = 0; entity < SABRE_ENTITY_COUNT; entity++)
     {
-        spriteX = sprites[sprite].pos.x - camera->pos.x;
-        spriteY = sprites[sprite].pos.y - camera->pos.y;
+        spriteX = entities[entity].pos.x - camera->pos.x;
+        spriteY = entities[entity].pos.y - camera->pos.y;
 
         transformX = invDet * (camera->dir.y * spriteX - camera->dir.x * spriteY);
         transformY = invDet * (-camera->plane.y * spriteX + camera->plane.x * spriteY);
@@ -56,9 +56,15 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 
         spriteScreenX = (screenWidth / 2.0f) * (1 + transformX / transformY);
 
+        // {
+            // char temp[256];
+            // sprintf(temp, "sprite screen X: %f", spriteScreenX);
+            // DEBUG_MSG(temp);
+        // }
+
         if (transformY > 0)
         {
-            SABRE_slice.anim = sprites[sprite].sprite;
+            SABRE_slice.anim = entities[entity].sprite;
             SABRE_slice.slice = 0;
             SABRE_AddSpriteRO(transformY, 1.0f / transformY, spriteScreenX, SABRE_slice);
         }

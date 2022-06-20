@@ -258,6 +258,49 @@ void SABRE_NormalizeVector2InPlace(struct SABRE_Vector2Struct *vec)
 
 
 // ..\source\global-code\20-misc-functions.c
+int SABRE_ActorExists(const char *actorName)
+{
+    // GE uses the cloneindex -1 to indicate that an actor is not a valid, existing actor.
+    // The actor count needs to be checked because:
+    //
+    // 1. IF an actor with the given base name exists in the project
+    // 2. AND the lowest indexed clone (= the actor itself, if no clones present)
+    //      in editor mode has "Create at startup" set to "No"
+    // 3. AND the actor currently has no alive instances in the game
+    //
+    // ..getclone will return an invalid Actor* that has the cloneindex of that specific
+    // clone / actor over in editor mode despite it not existing in the game.
+    // And that would break this function without the ActorCount check.
+    Actor *a = getclone(actorName);
+    return (ActorCount(a->name) > 0 && a->cloneindex != -1);
+}
+
+// ----- WARNING! -----
+//
+// Using this function on a stale pointer is undefined behavior!
+// Use this function ONLY for checking the result of getclone() right after fetching it.
+//
+// If you didn't fully understand the above warnings, DO NOT USE THIS FUNCTION!
+// Use the above version instead (actorExists())
+//
+// This function only exists for optimizing performance in cases where a fresh actor pointer
+// is already at hand.
+int SABRE_ActorExists2(Actor *a)
+{
+    // GE uses the cloneindex -1 to indicate that an actor is not a valid, existing actor.
+    // The actor count needs to be checked because:
+    //
+    // 1. IF an actor with the given base name exists in the project
+    // 2. AND the lowest indexed clone (= the actor itself, if no clones present)
+    //      in editor mode has "Create at startup" set to "No"
+    // 3. AND the actor currently has no alive instances in the game
+    //
+    // ..getclone will return an invalid Actor* that has the cloneindex of that specific
+    // clone / actor over in editor mode despite it not existing in the game.
+    // And that would break this function without the ActorCount check.
+    return (ActorCount(a->name) > 0 && a->cloneindex != -1);
+}
+
 int SABRE_StringEndsWith(const char *str, const char *str2)
 {
     size_t len1 = strlen(str);
@@ -269,6 +312,64 @@ int SABRE_StringEndsWith(const char *str, const char *str2)
     }
 
     return !strcmp(&str[len1 - len2], str2);
+}
+
+#define SABRE_DIMENSION_X 0
+#define SABRE_DIMENSION_Y 1
+
+int SABRE_GetAnimationDimensionInPixels(const char actorName[256], const char animName[256], int dimension)
+{
+    int i = 0;
+    int dimensionPixels = 0;
+    int animFrameCount = 0;
+    Actor *animationActor = getclone(actorName);
+
+    if (!SABRE_ActorExists2(animationActor))
+    {
+        DEBUG_MSG_FROM("The actor doesn't exist.", "SABRE_GetAnimationDimensionInPixels");
+        return 1;
+    }
+
+    ChangeAnimation(animationActor->clonename, animName, STOPPED);
+    SendActivationEvent(actorName); // this "finalizes" the animation change, resetting the actor's animpos
+    animFrameCount = animationActor->nframes;
+
+    for (i = 0; i < animFrameCount; i++)
+    {
+        animationActor = getclone(animationActor->clonename); // this updates the width and height values
+
+        switch (dimension)
+        {
+            default:
+            case SABRE_DIMENSION_X:
+                if (animationActor->width > dimensionPixels)
+                {
+                    dimensionPixels = animationActor->width;
+                }
+                break;
+
+            case SABRE_DIMENSION_Y:
+                if (animationActor->height > dimensionPixels)
+                {
+                    dimensionPixels = animationActor->height;
+                }
+                break;
+        }
+
+        animationActor->animpos++;
+        // Send activation event to apply the animpos advancement during this frame already.
+        // The normal behavior of Game Editor is to update the animpos of an actor in the next
+        // frame. This same trick is used for changing the TextureSlice's animpos multiple
+        // times per frame when drawing the game view. Notice, however, that if you were to
+        // inspect the actor during a frame where this trick is used you still wouldn't see
+        // the animpos changing more than once during a single frame. This is because Game Editor
+        // only draws the actor on screen once per frame. But behind the scenes the animpos
+        // still changes multiple times per frame, affecting the actor's dimensions as well as
+        // its appearance if drawn using draw_from().
+        SendActivationEvent(actorName);
+    }
+
+    return dimensionPixels;
 }
 
 
@@ -556,19 +657,19 @@ int SABRE_AutoAddTextures()
     SABRE_SetDataStoreAddFunc(&SABRE_textureStore, SABRE_AddTextureToDataStore);
     SABRE_textureStore.elemSize = sizeof(struct SABRE_TextureStruct);
 
-    while (strcmp(animName, ""))
+    while (strcmp(animName, "") != 0)
     {
         err = SABRE_AddTexture(animName);
 
         if (err) return err;
 
-        #if DEBUG
-        {
-            char temp[256];
-            sprintf(temp, "Added texture: [%d %s]", i, animName);
-            DEBUG_MSG(temp);
-        }
-        #endif
+#if DEBUG
+{
+    char temp[256];
+    sprintf(temp, "Added texture: [%d \"%s\"]", i, animName);
+    DEBUG_MSG(temp);
+}
+#endif
 
         strcpy(animName, getAnimName(++i));
     }
@@ -597,36 +698,7 @@ int SABRE_CalculateTextureWidth(struct SABRE_TextureStruct *texture)
 
 int SABRE_CalculateTextureHeight(struct SABRE_TextureStruct *texture)
 {
-    int i;
-    int textureHeight = 0;
-    Actor *textureActor = getclone(SABRE_TEXTURE_ACTOR);
-
-    // TODO: make a check for if the animation actually exists, use getAnimIndex(), if -1, doesn't exist
-    ChangeAnimation(SABRE_TEXTURE_ACTOR, texture->name, STOPPED);
-
-    for (i = 0; i < textureActor->nframes; i++)
-    {
-        textureActor = getclone(SABRE_TEXTURE_ACTOR); // this updates the width and height values
-
-        if (textureActor->height > textureHeight)
-        {
-            textureHeight = textureActor->height;
-        }
-
-        textureActor->animpos++;
-        // Send activation event to apply the animpos advancement during this frame already.
-        // The normal behavior of Game Editor is to update the animpos of an actor in the next
-        // frame. This same trick is used for changing the TextureSlice's animpos multiple
-        // times per frame when drawing the game view. Notice, however, that if you were to
-        // inspect the actor during a frame where this trick is used you still wouldn't see
-        // the animpos changing more than once during a single frame. This is because Game Editor
-        // only draws the actor on screen once per frame. But behind the scenes the animpos
-        // still changes multiple times per frame, affecting the actor's dimensions as well as
-        // its appearance if drawn using draw_from().
-        SendActivationEvent(SABRE_TEXTURE_ACTOR);
-    }
-
-    return textureHeight;
+    return SABRE_GetAnimationDimensionInPixels(SABRE_TEXTURE_ACTOR, texture->name, SABRE_DIMENSION_Y);
 }
 
 void SABRE_AddTextureToDataStore(struct SABRE_DataStoreStruct *dataStore, void *texture)
@@ -640,26 +712,96 @@ void SABRE_AddTextureToDataStore(struct SABRE_DataStoreStruct *dataStore, void *
 
 struct SABRE_SpriteStruct
 {
-    struct SABRE_Vector2Struct pos;
+    unsigned int width;
+    unsigned int height;
+    unsigned int halfWidth;
+    unsigned int halfHeight;
+    unsigned int sprite;
+    char name[256];
+};
+
+#define SABRE_GET_SPRITE(DATA_STORE, INDEX) ((struct SABRE_SpriteStruct *)(DATA_STORE)->elems)[INDEX]
+
+struct SABRE_DataStoreStruct SABRE_spriteStore;
+
+int SABRE_AutoAddSprites();
+int SABRE_AddSprite(const char spriteName[256]);
+
+void SABRE_AddSpriteToDataStore(struct SABRE_DataStoreStruct *dataStore, void *sprite);
+
+int SABRE_AutoAddSprites()
+{
+    int i = 0;
+    int err = 0;
+    char animName[256];
+
+    strcpy(animName, getAnimName(i));
+    SABRE_SetDataStoreAddFunc(&SABRE_spriteStore, SABRE_AddSpriteToDataStore);
+    SABRE_spriteStore.elemSize = sizeof(struct SABRE_SpriteStruct);
+
+    while (strcmp(animName, "") != 0)
+    {
+        err = SABRE_AddSprite(animName);
+
+        if (err) return err;
+
+#if DEBUG
+{
+    char temp[256];
+    sprintf(temp, "Added sprite: [%d \"%s\"]", i, animName);
+    DEBUG_MSG(temp);
+}
+#endif
+
+        strcpy(animName, getAnimName(++i));
+    }
+
+    return 0;
+}
+
+int SABRE_AddSprite(const char spriteName[256])
+{
+    struct SABRE_SpriteStruct newSprite;
+
+    strcpy(newSprite.name, spriteName);
+    newSprite.width = SABRE_GetAnimationDimensionInPixels(SABRE_SPRITE_ACTOR, spriteName, SABRE_DIMENSION_X);
+    newSprite.height = SABRE_GetAnimationDimensionInPixels(SABRE_SPRITE_ACTOR, spriteName, SABRE_DIMENSION_Y);
+    newSprite.halfWidth = newSprite.width * 0.5f;
+    newSprite.halfHeight = newSprite.height * 0.5f;
+
+    return SABRE_AddToDataStore(&SABRE_spriteStore, &newSprite);
+}
+
+void SABRE_AddSpriteToDataStore(struct SABRE_DataStoreStruct *dataStore, void *sprite)
+{
+    SABRE_GET_SPRITE(dataStore, dataStore->count) = (*(struct SABRE_SpriteStruct *)sprite);
+}
+
+
+// ..\source\global-code\55-entity.c
+struct SABRE_EntityStruct
+{
     float radius;
+    struct SABRE_Vector2Struct pos;
+    // struct SABRE_SpriteStruct *sprite;
     unsigned int sprite;
 };
 
-#define SABRE_SPRITE_COUNT 11
+#define SABRE_ENTITY_COUNT 11
 
-struct SABRE_SpriteStruct sprites[SABRE_SPRITE_COUNT] =
+struct SABRE_EntityStruct entities[SABRE_ENTITY_COUNT] =
 {
-    { { 8.5f, 1.5f }, 0.4f, 1 },
-    { { 7.5f, 1.5f }, 0.4f, 1 },
-    { { 6.5f, 1.5f }, 0.4f, 2 },
-    { { 8.5f, 2.5f }, 0.4f, 1 },
-    { { 7.5f, 2.5f }, 0.4f, 0 },
-    { { 6.5f, 2.5f }, 0.4f, 1 },
-    { { 6.5f, 3.5f }, 0.4f, 3 },
-    { { 7.0f, 3.5f }, 0.4f, 3 },
-    { { 7.5f, 3.5f }, 0.4f, 3 },
-    { { 8.0f, 3.5f }, 0.4f, 3 },
-    { { 8.5f, 3.5f }, 0.4f, 3 }
+    { 0.4f, { 8.5f, 1.5f }, 1 },
+    { 0.4f, { 7.5f, 1.5f }, 1 },
+    { 0.4f, { 6.5f, 1.5f }, 2 },
+    { 0.4f, { 8.5f, 2.5f }, 1 },
+    { 0.4f, { 7.5f, 2.5f }, 0 },
+    { 0.4f, { 6.5f, 2.5f }, 1 },
+    { 0.4f, { 6.5f, 3.5f }, 3 },
+    { 0.4f, { 7.0f, 3.5f }, 3 },
+    { 0.4f, { 7.5f, 3.5f }, 3 },
+    { 0.4f, { 8.0f, 3.5f }, 3 },
+    { 0.4f, { 8.5f, 3.5f }, 3 }
 };
 
 

@@ -73,9 +73,9 @@ if (newPos.x != 0 || newPos.y != 0)
         if ((coll & SABRE_LOW_R_MASK) == SABRE_LOW_R)
             SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY + 1, radius);
 
-        for (i = 0; i < SABRE_SPRITE_COUNT; i++)
+        for (i = 0; i < SABRE_ENTITY_COUNT; i++)
         {
-            SABRE_KeepDistance(&posX, &posY, sprites[i].pos.x, sprites[i].pos.y, sprites[i].radius);
+            SABRE_KeepDistance(&posX, &posY, entities[i].pos.x, entities[i].pos.y, entities[i].radius);
         }
 
         camera->pos = SABRE_CreateVector2(posX, posY);
