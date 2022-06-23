@@ -154,7 +154,7 @@ void debugMsgFrom(const char *msg, const char *label, int line)
     if (!debugController.fileInitialized)
         debugCreateFile();
 
-    sprintf(temp, "[%s, line: %4i, time: %3i, frame: %5i]: \"%s\"",
+    sprintf(temp, "[%-25s, line: %4i, time: %3i, frame: %5i]: \"%s\"",
             label, line, t.sec_utc - debugController.startTime, frame, msg);
     debugMsg(temp);
 }
