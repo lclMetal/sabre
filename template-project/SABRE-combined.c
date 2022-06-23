@@ -155,7 +155,7 @@ void debugMsgFrom(const char *msg, const char *label, int line)
     if (!debugController.fileInitialized)
         debugCreateFile();
 
-    sprintf(temp, "[%s, line: %4i, time: %3i, frame: %5i]: \"%s\"",
+    sprintf(temp, "[%-25s, line: %4i, time: %3i, frame: %5i]: \"%s\"",
             label, line, t.sec_utc - debugController.startTime, frame, msg);
     debugMsg(temp);
 }
@@ -376,6 +376,8 @@ int SABRE_GetAnimationDimensionInPixels(const char actorName[256], const char an
 // ..\source\global-code\30-data-store.c
 #define SABRE_DATA_STORE_DOUBLING_LIMIT 128
 #define SABRE_DATA_STORE_GROW_AMOUNT 64 // SABRE_DATA_STORE_DOUBLING_LIMIT / 2
+
+#define SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, DATA_TYPE) (DATA_TYPE(DATA_STORE).elems)
 
 struct SABRE_DataStoreStruct
 {
@@ -612,29 +614,29 @@ void SABRE_Quit();
 
 void SABRE_Start()
 {
-    DEBUG_MSG_FROM("Signal textureActor to start adding textures.", "SABRE_Start");
+    DEBUG_MSG_FROM("[init sequence (1/5)] Signal textureActor to start adding textures.", "SABRE_Start");
     SendActivationEvent("SABRE_TextureActor");
     if (SABRE_gameState == SABRE_TEXTURES_ADDED)
     {
-        DEBUG_MSG_FROM("Texture addition successful.", "SABRE_Start");
-        DEBUG_MSG_FROM("Signal spriteActor to start adding sprites.", "SABRE_Start");
+        DEBUG_MSG_FROM("[init sequence (2/5)] Texture addition successful.", "SABRE_Start");
+        DEBUG_MSG_FROM("[init sequence (3/5)] Signal spriteActor to start adding sprites.", "SABRE_Start");
         SendActivationEvent("SABRE_SpriteActor");
         if (SABRE_gameState == SABRE_SPRITES_ADDED)
         {
-            DEBUG_MSG_FROM("Sprite addition successful.", "SABRE_Start");
+            DEBUG_MSG_FROM("[init sequence (4/5)] Sprite addition successful.", "SABRE_Start");
             CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
             SABRE_gameState = SABRE_RUNNING;
-            DEBUG_MSG_FROM("SABRE initialization complete.", "SABRE_Start");
+            DEBUG_MSG_FROM("[init sequence (5/5)] SABRE initialization complete.", "SABRE_Start");
         }
         else
         {
-            DEBUG_MSG_FROM("Sprite addition failed.", "SABRE_Start");
+            DEBUG_MSG_FROM("[init sequence (4/5)] Sprite addition failed.", "SABRE_Start");
             SABRE_Quit();
         }
     }
     else
     {
-        DEBUG_MSG_FROM("Texture addition failed.", "SABRE_Start");
+        DEBUG_MSG_FROM("[init sequence (2/5)] Texture addition failed.", "SABRE_Start");
         SABRE_Quit();
     }
 }
@@ -675,9 +677,14 @@ struct SABRE_TextureStruct
     char name[256];
 };
 
-#define SABRE_GET_TEXTURE(DATA_STORE, INDEX) ((struct SABRE_TextureStruct *)(DATA_STORE)->elems)[INDEX]
+#define SABRE_DATA_STORE_AS_TEXTURE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (struct SABRE_TextureStruct *))
+#define SABRE_TEXTURE_POINTER_CAST(POINTER) ((struct SABRE_TextureStruct *)POINTER)
 
+// Actual texture data store
 struct SABRE_DataStoreStruct SABRE_textureStore;
+// A shortcut pointer to access the data from the store
+// without having to cast pointers all the time
+struct SABRE_TextureStruct *SABRE_textures = NULL;
 
 int SABRE_AutoAddTextures();
 int SABRE_AddTexture(const char textureName[256]);
@@ -697,6 +704,10 @@ int SABRE_AutoAddTextures()
     strcpy(animName, getAnimName(i));
     SABRE_SetDataStoreAddFunc(&SABRE_textureStore, SABRE_AddTextureToDataStore);
     SABRE_textureStore.elemSize = sizeof(struct SABRE_TextureStruct);
+    SABRE_PrepareDataStore(&SABRE_textureStore);
+
+    // Set the shortcut pointer to allow easier access to texture data
+    SABRE_textures = SABRE_DATA_STORE_AS_TEXTURE_ARRAY(SABRE_textureStore);
 
     while (strcmp(animName, "") != 0)
     {
@@ -744,12 +755,13 @@ int SABRE_CalculateTextureHeight(struct SABRE_TextureStruct *texture)
 
 void SABRE_AddTextureToDataStore(struct SABRE_DataStoreStruct *dataStore, void *texture)
 {
-    SABRE_GET_TEXTURE(dataStore, dataStore->count) = (*(struct SABRE_TextureStruct *)texture);
+    SABRE_textures[dataStore->count] = *SABRE_TEXTURE_POINTER_CAST(texture);
 }
 
 void SABRE_FreeTextureStore()
 {
     SABRE_FreeDataStore(&SABRE_textureStore);
+    SABRE_textures = NULL;
 }
 
 
@@ -766,9 +778,14 @@ struct SABRE_SpriteStruct
     char name[256];
 };
 
-#define SABRE_GET_SPRITE(DATA_STORE, INDEX) ((struct SABRE_SpriteStruct *)(DATA_STORE)->elems)[INDEX]
+#define SABRE_DATA_STORE_AS_SPRITE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (struct SABRE_SpriteStruct *))
+#define SABRE_SPRITE_POINTER_CAST(POINTER) ((struct SABRE_SpriteStruct *)POINTER)
 
+// Actual sprite data store
 struct SABRE_DataStoreStruct SABRE_spriteStore;
+// A shortcut pointer to access the data from the store
+// without having to cast pointers all the time
+struct SABRE_SpriteStruct *SABRE_sprites = NULL;
 
 int SABRE_AutoAddSprites();
 int SABRE_AddSprite(const char spriteName[256]);
@@ -785,6 +802,10 @@ int SABRE_AutoAddSprites()
     strcpy(animName, getAnimName(i));
     SABRE_SetDataStoreAddFunc(&SABRE_spriteStore, SABRE_AddSpriteToDataStore);
     SABRE_spriteStore.elemSize = sizeof(struct SABRE_SpriteStruct);
+    SABRE_PrepareDataStore(&SABRE_spriteStore);
+
+    // Set the shortcut pointer to allow easier access to sprite data
+    SABRE_sprites = SABRE_DATA_STORE_AS_SPRITE_ARRAY(SABRE_spriteStore);
 
     while (strcmp(animName, "") != 0)
     {
@@ -821,12 +842,13 @@ int SABRE_AddSprite(const char spriteName[256])
 
 void SABRE_AddSpriteToDataStore(struct SABRE_DataStoreStruct *dataStore, void *sprite)
 {
-    SABRE_GET_SPRITE(dataStore, dataStore->count) = (*(struct SABRE_SpriteStruct *)sprite);
+    SABRE_sprites[dataStore->count] = *SABRE_SPRITE_POINTER_CAST(sprite);
 }
 
 void SABRE_FreeSpriteStore()
 {
     SABRE_FreeDataStore(&SABRE_spriteStore);
+    SABRE_sprites = NULL;
 }
 
 

@@ -9,9 +9,14 @@ struct SABRE_TextureStruct
     char name[256];
 };
 
-#define SABRE_GET_TEXTURE(DATA_STORE, INDEX) ((struct SABRE_TextureStruct *)(DATA_STORE)->elems)[INDEX]
+#define SABRE_DATA_STORE_AS_TEXTURE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (struct SABRE_TextureStruct *))
+#define SABRE_TEXTURE_POINTER_CAST(POINTER) ((struct SABRE_TextureStruct *)POINTER)
 
+// Actual texture data store
 struct SABRE_DataStoreStruct SABRE_textureStore;
+// A shortcut pointer to access the data from the store
+// without having to cast pointers all the time
+struct SABRE_TextureStruct *SABRE_textures = NULL;
 
 int SABRE_AutoAddTextures();
 int SABRE_AddTexture(const char textureName[256]);
@@ -31,6 +36,10 @@ int SABRE_AutoAddTextures()
     strcpy(animName, getAnimName(i));
     SABRE_SetDataStoreAddFunc(&SABRE_textureStore, SABRE_AddTextureToDataStore);
     SABRE_textureStore.elemSize = sizeof(struct SABRE_TextureStruct);
+    SABRE_PrepareDataStore(&SABRE_textureStore);
+
+    // Set the shortcut pointer to allow easier access to texture data
+    SABRE_textures = SABRE_DATA_STORE_AS_TEXTURE_ARRAY(SABRE_textureStore);
 
     while (strcmp(animName, "") != 0)
     {
@@ -78,10 +87,11 @@ int SABRE_CalculateTextureHeight(struct SABRE_TextureStruct *texture)
 
 void SABRE_AddTextureToDataStore(struct SABRE_DataStoreStruct *dataStore, void *texture)
 {
-    SABRE_GET_TEXTURE(dataStore, dataStore->count) = (*(struct SABRE_TextureStruct *)texture);
+    SABRE_textures[dataStore->count] = *SABRE_TEXTURE_POINTER_CAST(texture);
 }
 
 void SABRE_FreeTextureStore()
 {
     SABRE_FreeDataStore(&SABRE_textureStore);
+    SABRE_textures = NULL;
 }

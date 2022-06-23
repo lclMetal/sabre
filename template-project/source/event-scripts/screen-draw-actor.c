@@ -47,7 +47,7 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
     for (entityIndex = 0; entityIndex < SABRE_ENTITY_COUNT; entityIndex++)
     {
         entity = &entities[entityIndex];
-        sprite = &SABRE_GET_SPRITE(&SABRE_spriteStore, entity->sprite);
+        sprite = &SABRE_sprites[entity->sprite];
         spriteX = entity->pos.x - camera->pos.x;
         spriteY = entity->pos.y - camera->pos.y;
 
@@ -149,7 +149,7 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 
             // calculate the right texture to use
             SABRE_slice.anim = map[rayMapY][rayMapX] - 1;
-            texture = &SABRE_GET_TEXTURE(&SABRE_textureStore, SABRE_slice.anim);
+            texture = &SABRE_textures[SABRE_slice.anim];
 
             // calculate where the wall was hit
             if (hitSide)
