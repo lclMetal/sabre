@@ -6,7 +6,8 @@ struct SABRE_Vector2Struct oldPlane = camera->plane;
 float rotateSpeed = SABRE_player.turnSpeed;
 float moveSpeed = SABRE_player.moveSpeed;
 
-struct SABRE_Vector2Struct prev = camera->pos;
+struct SABRE_Vector2Struct prevPos = camera->pos;
+struct SABRE_Vector2Struct prevDir = camera->dir;
 struct SABRE_Vector2Struct newPos = SABRE_CreateVector2(0.0f, 0.0f);
 struct SABRE_Vector2Struct normalizedForwardDir;
 struct SABRE_Vector2Struct normalizedRightDir;
@@ -82,7 +83,14 @@ if (newPos.x != 0 || newPos.y != 0)
     }
 }
 
-if (prev.x != camera->pos.x || prev.y != camera->pos.y)
+if (prevPos.x != camera->pos.x || prevPos.y != camera->pos.y)
 {
-    camera->prevPos = prev;
+    camera->prevPos = prevPos;
 }
+
+if (prevDir.x != camera->dir.x || prevDir.y != camera->dir.y)
+{
+    camera->prevDir = prevDir;
+}
+
+SABRE_UpdateEvents();

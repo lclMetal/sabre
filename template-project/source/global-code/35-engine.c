@@ -11,6 +11,7 @@ struct SABRE_CameraStruct
 {
     struct SABRE_Vector2Struct prevPos;
     struct SABRE_Vector2Struct pos;
+    struct SABRE_Vector2Struct prevDir;
     struct SABRE_Vector2Struct dir;
     struct SABRE_Vector2Struct plane;
 }SABRE_camera;

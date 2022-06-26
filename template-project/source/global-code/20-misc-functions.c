@@ -1,3 +1,20 @@
+float SABRE_NormalizeAngleTo360(float ang)
+{
+    float tempAng = ang;
+
+    while (tempAng < 0)
+    {
+        tempAng += 360;
+    }
+
+    while (tempAng > 360.0f)
+    {
+        tempAng -= 360;
+    }
+
+    return tempAng;
+}
+
 int SABRE_ActorExists(const char *actorName)
 {
     // GE uses the cloneindex -1 to indicate that an actor is not a valid, existing actor.
