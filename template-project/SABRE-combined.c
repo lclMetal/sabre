@@ -614,29 +614,29 @@ void SABRE_Quit();
 
 void SABRE_Start()
 {
-    DEBUG_MSG_FROM("[init sequence (1/5)] Signal textureActor to start adding textures.", "SABRE_Start");
+    DEBUG_MSG_FROM("[init (1/5)] Signal textureActor to start adding textures.", "SABRE_Start");
     SendActivationEvent("SABRE_TextureActor");
     if (SABRE_gameState == SABRE_TEXTURES_ADDED)
     {
-        DEBUG_MSG_FROM("[init sequence (2/5)] Texture addition successful.", "SABRE_Start");
-        DEBUG_MSG_FROM("[init sequence (3/5)] Signal spriteActor to start adding sprites.", "SABRE_Start");
+        DEBUG_MSG_FROM("[init (2/5)] Texture addition successful.", "SABRE_Start");
+        DEBUG_MSG_FROM("[init (3/5)] Signal spriteActor to start adding sprites.", "SABRE_Start");
         SendActivationEvent("SABRE_SpriteActor");
         if (SABRE_gameState == SABRE_SPRITES_ADDED)
         {
-            DEBUG_MSG_FROM("[init sequence (4/5)] Sprite addition successful.", "SABRE_Start");
+            DEBUG_MSG_FROM("[init (4/5)] Sprite addition successful.", "SABRE_Start");
             CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
             SABRE_gameState = SABRE_RUNNING;
-            DEBUG_MSG_FROM("[init sequence (5/5)] SABRE initialization complete.", "SABRE_Start");
+            DEBUG_MSG_FROM("[init (5/5)] SABRE initialization complete.", "SABRE_Start");
         }
         else
         {
-            DEBUG_MSG_FROM("[init sequence (4/5)] Sprite addition failed.", "SABRE_Start");
+            DEBUG_MSG_FROM("[init (4/5)] Sprite addition failed.", "SABRE_Start");
             SABRE_Quit();
         }
     }
     else
     {
-        DEBUG_MSG_FROM("[init sequence (2/5)] Texture addition failed.", "SABRE_Start");
+        DEBUG_MSG_FROM("[init (2/5)] Texture addition failed.", "SABRE_Start");
         SABRE_Quit();
     }
 }
@@ -658,9 +658,13 @@ void SABRE_Quit()
         EventDisable("SABRE_TextureActor", EVENTALL);
         EventDisable("SABRE_SpriteActor", EVENTALL);
         SABRE_FreeTextureStore();
+        DEBUG_MSG_FROM("[quit (1/4)] Freed texture store memory.", "SABRE_Quit");
         SABRE_FreeSpriteStore();
+        DEBUG_MSG_FROM("[quit (2/4)] Freed sprite store memory.", "SABRE_Quit");
         SABRE_FreeRenderObjectList();
+        DEBUG_MSG_FROM("[quit (3/4)] Freed render object list memory.", "SABRE_Quit");
         SABRE_gameState = SABRE_FINISHED;
+        DEBUG_MSG_FROM("[quit (4/4)] SABRE cleanup complete.", "SABRE_Quit");
     }
 }
 
