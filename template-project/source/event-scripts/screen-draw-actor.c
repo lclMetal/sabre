@@ -69,7 +69,8 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 
         if (transformY > 0 && spriteScreenX > 0 - scaledHalfWidth && spriteScreenX < screenWidth + scaledHalfWidth)
         {
-            SABRE_slice.anim = entity->sprite;
+            // +1 to compensate for the existence of the project management label
+            SABRE_slice.anim = entity->sprite + 1;
             SABRE_slice.slice = 0;
             SABRE_AddSpriteRO(transformY, scale, spriteScreenX, SABRE_slice);
         }
@@ -152,8 +153,8 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             wallSliceHeight = (float)screenHeight / (float)perpWallDist;
 
             // calculate the right texture to use
-            SABRE_slice.anim = map[rayMapY][rayMapX] - 1;
-            texture = &SABRE_textures[SABRE_slice.anim];
+            SABRE_slice.anim = map[rayMapY][rayMapX];
+            texture = &SABRE_textures[SABRE_slice.anim - 1];
 
             // calculate where the wall was hit
             if (hitSide)

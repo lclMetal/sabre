@@ -27,7 +27,7 @@ void SABRE_FreeSpriteStore();
 
 int SABRE_AutoAddSprites()
 {
-    int i = 0;
+    int i = 1; // Start from 1, don't add project management label as a texture
     int err = 0;
     char animName[256];
 
@@ -48,7 +48,7 @@ int SABRE_AutoAddSprites()
 #if DEBUG
 {
     char temp[256];
-    sprintf(temp, "Added sprite: [%d \"%s\"]", i, animName);
+    sprintf(temp, "Added sprite: [%d \"%s\"]", i - 1, animName);
     DEBUG_MSG_FROM(temp, "SABRE_AutoAddSprites");
 }
 #endif

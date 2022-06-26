@@ -99,7 +99,7 @@ void SABRE_UpdateEvent(struct SABRE_EventTriggerStruct *event)
     {
         SABRE_EnterEventTrigger(event);
     }
-    else if (!isFacingRightDirection || !isInsideTrigger && (wasFacingRightDirection && wasInsideTrigger))
+    else if ((!isFacingRightDirection || !isInsideTrigger) && (wasFacingRightDirection && wasInsideTrigger))
     {
         SABRE_LeaveEventTrigger(event);
     }

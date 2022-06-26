@@ -789,7 +789,7 @@ void SABRE_UpdateEvent(struct SABRE_EventTriggerStruct *event)
     {
         SABRE_EnterEventTrigger(event);
     }
-    else if (!isFacingRightDirection || !isInsideTrigger && (wasFacingRightDirection && wasInsideTrigger))
+    else if ((!isFacingRightDirection || !isInsideTrigger) && (wasFacingRightDirection && wasInsideTrigger))
     {
         SABRE_LeaveEventTrigger(event);
     }
@@ -935,7 +935,7 @@ void SABRE_FreeTextureStore();
 // only works for non-animated textures
 int SABRE_AutoAddTextures()
 {
-    int i = 0;
+    int i = 1; // Start from 1, don't add project management label as a texture
     int err = 0;
     char animName[256];
 
@@ -956,7 +956,7 @@ int SABRE_AutoAddTextures()
 #if DEBUG
 {
     char temp[256];
-    sprintf(temp, "Added texture: [%d \"%s\"]", i, animName);
+    sprintf(temp, "Added texture: [%d \"%s\"]", i - 1, animName);
     DEBUG_MSG_FROM(temp, "SABRE_AutoAddTextures");
 }
 #endif
@@ -1033,7 +1033,7 @@ void SABRE_FreeSpriteStore();
 
 int SABRE_AutoAddSprites()
 {
-    int i = 0;
+    int i = 1; // Start from 1, don't add project management label as a texture
     int err = 0;
     char animName[256];
 
@@ -1054,7 +1054,7 @@ int SABRE_AutoAddSprites()
 #if DEBUG
 {
     char temp[256];
-    sprintf(temp, "Added sprite: [%d \"%s\"]", i, animName);
+    sprintf(temp, "Added sprite: [%d \"%s\"]", i - 1, animName);
     DEBUG_MSG_FROM(temp, "SABRE_AutoAddSprites");
 }
 #endif
