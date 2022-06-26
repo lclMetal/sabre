@@ -46,6 +46,10 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 
     for (entityIndex = 0; entityIndex < SABRE_ENTITY_COUNT; entityIndex++)
     {
+        // Skip to next entity if current one is hidden
+        if (entities[entityIndex].attributes & SABRE_ENTITY_HIDDEN)
+            continue;
+
         entity = &entities[entityIndex];
         sprite = &SABRE_sprites[entity->sprite];
         spriteX = entity->pos.x - camera->pos.x;

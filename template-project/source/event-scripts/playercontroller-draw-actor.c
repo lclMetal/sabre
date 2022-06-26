@@ -76,6 +76,10 @@ if (newPos.x != 0 || newPos.y != 0)
 
         for (i = 0; i < SABRE_ENTITY_COUNT; i++)
         {
+            // Skip to next entity if current one is hidden
+            if (entities[i].attributes & SABRE_ENTITY_HIDDEN)
+                continue;
+
             SABRE_KeepDistance(&posX, &posY, entities[i].pos.x, entities[i].pos.y, entities[i].radius);
         }
 
