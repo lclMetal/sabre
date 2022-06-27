@@ -1,6 +1,6 @@
 #define SABRE_SPRITE_ACTOR "SABRE_SpriteActor"
 
-struct SABRE_SpriteStruct
+typedef struct SABRE_SpriteStruct
 {
     unsigned int width;
     unsigned int height;
@@ -8,21 +8,21 @@ struct SABRE_SpriteStruct
     unsigned int halfHeight;
     unsigned int sprite;
     char name[256];
-};
+}SABRE_Sprite;
 
-#define SABRE_DATA_STORE_AS_SPRITE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (struct SABRE_SpriteStruct *))
-#define SABRE_SPRITE_POINTER_CAST(POINTER) ((struct SABRE_SpriteStruct *)POINTER)
+#define SABRE_DATA_STORE_AS_SPRITE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (SABRE_Sprite *))
+#define SABRE_SPRITE_POINTER_CAST(POINTER) ((SABRE_Sprite *)POINTER)
 
 // Actual sprite data store
-struct SABRE_DataStoreStruct SABRE_spriteStore;
+SABRE_DataStore SABRE_spriteStore;
 // A shortcut pointer to access the data from the store
 // without having to cast pointers all the time
-struct SABRE_SpriteStruct *SABRE_sprites = NULL;
+SABRE_Sprite *SABRE_sprites = NULL;
 
 int SABRE_AutoAddSprites();
 int SABRE_AddSprite(const char spriteName[256]);
 
-void SABRE_AddSpriteToDataStore(struct SABRE_DataStoreStruct *dataStore, void *sprite);
+void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite);
 void SABRE_FreeSpriteStore();
 
 int SABRE_AutoAddSprites()
@@ -33,7 +33,7 @@ int SABRE_AutoAddSprites()
 
     strcpy(animName, getAnimName(i));
     SABRE_SetDataStoreAddFunc(&SABRE_spriteStore, SABRE_AddSpriteToDataStore);
-    SABRE_spriteStore.elemSize = sizeof(struct SABRE_SpriteStruct);
+    SABRE_spriteStore.elemSize = sizeof(SABRE_Sprite);
     SABRE_PrepareDataStore(&SABRE_spriteStore);
 
     // Set the shortcut pointer to allow easier access to sprite data
@@ -61,7 +61,7 @@ int SABRE_AutoAddSprites()
 
 int SABRE_AddSprite(const char spriteName[256])
 {
-    struct SABRE_SpriteStruct newSprite;
+    SABRE_Sprite newSprite;
 
     strcpy(newSprite.name, spriteName);
     newSprite.width = SABRE_GetAnimationDimensionInPixels(SABRE_SPRITE_ACTOR, spriteName, SABRE_DIMENSION_X);
@@ -72,7 +72,7 @@ int SABRE_AddSprite(const char spriteName[256])
     return SABRE_AddToDataStore(&SABRE_spriteStore, &newSprite);
 }
 
-void SABRE_AddSpriteToDataStore(struct SABRE_DataStoreStruct *dataStore, void *sprite)
+void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite)
 {
     SABRE_sprites[dataStore->count] = *SABRE_SPRITE_POINTER_CAST(sprite);
 }

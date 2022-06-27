@@ -12,7 +12,7 @@ typedef struct SABRE_RenderObjectStruct
     float scale;
     int horizontalPosition;
     int horizontalScalingCompensation;
-    struct SABRE_SliceStruct slice;
+    SABRE_Slice slice;
 
     struct SABRE_RenderObjectStruct *prev;
     struct SABRE_RenderObjectStruct *next;
@@ -232,7 +232,7 @@ SABRE_RenderObject *SABRE_GetNextUnusedRO()
     }
 }
 
-SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizontalPosition, int compensation, struct SABRE_SliceStruct slice)
+SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizontalPosition, int compensation, SABRE_Slice slice)
 {
     int err = 0;
     SABRE_RenderObject *new = SABRE_GetNextUnusedRO();
@@ -256,7 +256,7 @@ SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizon
     return new;
 }
 
-SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizontalPosition, struct SABRE_SliceStruct slice)
+SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizontalPosition, SABRE_Slice slice)
 {
     int err = 0;
     SABRE_RenderObject *new = SABRE_GetNextUnusedRO();

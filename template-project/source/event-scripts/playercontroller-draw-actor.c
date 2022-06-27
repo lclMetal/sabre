@@ -1,16 +1,16 @@
-struct SABRE_KeyboardState *keys = &SABRE_keys; // a pointer to the player key binds
-struct SABRE_CameraStruct *camera = &SABRE_camera; // a pointer to the camera
+SABRE_KeyboardState *keys = &SABRE_keys; // a pointer to the player key binds
+SABRE_Camera *camera = &SABRE_camera; // a pointer to the camera
 
-struct SABRE_Vector2Struct oldDir   = camera->dir;
-struct SABRE_Vector2Struct oldPlane = camera->plane;
+SABRE_Vector2 oldDir   = camera->dir;
+SABRE_Vector2 oldPlane = camera->plane;
 float rotateSpeed = SABRE_player.turnSpeed;
 float moveSpeed = SABRE_player.moveSpeed;
 
-struct SABRE_Vector2Struct prevPos = camera->pos;
-struct SABRE_Vector2Struct prevDir = camera->dir;
-struct SABRE_Vector2Struct newPos = SABRE_CreateVector2(0.0f, 0.0f);
-struct SABRE_Vector2Struct normalizedForwardDir;
-struct SABRE_Vector2Struct normalizedRightDir;
+SABRE_Vector2 prevPos = camera->pos;
+SABRE_Vector2 prevDir = camera->dir;
+SABRE_Vector2 newPos = SABRE_CreateVector2(0.0f, 0.0f);
+SABRE_Vector2 normalizedForwardDir;
+SABRE_Vector2 normalizedRightDir;
 
 SABRE_UpdateKeyboardState();
 

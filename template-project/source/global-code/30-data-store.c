@@ -3,28 +3,28 @@
 
 #define SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, DATA_TYPE) (DATA_TYPE(DATA_STORE).elems)
 
-struct SABRE_DataStoreStruct
+typedef struct SABRE_DataStoreStruct
 {
     size_t capacity; // the maximum amount of elements the store can hold at the moment
     size_t count; // the amount of elements the store actually holds at the moment
     size_t elemSize; // the size of a single element in the store
     void *elems; // pointer to the elements
     void (*addFunc)(struct SABRE_DataStoreStruct*, void*);
-};
+}SABRE_DataStore;
 
-void SABRE_SetDataStoreAddFunc(struct SABRE_DataStoreStruct *dataStore, void (*addDataFunc)(struct SABRE_DataStoreStruct*, void*));
-int SABRE_InitDataStore(struct SABRE_DataStoreStruct *dataStore, size_t elemSize);
-int SABRE_GrowDataStore(struct SABRE_DataStoreStruct *dataStore);
-int SABRE_PrepareDataStore(struct SABRE_DataStoreStruct *dataStore);
-int SABRE_AddToDataStore(struct SABRE_DataStoreStruct *dataStore, void *elem);
-void SABRE_FreeDataStore(struct SABRE_DataStoreStruct *dataStore);
+void SABRE_SetDataStoreAddFunc(SABRE_DataStore *dataStore, void (*addDataFunc)(SABRE_DataStore*, void*));
+int SABRE_InitDataStore(SABRE_DataStore *dataStore, size_t elemSize);
+int SABRE_GrowDataStore(SABRE_DataStore *dataStore);
+int SABRE_PrepareDataStore(SABRE_DataStore *dataStore);
+int SABRE_AddToDataStore(SABRE_DataStore *dataStore, void *elem);
+void SABRE_FreeDataStore(SABRE_DataStore *dataStore);
 
-void SABRE_SetDataStoreAddFunc(struct SABRE_DataStoreStruct *dataStore, void (*addDataFunc)(struct SABRE_DataStoreStruct*, void*))
+void SABRE_SetDataStoreAddFunc(SABRE_DataStore *dataStore, void (*addDataFunc)(SABRE_DataStore*, void*))
 {
     dataStore->addFunc = addDataFunc;
 }
 
-int SABRE_InitDataStore(struct SABRE_DataStoreStruct *dataStore, size_t elemSize)
+int SABRE_InitDataStore(SABRE_DataStore *dataStore, size_t elemSize)
 {
     dataStore->capacity = 16;
     dataStore->count = 0;
@@ -40,7 +40,7 @@ int SABRE_InitDataStore(struct SABRE_DataStoreStruct *dataStore, size_t elemSize
     return 0;
 }
 
-int SABRE_GrowDataStore(struct SABRE_DataStoreStruct *dataStore)
+int SABRE_GrowDataStore(SABRE_DataStore *dataStore)
 {
     void *newElems = NULL;
 
@@ -61,7 +61,7 @@ int SABRE_GrowDataStore(struct SABRE_DataStoreStruct *dataStore)
     return 0;
 }
 
-int SABRE_PrepareDataStore(struct SABRE_DataStoreStruct *dataStore)
+int SABRE_PrepareDataStore(SABRE_DataStore *dataStore)
 {
     // the data store has not been initialized, initialize it and make sure no errors occurred
     if (!dataStore->capacity && SABRE_InitDataStore(dataStore, dataStore->elemSize) != 0)
@@ -80,7 +80,7 @@ int SABRE_PrepareDataStore(struct SABRE_DataStoreStruct *dataStore)
     return 0;
 }
 
-int SABRE_AddToDataStore(struct SABRE_DataStoreStruct *dataStore, void *elem)
+int SABRE_AddToDataStore(SABRE_DataStore *dataStore, void *elem)
 {
     int err = 0;
 
@@ -94,7 +94,7 @@ int SABRE_AddToDataStore(struct SABRE_DataStoreStruct *dataStore, void *elem)
     return 0;
 }
 
-void SABRE_FreeDataStore(struct SABRE_DataStoreStruct *dataStore)
+void SABRE_FreeDataStore(SABRE_DataStore *dataStore)
 {
     if (dataStore->elems)
     {

@@ -25,24 +25,24 @@
 #define SABRE_EVENT_LOCKED(EVENT) (EVENT->state & SABRE_EVENT_FLAG_LOCKED)
 #define SABRE_EVENT_NOT_LOCKED(EVENT) (EVENT->state & SABRE_EVENT_FLAG_LOCKED) == 0
 
-enum SABRE_EventNameEnum
+typedef enum SABRE_EventNameEnum
 {
     LVL1_CASH_MACHINE_EVENT = 0,
     LVL1_WINDOW_EVENT
-};
+}SABRE_EventName;
 
-struct SABRE_EventTriggerStruct
+typedef struct SABRE_EventTriggerStruct
 {
     unsigned char type;
-    enum SABRE_EventNameEnum event;
-    struct SABRE_Vector2Struct p1;
-    struct SABRE_Vector2Struct p2;
+    SABRE_EventName event;
+    SABRE_Vector2 p1;
+    SABRE_Vector2 p2;
     float facingDir;
     float facingFov;
     unsigned char state;
-};
+}SABRE_EventTrigger;
 
-struct SABRE_EventTriggerStruct event1 =
+SABRE_EventTrigger event1 =
 {
     SABRE_EVENT_PRESENCE_TOGGLE,
     LVL1_CASH_MACHINE_EVENT,
@@ -52,7 +52,7 @@ struct SABRE_EventTriggerStruct event1 =
     0
 };
 
-struct SABRE_EventTriggerStruct event2 =
+SABRE_EventTrigger event2 =
 {
     SABRE_EVENT_PRESENCE_TOGGLE,
     LVL1_WINDOW_EVENT,
@@ -61,23 +61,23 @@ struct SABRE_EventTriggerStruct event2 =
     0.0f, -30.0f
 };
 
-struct SABRE_EventTriggerStruct *SABRE_updatedTrigger = NULL;
+SABRE_EventTrigger *SABRE_updatedTrigger = NULL;
 
 void UpdateEvents();
-void SABRE_UpdateEvent(struct SABRE_EventTriggerStruct *event);
-void SABRE_EnterEventTrigger(struct SABRE_EventTriggerStruct *event);
-void SABRE_StayInEventTrigger(struct SABRE_EventTriggerStruct *event);
-void SABRE_LeaveEventTrigger(struct SABRE_EventTriggerStruct *event);
+void SABRE_UpdateEvent(SABRE_EventTrigger *event);
+void SABRE_EnterEventTrigger(SABRE_EventTrigger *event);
+void SABRE_StayInEventTrigger(SABRE_EventTrigger *event);
+void SABRE_LeaveEventTrigger(SABRE_EventTrigger *event);
 
 #if DEBUG
-void SABRE_ResetEvent(struct SABRE_EventTriggerStruct *event);
-void SABRE_CycleEventType(struct SABRE_EventTriggerStruct *event);
+void SABRE_ResetEvent(SABRE_EventTrigger *event);
+void SABRE_CycleEventType(SABRE_EventTrigger *event);
 #endif
 
-void SABRE_UpdateEvent(struct SABRE_EventTriggerStruct *event)
+void SABRE_UpdateEvent(SABRE_EventTrigger *event)
 {
-    struct SABRE_Vector2Struct camPos = SABRE_camera.pos;
-    struct SABRE_Vector2Struct prevPos = SABRE_camera.prevPos;
+    SABRE_Vector2 camPos = SABRE_camera.pos;
+    SABRE_Vector2 prevPos = SABRE_camera.prevPos;
 
     float deltaTo180 = 180.0f - event->facingDir;
     float normalizedDir = SABRE_NormalizeAngleTo360(direction(0, 0, SABRE_camera.dir.x, SABRE_camera.dir.y) + deltaTo180);
@@ -117,19 +117,19 @@ void SABRE_UpdateEvents()
 }
 
 #if DEBUG
-void SABRE_ResetEvent(struct SABRE_EventTriggerStruct *event)
+void SABRE_ResetEvent(SABRE_EventTrigger *event)
 {
     event->state = 0;
 }
 
-void SABRE_CycleEventType(struct SABRE_EventTriggerStruct *event)
+void SABRE_CycleEventType(SABRE_EventTrigger *event)
 {
     event->type++;
     if (event->type > 4) event->type = 0;
 }
 #endif
 
-void SABRE_EnterEventTrigger(struct SABRE_EventTriggerStruct *event)
+void SABRE_EnterEventTrigger(SABRE_EventTrigger *event)
 {
     switch (event->type)
     {
@@ -174,7 +174,7 @@ void SABRE_EnterEventTrigger(struct SABRE_EventTriggerStruct *event)
     }
 }
 
-void SABRE_StayInEventTrigger(struct SABRE_EventTriggerStruct *event)
+void SABRE_StayInEventTrigger(SABRE_EventTrigger *event)
 {
     switch (event->type)
     {
@@ -187,7 +187,7 @@ void SABRE_StayInEventTrigger(struct SABRE_EventTriggerStruct *event)
     }
 }
 
-void SABRE_LeaveEventTrigger(struct SABRE_EventTriggerStruct *event)
+void SABRE_LeaveEventTrigger(SABRE_EventTrigger *event)
 {
     switch (event->type)
     {

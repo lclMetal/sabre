@@ -3,18 +3,17 @@ enum SABRE_EntityAttributeFlags
     SABRE_ENTITY_HIDDEN = 1
 };
 
-struct SABRE_EntityStruct
+typedef struct SABRE_EntityStruct
 {
     float radius;
-    struct SABRE_Vector2Struct pos;
-    // struct SABRE_SpriteStruct *sprite;
+    SABRE_Vector2 pos;
     unsigned int sprite;
     unsigned char attributes;
-};
+}SABRE_Entity;
 
 #define SABRE_ENTITY_COUNT 11
 
-struct SABRE_EntityStruct entities[SABRE_ENTITY_COUNT] =
+SABRE_Entity entities[SABRE_ENTITY_COUNT] =
 {
     { 0.4f, { 8.5f, 1.5f }, 1 },
     { 0.4f, { 7.5f, 1.5f }, 1 },

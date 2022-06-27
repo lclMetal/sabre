@@ -7,14 +7,16 @@ enum SABRE_GameStatesEnum
     SABRE_FINISHED
 }SABRE_gameState = SABRE_UNINITIALIZED;
 
-struct SABRE_CameraStruct
+typedef struct SABRE_CameraStruct
 {
-    struct SABRE_Vector2Struct prevPos;
-    struct SABRE_Vector2Struct pos;
-    struct SABRE_Vector2Struct prevDir;
-    struct SABRE_Vector2Struct dir;
-    struct SABRE_Vector2Struct plane;
-}SABRE_camera;
+    SABRE_Vector2 prevPos;
+    SABRE_Vector2 pos;
+    SABRE_Vector2 prevDir;
+    SABRE_Vector2 dir;
+    SABRE_Vector2 plane;
+}SABRE_Camera;
+
+SABRE_Camera SABRE_camera;
 
 struct SABRE_KeybindStruct
 {
@@ -30,27 +32,29 @@ struct SABRE_KeybindStruct
     KEY_r         // interact
 };
 
-struct SABRE_KeyboardState
+typedef struct SABRE_KeyboardStateStruct
 {
     char forward, backward;
     char turnLeft, turnRight;
     char strafeLeft, strafeRight;
     char interact;
-}SABRE_keys;
+}SABRE_KeyboardState;
+
+SABRE_KeyboardState SABRE_keys;
 
 struct SABRE_PlayerStruct
 {
     float moveSpeed;
     float turnSpeed;
-    struct SABRE_KeybindStruct keys;
-    struct SABRE_CameraStruct camera;
 }SABRE_player;
 
-struct SABRE_SliceStruct
+typedef struct SABRE_SliceStruct
 {
     short anim;
     short slice;
-}SABRE_slice;
+}SABRE_Slice;
+
+SABRE_Slice SABRE_slice;
 
 // x = player
 // 000     abc

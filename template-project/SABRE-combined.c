@@ -162,73 +162,73 @@ void debugMsgFrom(const char *msg, const char *label, int line)
 
 
 // ..\source\global-code\10-vector2.c
-struct SABRE_Vector2Struct
+typedef struct SABRE_Vector2Struct
 {
     float x, y;
-};
+}SABRE_Vector2;
 
-struct SABRE_Vector2Struct SABRE_CreateVector2(float x, float y)
+SABRE_Vector2 SABRE_CreateVector2(float x, float y)
 {
-    struct SABRE_Vector2Struct new;
+    SABRE_Vector2 new;
     new.x = x;
     new.y = y;
     return new;
 }
 
-struct SABRE_Vector2Struct SABRE_ScaleVector2(struct SABRE_Vector2Struct vec, float scale)
+SABRE_Vector2 SABRE_ScaleVector2(SABRE_Vector2 vec, float scale)
 {
-    struct SABRE_Vector2Struct new;
+    SABRE_Vector2 new;
     new.x = vec.x * scale;
     new.y = vec.y * scale;
     return new;
 }
 
-void SABRE_ScaleVector2InPlace(struct SABRE_Vector2Struct *vec, float scale)
+void SABRE_ScaleVector2InPlace(SABRE_Vector2 *vec, float scale)
 {
     vec->x *= scale;
     vec->y *= scale;
 }
 
-struct SABRE_Vector2Struct SABRE_RotateVector2(struct SABRE_Vector2Struct vec, float rotation)
+SABRE_Vector2 SABRE_RotateVector2(SABRE_Vector2 vec, float rotation)
 {
-    struct SABRE_Vector2Struct new;
+    SABRE_Vector2 new;
     new.x = vec.x * cos(rotation) - vec.y * sin(rotation);
     new.y = vec.x * sin(rotation) + vec.y * cos(rotation);
     return new;
 }
 
-void SABRE_RotateVector2InPlace(struct SABRE_Vector2Struct *vec, float rotation)
+void SABRE_RotateVector2InPlace(SABRE_Vector2 *vec, float rotation)
 {
     float oldX = vec->x;
     vec->x = vec->x * cos(rotation) - vec->y * sin(rotation);
     vec->y = oldX   * sin(rotation) + vec->y * cos(rotation);
 }
 
-struct SABRE_Vector2Struct SABRE_AddVector2(struct SABRE_Vector2Struct a, struct SABRE_Vector2Struct b)
+SABRE_Vector2 SABRE_AddVector2(SABRE_Vector2 a, SABRE_Vector2 b)
 {
-    struct SABRE_Vector2Struct new;
+    SABRE_Vector2 new;
     new.x = a.x + b.x;
     new.y = a.y + b.y;
     return new;
 }
 
-void SABRE_AddVector2InPlace(struct SABRE_Vector2Struct *a, struct SABRE_Vector2Struct b)
+void SABRE_AddVector2InPlace(SABRE_Vector2 *a, SABRE_Vector2 b)
 {
     a->x += b.x;
     a->y += b.y;
 }
 
-float SABRE_DotProductVector2(struct SABRE_Vector2Struct a, struct SABRE_Vector2Struct b)
+float SABRE_DotProductVector2(SABRE_Vector2 a, SABRE_Vector2 b)
 {
     return a.x * b.x + a.y * b.y;
 }
 
-float SABRE_MagnitudeVector2(struct SABRE_Vector2Struct a)
+float SABRE_MagnitudeVector2(SABRE_Vector2 a)
 {
     return sqrt(SABRE_DotProductVector2(a, a));
 }
 
-struct SABRE_Vector2Struct SABRE_NormalizeVector2(struct SABRE_Vector2Struct vec)
+SABRE_Vector2 SABRE_NormalizeVector2(SABRE_Vector2 vec)
 {
     float magnitude = SABRE_MagnitudeVector2(vec);
 
@@ -241,7 +241,7 @@ struct SABRE_Vector2Struct SABRE_NormalizeVector2(struct SABRE_Vector2Struct vec
     return SABRE_ScaleVector2(vec, 1.0f / magnitude);
 }
 
-void SABRE_NormalizeVector2InPlace(struct SABRE_Vector2Struct *vec)
+void SABRE_NormalizeVector2InPlace(SABRE_Vector2 *vec)
 {
     float magnitude = SABRE_MagnitudeVector2(*vec);
 
@@ -396,28 +396,28 @@ int SABRE_GetAnimationDimensionInPixels(const char actorName[256], const char an
 
 #define SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, DATA_TYPE) (DATA_TYPE(DATA_STORE).elems)
 
-struct SABRE_DataStoreStruct
+typedef struct SABRE_DataStoreStruct
 {
     size_t capacity; // the maximum amount of elements the store can hold at the moment
     size_t count; // the amount of elements the store actually holds at the moment
     size_t elemSize; // the size of a single element in the store
     void *elems; // pointer to the elements
     void (*addFunc)(struct SABRE_DataStoreStruct*, void*);
-};
+}SABRE_DataStore;
 
-void SABRE_SetDataStoreAddFunc(struct SABRE_DataStoreStruct *dataStore, void (*addDataFunc)(struct SABRE_DataStoreStruct*, void*));
-int SABRE_InitDataStore(struct SABRE_DataStoreStruct *dataStore, size_t elemSize);
-int SABRE_GrowDataStore(struct SABRE_DataStoreStruct *dataStore);
-int SABRE_PrepareDataStore(struct SABRE_DataStoreStruct *dataStore);
-int SABRE_AddToDataStore(struct SABRE_DataStoreStruct *dataStore, void *elem);
-void SABRE_FreeDataStore(struct SABRE_DataStoreStruct *dataStore);
+void SABRE_SetDataStoreAddFunc(SABRE_DataStore *dataStore, void (*addDataFunc)(SABRE_DataStore*, void*));
+int SABRE_InitDataStore(SABRE_DataStore *dataStore, size_t elemSize);
+int SABRE_GrowDataStore(SABRE_DataStore *dataStore);
+int SABRE_PrepareDataStore(SABRE_DataStore *dataStore);
+int SABRE_AddToDataStore(SABRE_DataStore *dataStore, void *elem);
+void SABRE_FreeDataStore(SABRE_DataStore *dataStore);
 
-void SABRE_SetDataStoreAddFunc(struct SABRE_DataStoreStruct *dataStore, void (*addDataFunc)(struct SABRE_DataStoreStruct*, void*))
+void SABRE_SetDataStoreAddFunc(SABRE_DataStore *dataStore, void (*addDataFunc)(SABRE_DataStore*, void*))
 {
     dataStore->addFunc = addDataFunc;
 }
 
-int SABRE_InitDataStore(struct SABRE_DataStoreStruct *dataStore, size_t elemSize)
+int SABRE_InitDataStore(SABRE_DataStore *dataStore, size_t elemSize)
 {
     dataStore->capacity = 16;
     dataStore->count = 0;
@@ -433,7 +433,7 @@ int SABRE_InitDataStore(struct SABRE_DataStoreStruct *dataStore, size_t elemSize
     return 0;
 }
 
-int SABRE_GrowDataStore(struct SABRE_DataStoreStruct *dataStore)
+int SABRE_GrowDataStore(SABRE_DataStore *dataStore)
 {
     void *newElems = NULL;
 
@@ -454,7 +454,7 @@ int SABRE_GrowDataStore(struct SABRE_DataStoreStruct *dataStore)
     return 0;
 }
 
-int SABRE_PrepareDataStore(struct SABRE_DataStoreStruct *dataStore)
+int SABRE_PrepareDataStore(SABRE_DataStore *dataStore)
 {
     // the data store has not been initialized, initialize it and make sure no errors occurred
     if (!dataStore->capacity && SABRE_InitDataStore(dataStore, dataStore->elemSize) != 0)
@@ -473,7 +473,7 @@ int SABRE_PrepareDataStore(struct SABRE_DataStoreStruct *dataStore)
     return 0;
 }
 
-int SABRE_AddToDataStore(struct SABRE_DataStoreStruct *dataStore, void *elem)
+int SABRE_AddToDataStore(SABRE_DataStore *dataStore, void *elem)
 {
     int err = 0;
 
@@ -487,7 +487,7 @@ int SABRE_AddToDataStore(struct SABRE_DataStoreStruct *dataStore, void *elem)
     return 0;
 }
 
-void SABRE_FreeDataStore(struct SABRE_DataStoreStruct *dataStore)
+void SABRE_FreeDataStore(SABRE_DataStore *dataStore)
 {
     if (dataStore->elems)
     {
@@ -510,14 +510,16 @@ enum SABRE_GameStatesEnum
     SABRE_FINISHED
 }SABRE_gameState = SABRE_UNINITIALIZED;
 
-struct SABRE_CameraStruct
+typedef struct SABRE_CameraStruct
 {
-    struct SABRE_Vector2Struct prevPos;
-    struct SABRE_Vector2Struct pos;
-    struct SABRE_Vector2Struct prevDir;
-    struct SABRE_Vector2Struct dir;
-    struct SABRE_Vector2Struct plane;
-}SABRE_camera;
+    SABRE_Vector2 prevPos;
+    SABRE_Vector2 pos;
+    SABRE_Vector2 prevDir;
+    SABRE_Vector2 dir;
+    SABRE_Vector2 plane;
+}SABRE_Camera;
+
+SABRE_Camera SABRE_camera;
 
 struct SABRE_KeybindStruct
 {
@@ -533,27 +535,29 @@ struct SABRE_KeybindStruct
     KEY_r         // interact
 };
 
-struct SABRE_KeyboardState
+typedef struct SABRE_KeyboardStateStruct
 {
     char forward, backward;
     char turnLeft, turnRight;
     char strafeLeft, strafeRight;
     char interact;
-}SABRE_keys;
+}SABRE_KeyboardState;
+
+SABRE_KeyboardState SABRE_keys;
 
 struct SABRE_PlayerStruct
 {
     float moveSpeed;
     float turnSpeed;
-    struct SABRE_KeybindStruct keys;
-    struct SABRE_CameraStruct camera;
 }SABRE_player;
 
-struct SABRE_SliceStruct
+typedef struct SABRE_SliceStruct
 {
     short anim;
     short slice;
-}SABRE_slice;
+}SABRE_Slice;
+
+SABRE_Slice SABRE_slice;
 
 // x = player
 // 000     abc
@@ -715,24 +719,24 @@ void SABRE_Quit()
 #define SABRE_EVENT_LOCKED(EVENT) (EVENT->state & SABRE_EVENT_FLAG_LOCKED)
 #define SABRE_EVENT_NOT_LOCKED(EVENT) (EVENT->state & SABRE_EVENT_FLAG_LOCKED) == 0
 
-enum SABRE_EventNameEnum
+typedef enum SABRE_EventNameEnum
 {
     LVL1_CASH_MACHINE_EVENT = 0,
     LVL1_WINDOW_EVENT
-};
+}SABRE_EventName;
 
-struct SABRE_EventTriggerStruct
+typedef struct SABRE_EventTriggerStruct
 {
     unsigned char type;
-    enum SABRE_EventNameEnum event;
-    struct SABRE_Vector2Struct p1;
-    struct SABRE_Vector2Struct p2;
+    SABRE_EventName event;
+    SABRE_Vector2 p1;
+    SABRE_Vector2 p2;
     float facingDir;
     float facingFov;
     unsigned char state;
-};
+}SABRE_EventTrigger;
 
-struct SABRE_EventTriggerStruct event1 =
+SABRE_EventTrigger event1 =
 {
     SABRE_EVENT_PRESENCE_TOGGLE,
     LVL1_CASH_MACHINE_EVENT,
@@ -742,7 +746,7 @@ struct SABRE_EventTriggerStruct event1 =
     0
 };
 
-struct SABRE_EventTriggerStruct event2 =
+SABRE_EventTrigger event2 =
 {
     SABRE_EVENT_PRESENCE_TOGGLE,
     LVL1_WINDOW_EVENT,
@@ -751,23 +755,23 @@ struct SABRE_EventTriggerStruct event2 =
     0.0f, -30.0f
 };
 
-struct SABRE_EventTriggerStruct *SABRE_updatedTrigger = NULL;
+SABRE_EventTrigger *SABRE_updatedTrigger = NULL;
 
 void UpdateEvents();
-void SABRE_UpdateEvent(struct SABRE_EventTriggerStruct *event);
-void SABRE_EnterEventTrigger(struct SABRE_EventTriggerStruct *event);
-void SABRE_StayInEventTrigger(struct SABRE_EventTriggerStruct *event);
-void SABRE_LeaveEventTrigger(struct SABRE_EventTriggerStruct *event);
+void SABRE_UpdateEvent(SABRE_EventTrigger *event);
+void SABRE_EnterEventTrigger(SABRE_EventTrigger *event);
+void SABRE_StayInEventTrigger(SABRE_EventTrigger *event);
+void SABRE_LeaveEventTrigger(SABRE_EventTrigger *event);
 
 #if DEBUG
-void SABRE_ResetEvent(struct SABRE_EventTriggerStruct *event);
-void SABRE_CycleEventType(struct SABRE_EventTriggerStruct *event);
+void SABRE_ResetEvent(SABRE_EventTrigger *event);
+void SABRE_CycleEventType(SABRE_EventTrigger *event);
 #endif
 
-void SABRE_UpdateEvent(struct SABRE_EventTriggerStruct *event)
+void SABRE_UpdateEvent(SABRE_EventTrigger *event)
 {
-    struct SABRE_Vector2Struct camPos = SABRE_camera.pos;
-    struct SABRE_Vector2Struct prevPos = SABRE_camera.prevPos;
+    SABRE_Vector2 camPos = SABRE_camera.pos;
+    SABRE_Vector2 prevPos = SABRE_camera.prevPos;
 
     float deltaTo180 = 180.0f - event->facingDir;
     float normalizedDir = SABRE_NormalizeAngleTo360(direction(0, 0, SABRE_camera.dir.x, SABRE_camera.dir.y) + deltaTo180);
@@ -807,19 +811,19 @@ void SABRE_UpdateEvents()
 }
 
 #if DEBUG
-void SABRE_ResetEvent(struct SABRE_EventTriggerStruct *event)
+void SABRE_ResetEvent(SABRE_EventTrigger *event)
 {
     event->state = 0;
 }
 
-void SABRE_CycleEventType(struct SABRE_EventTriggerStruct *event)
+void SABRE_CycleEventType(SABRE_EventTrigger *event)
 {
     event->type++;
     if (event->type > 4) event->type = 0;
 }
 #endif
 
-void SABRE_EnterEventTrigger(struct SABRE_EventTriggerStruct *event)
+void SABRE_EnterEventTrigger(SABRE_EventTrigger *event)
 {
     switch (event->type)
     {
@@ -864,7 +868,7 @@ void SABRE_EnterEventTrigger(struct SABRE_EventTriggerStruct *event)
     }
 }
 
-void SABRE_StayInEventTrigger(struct SABRE_EventTriggerStruct *event)
+void SABRE_StayInEventTrigger(SABRE_EventTrigger *event)
 {
     switch (event->type)
     {
@@ -877,7 +881,7 @@ void SABRE_StayInEventTrigger(struct SABRE_EventTriggerStruct *event)
     }
 }
 
-void SABRE_LeaveEventTrigger(struct SABRE_EventTriggerStruct *event)
+void SABRE_LeaveEventTrigger(SABRE_EventTrigger *event)
 {
     switch (event->type)
     {
@@ -906,30 +910,30 @@ void SABRE_LeaveEventTrigger(struct SABRE_EventTriggerStruct *event)
 // ..\source\global-code\40-texture.c
 #define SABRE_TEXTURE_ACTOR "SABRE_TextureActor"
 
-struct SABRE_TextureStruct
+typedef struct SABRE_TextureStruct
 {
     int width;
     int height;
     short slices;
     char isWindow;
     char name[256];
-};
+}SABRE_Texture;
 
-#define SABRE_DATA_STORE_AS_TEXTURE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (struct SABRE_TextureStruct *))
-#define SABRE_TEXTURE_POINTER_CAST(POINTER) ((struct SABRE_TextureStruct *)POINTER)
+#define SABRE_DATA_STORE_AS_TEXTURE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (SABRE_Texture *))
+#define SABRE_TEXTURE_POINTER_CAST(POINTER) ((SABRE_Texture *)POINTER)
 
 // Actual texture data store
-struct SABRE_DataStoreStruct SABRE_textureStore;
+SABRE_DataStore SABRE_textureStore;
 // A shortcut pointer to access the data from the store
 // without having to cast pointers all the time
-struct SABRE_TextureStruct *SABRE_textures = NULL;
+SABRE_Texture *SABRE_textures = NULL;
 
 int SABRE_AutoAddTextures();
 int SABRE_AddTexture(const char textureName[256]);
-int SABRE_CalculateTextureWidth(struct SABRE_TextureStruct *texture);
-int SABRE_CalculateTextureHeight(struct SABRE_TextureStruct *texture);
+int SABRE_CalculateTextureWidth(SABRE_Texture *texture);
+int SABRE_CalculateTextureHeight(SABRE_Texture *texture);
 
-void SABRE_AddTextureToDataStore(struct SABRE_DataStoreStruct *dataStore, void *texture);
+void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture);
 void SABRE_FreeTextureStore();
 
 // only works for non-animated textures
@@ -941,7 +945,7 @@ int SABRE_AutoAddTextures()
 
     strcpy(animName, getAnimName(i));
     SABRE_SetDataStoreAddFunc(&SABRE_textureStore, SABRE_AddTextureToDataStore);
-    SABRE_textureStore.elemSize = sizeof(struct SABRE_TextureStruct);
+    SABRE_textureStore.elemSize = sizeof(SABRE_Texture);
     SABRE_PrepareDataStore(&SABRE_textureStore);
 
     // Set the shortcut pointer to allow easier access to texture data
@@ -969,7 +973,7 @@ int SABRE_AutoAddTextures()
 
 int SABRE_AddTexture(const char textureName[256])
 {
-    struct SABRE_TextureStruct newTexture;
+    SABRE_Texture newTexture;
 
     strcpy(newTexture.name, textureName);
     newTexture.width = SABRE_CalculateTextureWidth(&newTexture);
@@ -979,19 +983,19 @@ int SABRE_AddTexture(const char textureName[256])
     return SABRE_AddToDataStore(&SABRE_textureStore, &newTexture);
 }
 
-int SABRE_CalculateTextureWidth(struct SABRE_TextureStruct *texture)
+int SABRE_CalculateTextureWidth(SABRE_Texture *texture)
 {
     // TODO: make a check for if the animation actually exists, use getAnimIndex(), if -1, doesn't exist
     ChangeAnimation(SABRE_TEXTURE_ACTOR, texture->name, STOPPED);
     return getclone(SABRE_TEXTURE_ACTOR)->nframes;
 }
 
-int SABRE_CalculateTextureHeight(struct SABRE_TextureStruct *texture)
+int SABRE_CalculateTextureHeight(SABRE_Texture *texture)
 {
     return SABRE_GetAnimationDimensionInPixels(SABRE_TEXTURE_ACTOR, texture->name, SABRE_DIMENSION_Y);
 }
 
-void SABRE_AddTextureToDataStore(struct SABRE_DataStoreStruct *dataStore, void *texture)
+void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture)
 {
     SABRE_textures[dataStore->count] = *SABRE_TEXTURE_POINTER_CAST(texture);
 }
@@ -1006,7 +1010,7 @@ void SABRE_FreeTextureStore()
 // ..\source\global-code\50-sprite.c
 #define SABRE_SPRITE_ACTOR "SABRE_SpriteActor"
 
-struct SABRE_SpriteStruct
+typedef struct SABRE_SpriteStruct
 {
     unsigned int width;
     unsigned int height;
@@ -1014,21 +1018,21 @@ struct SABRE_SpriteStruct
     unsigned int halfHeight;
     unsigned int sprite;
     char name[256];
-};
+}SABRE_Sprite;
 
-#define SABRE_DATA_STORE_AS_SPRITE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (struct SABRE_SpriteStruct *))
-#define SABRE_SPRITE_POINTER_CAST(POINTER) ((struct SABRE_SpriteStruct *)POINTER)
+#define SABRE_DATA_STORE_AS_SPRITE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (SABRE_Sprite *))
+#define SABRE_SPRITE_POINTER_CAST(POINTER) ((SABRE_Sprite *)POINTER)
 
 // Actual sprite data store
-struct SABRE_DataStoreStruct SABRE_spriteStore;
+SABRE_DataStore SABRE_spriteStore;
 // A shortcut pointer to access the data from the store
 // without having to cast pointers all the time
-struct SABRE_SpriteStruct *SABRE_sprites = NULL;
+SABRE_Sprite *SABRE_sprites = NULL;
 
 int SABRE_AutoAddSprites();
 int SABRE_AddSprite(const char spriteName[256]);
 
-void SABRE_AddSpriteToDataStore(struct SABRE_DataStoreStruct *dataStore, void *sprite);
+void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite);
 void SABRE_FreeSpriteStore();
 
 int SABRE_AutoAddSprites()
@@ -1039,7 +1043,7 @@ int SABRE_AutoAddSprites()
 
     strcpy(animName, getAnimName(i));
     SABRE_SetDataStoreAddFunc(&SABRE_spriteStore, SABRE_AddSpriteToDataStore);
-    SABRE_spriteStore.elemSize = sizeof(struct SABRE_SpriteStruct);
+    SABRE_spriteStore.elemSize = sizeof(SABRE_Sprite);
     SABRE_PrepareDataStore(&SABRE_spriteStore);
 
     // Set the shortcut pointer to allow easier access to sprite data
@@ -1067,7 +1071,7 @@ int SABRE_AutoAddSprites()
 
 int SABRE_AddSprite(const char spriteName[256])
 {
-    struct SABRE_SpriteStruct newSprite;
+    SABRE_Sprite newSprite;
 
     strcpy(newSprite.name, spriteName);
     newSprite.width = SABRE_GetAnimationDimensionInPixels(SABRE_SPRITE_ACTOR, spriteName, SABRE_DIMENSION_X);
@@ -1078,7 +1082,7 @@ int SABRE_AddSprite(const char spriteName[256])
     return SABRE_AddToDataStore(&SABRE_spriteStore, &newSprite);
 }
 
-void SABRE_AddSpriteToDataStore(struct SABRE_DataStoreStruct *dataStore, void *sprite)
+void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite)
 {
     SABRE_sprites[dataStore->count] = *SABRE_SPRITE_POINTER_CAST(sprite);
 }
@@ -1096,18 +1100,17 @@ enum SABRE_EntityAttributeFlags
     SABRE_ENTITY_HIDDEN = 1
 };
 
-struct SABRE_EntityStruct
+typedef struct SABRE_EntityStruct
 {
     float radius;
-    struct SABRE_Vector2Struct pos;
-    // struct SABRE_SpriteStruct *sprite;
+    SABRE_Vector2 pos;
     unsigned int sprite;
     unsigned char attributes;
-};
+}SABRE_Entity;
 
 #define SABRE_ENTITY_COUNT 11
 
-struct SABRE_EntityStruct entities[SABRE_ENTITY_COUNT] =
+SABRE_Entity entities[SABRE_ENTITY_COUNT] =
 {
     { 0.4f, { 8.5f, 1.5f }, 1 },
     { 0.4f, { 7.5f, 1.5f }, 1 },
@@ -1138,7 +1141,7 @@ typedef struct SABRE_RenderObjectStruct
     float scale;
     int horizontalPosition;
     int horizontalScalingCompensation;
-    struct SABRE_SliceStruct slice;
+    SABRE_Slice slice;
 
     struct SABRE_RenderObjectStruct *prev;
     struct SABRE_RenderObjectStruct *next;
@@ -1358,7 +1361,7 @@ SABRE_RenderObject *SABRE_GetNextUnusedRO()
     }
 }
 
-SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizontalPosition, int compensation, struct SABRE_SliceStruct slice)
+SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizontalPosition, int compensation, SABRE_Slice slice)
 {
     int err = 0;
     SABRE_RenderObject *new = SABRE_GetNextUnusedRO();
@@ -1382,7 +1385,7 @@ SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizon
     return new;
 }
 
-SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizontalPosition, struct SABRE_SliceStruct slice)
+SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizontalPosition, SABRE_Slice slice)
 {
     int err = 0;
     SABRE_RenderObject *new = SABRE_GetNextUnusedRO();

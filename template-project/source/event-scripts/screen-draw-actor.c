@@ -20,10 +20,10 @@ short horizontalScalingCompensation; // amount of pixels to shift the drawing po
                                      // to compensate for the bigger width resulting from scaling
 const float horizontalCompensationThreshold = 0.0315f; // threshold for growing the compensation
 
-struct SABRE_TextureStruct *texture = NULL;
-struct SABRE_EntityStruct *entity = NULL;
-struct SABRE_SpriteStruct *sprite = NULL;
-struct SABRE_CameraStruct *camera = &SABRE_camera; // a pointer to the camera
+SABRE_Texture *texture = NULL;
+SABRE_Entity *entity = NULL;
+SABRE_Sprite *sprite = NULL;
+SABRE_Camera *camera = &SABRE_camera; // a pointer to the camera
 
 unsigned int entityIndex; // index of the entity to process
 float spriteX, spriteY;
