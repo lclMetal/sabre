@@ -25,13 +25,14 @@ SABRE_Entity *entity = NULL;
 SABRE_Sprite *sprite = NULL;
 SABRE_Camera *camera = &SABRE_camera; // a pointer to the camera
 
-unsigned int entityIndex; // index of the entity to process
 float spriteX, spriteY;
 float invDet;
 float transformX, transformY;
 float spriteScreenX;
 
 char solidWallHit = 0;
+
+SABRE_List *iterator = NULL; // pointer to the entity to process
 
 // only the 1st clone (cloneindex 0) will execute this code, as the other ones are just going
 // to inherit everything drawn on the first clone, due to how cloned canvases work in GE
@@ -44,13 +45,13 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 
     invDet = 1.0f / (float)(camera->plane.x * camera->dir.y - camera->dir.x * camera->plane.y);
 
-    for (entityIndex = 0; entityIndex < SABRE_ENTITY_COUNT; entityIndex++)
+    for (iterator = SABRE_entities; iterator != NULL; iterator = iterator->next)
     {
         // Skip to next entity if current one is hidden
-        if (entities[entityIndex].attributes & SABRE_ENTITY_HIDDEN)
+        if (iterator->data.entity.attributes & SABRE_ENTITY_HIDDEN)
             continue;
 
-        entity = &entities[entityIndex];
+        entity = &iterator->data.entity;
         sprite = &SABRE_sprites[entity->sprite];
         spriteX = entity->pos.x - camera->pos.x;
         spriteY = entity->pos.y - camera->pos.y;

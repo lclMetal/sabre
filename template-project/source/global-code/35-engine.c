@@ -130,6 +130,7 @@ void SABRE_UpdateKeyboardState()
 }
 
 void SABRE_Quit();
+void SABRE_SetEntities();
 
 void SABRE_Start()
 {
@@ -146,6 +147,8 @@ void SABRE_Start()
             CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
             SABRE_gameState = SABRE_RUNNING;
             DEBUG_MSG_FROM("[init (5/5)] SABRE initialization complete.", "SABRE_Start");
+
+            SABRE_SetEntities(); // Set the test entities
         }
         else
         {
@@ -163,6 +166,7 @@ void SABRE_Start()
 void SABRE_FreeTextureStore();
 void SABRE_FreeSpriteStore();
 void SABRE_FreeRenderObjectList();
+void SABRE_FreeEntityList();
 
 void SABRE_Quit()
 {
@@ -182,6 +186,7 @@ void SABRE_Quit()
         DEBUG_MSG_FROM("[quit (2/4)] Freed sprite store memory.", "SABRE_Quit");
         SABRE_FreeRenderObjectList();
         DEBUG_MSG_FROM("[quit (3/4)] Freed render object list memory.", "SABRE_Quit");
+        SABRE_FreeEntityList();
         SABRE_gameState = SABRE_FINISHED;
         DEBUG_MSG_FROM("[quit (4/4)] SABRE cleanup complete.", "SABRE_Quit");
     }

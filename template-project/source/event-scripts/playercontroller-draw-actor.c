@@ -53,6 +53,8 @@ if (newPos.x != 0 || newPos.y != 0)
 
     {
         unsigned int i;
+        SABRE_List *iterator = NULL;
+        SABRE_Entity *entity = NULL;
         float posX = newPos.x + camera->pos.x, posY = newPos.y + camera->pos.y;
         int coll = SABRE_GetSurroundingWalls(&posX, &posY, map);
         float radius = 0.4f;
@@ -74,13 +76,13 @@ if (newPos.x != 0 || newPos.y != 0)
         if ((coll & SABRE_LOW_R_MASK) == SABRE_LOW_R)
             SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY + 1, radius);
 
-        for (i = 0; i < SABRE_ENTITY_COUNT; i++)
+        for (iterator = SABRE_entities; iterator != NULL; iterator = iterator->next)
         {
-            // Skip to next entity if current one is hidden
-            if (entities[i].attributes & SABRE_ENTITY_HIDDEN)
+            entity = &iterator->data.entity;
+            if (entity->attributes & SABRE_ENTITY_HIDDEN)
                 continue;
 
-            SABRE_KeepDistance(&posX, &posY, entities[i].pos.x, entities[i].pos.y, entities[i].radius);
+            SABRE_KeepDistance(&posX, &posY, entity->pos.x, entity->pos.y, entity->radius);
         }
 
         camera->pos = SABRE_CreateVector2(posX, posY);
