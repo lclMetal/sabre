@@ -16,6 +16,7 @@ SABRE_List *SABRE_entities = NULL;
 
 SABRE_List *SABRE_NewListElement(SABRE_ListTypes elem);
 SABRE_List *SABRE_AddToList(SABRE_List *list, SABRE_List *elem);
+void SABRE_FreeList(SABRE_List *list);
 
 void SABRE_SetEntities()
 {
