@@ -181,13 +181,14 @@ void SABRE_Quit()
         EventDisable("SABRE_TextureActor", EVENTALL);
         EventDisable("SABRE_SpriteActor", EVENTALL);
         SABRE_FreeTextureStore();
-        DEBUG_MSG_FROM("[quit (1/4)] Freed texture store memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (1/5)] Freed texture store memory.", "SABRE_Quit");
         SABRE_FreeSpriteStore();
-        DEBUG_MSG_FROM("[quit (2/4)] Freed sprite store memory.", "SABRE_Quit");
-        SABRE_FreeRenderObjectList();
-        DEBUG_MSG_FROM("[quit (3/4)] Freed render object list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (2/5)] Freed sprite store memory.", "SABRE_Quit");
         SABRE_FreeEntityList();
+        DEBUG_MSG_FROM("[quit (3/5)] Freed entity list memory.", "SABRE_Quit");
+        SABRE_FreeRenderObjectList();
+        DEBUG_MSG_FROM("[quit (4/5)] Freed render object list memory.", "SABRE_Quit");
         SABRE_gameState = SABRE_FINISHED;
-        DEBUG_MSG_FROM("[quit (4/4)] SABRE cleanup complete.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (5/5)] SABRE cleanup complete.", "SABRE_Quit");
     }
 }

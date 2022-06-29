@@ -500,6 +500,72 @@ void SABRE_FreeDataStore(SABRE_DataStore *dataStore)
 }
 
 
+// ..\source\global-code\32-list.c
+#ifndef SABRE_ENTITY_DEFINED
+typedef struct SABRE_EntityStruct
+{
+    float radius;
+    SABRE_Vector2 pos;
+    unsigned int sprite;
+    unsigned char attributes;
+    char name[256];
+}SABRE_Entity;
+#define SABRE_ENTITY_DEFINED
+#endif
+
+typedef union SABRE_ListTypesUnion
+{
+    struct SABRE_EntityStruct entity;
+}SABRE_ListTypes;
+
+typedef struct SABRE_ListStruct
+{
+    struct SABRE_ListStruct *next;
+    SABRE_ListTypes data;
+}SABRE_List;
+
+SABRE_List *SABRE_AddToList(SABRE_List **list, SABRE_ListTypes elem);
+void SABRE_FreeList(SABRE_List *list);
+
+SABRE_List *SABRE_AddToList(SABRE_List **list, SABRE_ListTypes elem)
+{
+    SABRE_List *new = malloc(sizeof *new);
+
+    if (!new)
+    {
+        DEBUG_MSG_FROM("Malloc failed!", "SABRE_AddToList");
+        return NULL;
+    }
+
+    new->data = elem;
+    new->next = NULL;
+
+    if (list && !(*list))
+    {
+        new->next = NULL;
+        *list = new;
+        return *list;
+    }
+
+    new->next = *list;
+    *list = new;
+    return *list;
+}
+
+void SABRE_FreeList(SABRE_List *list)
+{
+    SABRE_List *temp = NULL;
+    SABRE_List *iterator = list;
+
+    while (iterator)
+    {
+        temp = iterator->next;
+        free(iterator);
+        iterator = temp;
+    }
+}
+
+
 // ..\source\global-code\35-engine.c
 enum SABRE_GameStatesEnum
 {
@@ -684,14 +750,15 @@ void SABRE_Quit()
         EventDisable("SABRE_TextureActor", EVENTALL);
         EventDisable("SABRE_SpriteActor", EVENTALL);
         SABRE_FreeTextureStore();
-        DEBUG_MSG_FROM("[quit (1/4)] Freed texture store memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (1/5)] Freed texture store memory.", "SABRE_Quit");
         SABRE_FreeSpriteStore();
-        DEBUG_MSG_FROM("[quit (2/4)] Freed sprite store memory.", "SABRE_Quit");
-        SABRE_FreeRenderObjectList();
-        DEBUG_MSG_FROM("[quit (3/4)] Freed render object list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (2/5)] Freed sprite store memory.", "SABRE_Quit");
         SABRE_FreeEntityList();
+        DEBUG_MSG_FROM("[quit (3/5)] Freed entity list memory.", "SABRE_Quit");
+        SABRE_FreeRenderObjectList();
+        DEBUG_MSG_FROM("[quit (4/5)] Freed render object list memory.", "SABRE_Quit");
         SABRE_gameState = SABRE_FINISHED;
-        DEBUG_MSG_FROM("[quit (4/4)] SABRE cleanup complete.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (5/5)] SABRE cleanup complete.", "SABRE_Quit");
     }
 }
 
@@ -1105,67 +1172,71 @@ enum SABRE_EntityAttributeFlags
     SABRE_ENTITY_HIDDEN = 1
 };
 
+#ifndef SABRE_ENTITY_DEFINED
 typedef struct SABRE_EntityStruct
 {
     float radius;
     SABRE_Vector2 pos;
     unsigned int sprite;
     unsigned char attributes;
+    char name[256];
 }SABRE_Entity;
-
-
-// ..\source\global-code\57-list.c
-typedef union SABRE_ListTypesUnion
-{
-    SABRE_Entity entity;
-    SABRE_Texture texture;
-}SABRE_ListTypes;
-
-typedef struct SABRE_ListStruct
-{
-    struct SABRE_ListStruct *next;
-    SABRE_ListTypes data;
-}SABRE_List;
+#define SABRE_ENTITY_DEFINED
+#endif
 
 SABRE_List *SABRE_entities = NULL;
 
-#define SABRE_ENTITY_COUNT 11
+SABRE_Entity *SABRE_GetEntity(const char name[256]);
+int SABRE_CountEntitiesInList();
+void SABRE_FreeEntityList();
 
-SABRE_List *SABRE_NewListElement(SABRE_ListTypes elem);
-SABRE_List *SABRE_AddToList(SABRE_List *list, SABRE_List *elem);
-void SABRE_FreeList(SABRE_List *list);
+SABRE_Entity *movableFlowerPot = NULL;
+SABRE_Entity *hiddenFlowerPot = NULL;
+
+#define SABRE_ENTITY_COUNT 11
 
 void SABRE_SetEntities()
 {
     int i;
-    SABRE_List *new = NULL;
     SABRE_ListTypes data;
 
     SABRE_Entity tempEntities[SABRE_ENTITY_COUNT] =
     {
-        { 0.4f, { 8.5f, 1.5f }, 1 },
-        { 0.4f, { 7.5f, 1.5f }, 1 },
-        { 0.4f, { 6.5f, 1.5f }, 2 },
-        { 0.4f, { 8.5f, 2.5f }, 1 },
-        { 0.4f, { 7.5f, 2.5f }, 0 },
-        { 0.4f, { 6.5f, 2.5f }, 1 },
-        { 0.4f, { 6.5f, 3.5f }, 3 },
-        { 0.4f, { 7.0f, 3.5f }, 3 },
-        { 0.4f, { 7.5f, 3.5f }, 3 },
-        { 0.4f, { 8.0f, 3.5f }, 3 },
-        { 0.4f, { 8.5f, 3.5f }, 3 }
+        { 0.4f, { 8.5f, 1.5f }, 1, 0, "barrel.0" },
+        { 0.4f, { 7.5f, 1.5f }, 1, 0, "barrel.1" },
+        { 0.4f, { 6.5f, 1.5f }, 2, 0, "terra-cotta-planter.0" },
+        { 0.4f, { 8.5f, 2.5f }, 1, 0, "barrel.2" },
+        { 0.4f, { 7.5f, 2.5f }, 0, 0, "pillar.0" },
+        { 0.4f, { 6.5f, 2.5f }, 1, 0, "barrel.3" },
+        { 0.4f, { 6.5f, 3.5f }, 3, 0, "flower-pot.0" },
+        { 0.4f, { 7.0f, 3.5f }, 3, 0, "flower-pot.1" },
+        { 0.4f, { 7.5f, 3.5f }, 3, 0, "flower-pot.2" },
+        { 0.4f, { 8.0f, 3.5f }, 3, 0, "flower-pot.3" },
+        { 0.4f, { 8.5f, 3.5f }, 3, 0, "flower-pot.4" }
     };
 
     for (i = 0; i < SABRE_ENTITY_COUNT; i++)
     {
         data.entity = tempEntities[i];
-        new = SABRE_NewListElement(data);
-        if (new)
+
+        if (SABRE_AddToList(&SABRE_entities, data))
+            DEBUG_MSG_FROM("Added new entity", "SABRE_SetEntities");
+    }
+}
+
+SABRE_Entity *SABRE_GetEntity(const char name[256])
+{
+    SABRE_List *iterator = NULL;
+
+    for (iterator = SABRE_entities; iterator != NULL; iterator = iterator->next)
+    {
+        if (strcmp(name, iterator->data.entity.name) == 0)
         {
-            if ((SABRE_entities = SABRE_AddToList(SABRE_entities, new)))
-                DEBUG_MSG_FROM("Added new entity", "SABRE_SetEntities");
+            return &(iterator->data.entity);
         }
     }
+
+    return NULL;
 }
 
 int SABRE_CountEntitiesInList()
@@ -1185,49 +1256,6 @@ void SABRE_FreeEntityList()
 {
     SABRE_FreeList(SABRE_entities);
     SABRE_entities = NULL;
-}
-
-SABRE_List *SABRE_NewListElement(SABRE_ListTypes elem)
-{
-    SABRE_List *new = malloc(sizeof *new);
-
-    if (!new)
-    {
-        DEBUG_MSG_FROM("Malloc failed!", "SABRE_NewListElement");
-        return NULL;
-    }
-
-    new->data = elem;
-    new->next = NULL;
-
-    return new;
-}
-
-SABRE_List *SABRE_AddToList(SABRE_List *list, SABRE_List *elem)
-{
-    if (!list)
-    {
-        elem->next = NULL;
-        list = elem;
-        return list;
-    }
-
-    elem->next = list;
-    list = elem;
-    return list;
-}
-
-void SABRE_FreeList(SABRE_List *list)
-{
-    SABRE_List *temp = NULL;
-    SABRE_List *iterator = list;
-
-    while (iterator)
-    {
-        temp = iterator->next;
-        free(iterator);
-        iterator = temp;
-    }
 }
 
 
