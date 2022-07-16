@@ -681,7 +681,7 @@ typedef struct SABRE_ProjectileStruct
 {
     float speed;
     float dropFactor;
-    SABRE_Vector2 dir;
+    SABRE_Vector3 dir;
     SABRE_Entity *entity;
 }SABRE_Projectile;
 #define SABRE_PROJECTILE_DEFINED
@@ -1557,13 +1557,14 @@ void SABRE_FreeEntityList()
 
 #define SABRE_PROJECTILE_HIT_WALL 1
 #define SABRE_PROJECTILE_HIT_ENTITY 2
+#define SABRE_PROJECTILE_HIT_FLOOR 3
 
 #ifndef SABRE_PROJECTILE_DEFINED
 typedef struct SABRE_ProjectileStruct
 {
     float speed;
     float dropFactor;
-    SABRE_Vector2 dir;
+    SABRE_Vector3 dir;
     SABRE_Entity *entity;
 }SABRE_Projectile;
 #define SABRE_PROJECTILE_DEFINED
@@ -1607,13 +1608,13 @@ void SABRE_SendProjectileHitEvent(SABRE_ProjectileHitData hitData)
 int projectilesTravelling = 0;
 #endif
 
-void SABRE_FireProjectile(SABRE_Vector2 dir, float speed, float dropFactor, float radius, SABRE_Vector3 pos, unsigned int sprite)
+void SABRE_FireProjectile(SABRE_Vector3 dir, float speed, float dropFactor, float radius, SABRE_Vector3 pos, unsigned int sprite)
 {
     char temp[256];
     SABRE_Projectile new;
     SABRE_ListTypes newListElement;
 
-    new.dir = SABRE_ScaleVector2(SABRE_NormalizeVector2(dir), speed);
+    new.dir = SABRE_ScaleVector3(SABRE_NormalizeVector3(dir), speed);
     new.speed = speed;
     new.dropFactor = dropFactor;
     sprintf(temp, "projectile.%d", SABRE_CountEntitiesInList());
@@ -1661,8 +1662,8 @@ void SABRE_UpdateProjectiles()
     int hitSide = 0;
     float wallHitPosition = 0;
 
-    SABRE_Vector2 prevPos;
-    SABRE_Vector2 nextPos;
+    SABRE_Vector3 prevPos;
+    SABRE_Vector3 nextPos;
     SABRE_Vector2 collWallPos;
     SABRE_Vector2 collEntityPos;
     SABRE_Vector2 entityCollPos;
@@ -1754,7 +1755,7 @@ void SABRE_UpdateProjectiles()
                 wallHit = (map[rayMapY][rayMapX] > 0);
         }
 
-        prevPos = SABRE_Vector3ToVector2WithoutZ(iterator->data.projectile.entity->pos);
+        prevPos = iterator->data.projectile.entity->pos;
 
         if (hitSide)
         {
@@ -1767,7 +1768,7 @@ void SABRE_UpdateProjectiles()
             collWallPos = SABRE_CreateVector2(rayMapX + (stepX < 0), wallHitPosition);
         }
 
-        nextPos = SABRE_AddVector2(prevPos, iterator->data.projectile.dir);
+        nextPos = SABRE_AddVector3(prevPos, iterator->data.projectile.dir);
 
         if (distance(prevPos.x, prevPos.y, collWallPos.x, collWallPos.y) < distance(prevPos.x, prevPos.y, nextPos.x, nextPos.y))
         {
@@ -1785,21 +1786,21 @@ void SABRE_UpdateProjectiles()
 
             collEntityPos = SABRE_Vector3ToVector2WithoutZ(iterator2->data.entity.pos);
 
-            prevToCollVec = SABRE_SubstractVector2(collEntityPos, prevPos);
-            prevToNextVec = SABRE_SubstractVector2(nextPos, prevPos);
+            prevToCollVec = SABRE_SubstractVector2(collEntityPos, SABRE_Vector3ToVector2WithoutZ(prevPos));
+            prevToNextVec = SABRE_SubstractVector2(SABRE_Vector3ToVector2WithoutZ(nextPos), SABRE_Vector3ToVector2WithoutZ(prevPos));
 
             if (SABRE_DotProductVector2(prevToCollVec, prevToNextVec) < 0)
                 continue;
 
             projection = SABRE_VECTOR2_ZERO;
-            dist = SABRE_PointToLineSegmentDistance(prevPos, nextPos, collEntityPos, &projection);
+            dist = SABRE_PointToLineSegmentDistance(SABRE_Vector3ToVector2WithoutZ(prevPos), SABRE_Vector3ToVector2WithoutZ(nextPos), collEntityPos, &projection);
             keepDist = iterator->data.projectile.entity->radius + iterator2->data.entity.radius;
             goBackDist = sqrt(pow(keepDist, 2) - pow(dist, 2));
             newDist = distance(prevPos.x, prevPos.y, projection.x, projection.y) - goBackDist;
 
-            if (SABRE_LineToPointCollision(prevPos, nextPos, collEntityPos, iterator->data.projectile.entity->radius, iterator2->data.entity.radius))
+            if (SABRE_LineToPointCollision(SABRE_Vector3ToVector2WithoutZ(prevPos), SABRE_Vector3ToVector2WithoutZ(nextPos), collEntityPos, iterator->data.projectile.entity->radius, iterator2->data.entity.radius))
             {
-                entityCollPos = SABRE_AddVector2(prevPos, SABRE_ScaleVector2(SABRE_NormalizeVector2(iterator->data.projectile.dir), newDist));
+                entityCollPos = SABRE_AddVector2(SABRE_Vector3ToVector2WithoutZ(prevPos), SABRE_ScaleVector2(SABRE_NormalizeVector2(SABRE_Vector3ToVector2WithoutZ(iterator->data.projectile.dir)), newDist));
 
                 entityHitAngle = degtorad(direction(collEntityPos.x, collEntityPos.y, entityCollPos.x, entityCollPos.y));
                 entityCollPos.x = collEntityPos.x + cos(entityHitAngle) * keepDist;
@@ -1858,7 +1859,20 @@ void SABRE_UpdateProjectiles()
         }
         else
         {
-            iterator->data.projectile.entity->pos = SABRE_Vector2ToVector3(nextPos, iterator->data.projectile.entity->pos.z);
+            if (iterator->data.projectile.entity->pos.z - iterator->data.projectile.dropFactor <= 0)
+            {
+                iterator->data.projectile.entity->pos.z = 0;
+                SABRE_SendProjectileHitEvent(SABRE_CreateProjectileHit(SABRE_PROJECTILE_HIT_FLOOR, &(iterator->data.projectile), iterator->data.projectile.entity->pos, NULL));
+#if DEBUG
+                projectilesTravelling--;
+#endif
+            continue;
+            }
+            else
+            {
+                iterator->data.projectile.entity->pos = nextPos;
+                iterator->data.projectile.dir.z -= iterator->data.projectile.dropFactor;
+            }
         }
     }
 }

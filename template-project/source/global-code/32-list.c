@@ -15,7 +15,7 @@ typedef struct SABRE_ProjectileStruct
 {
     float speed;
     float dropFactor;
-    SABRE_Vector2 dir;
+    SABRE_Vector3 dir;
     SABRE_Entity *entity;
 }SABRE_Projectile;
 #define SABRE_PROJECTILE_DEFINED
