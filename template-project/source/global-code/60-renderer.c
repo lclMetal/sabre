@@ -10,6 +10,7 @@ typedef struct SABRE_RenderObjectStruct
     enum SABRE_RenderObjectTypeEnum objectType;
 
     float scale;
+    float verticalOffset;
     int horizontalPosition;
     int horizontalScalingCompensation;
     SABRE_Slice slice;
@@ -245,6 +246,7 @@ SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizon
     new->sortValue = sortValue;
     new->objectType = SABRE_TEXTURE_RO;
     new->scale = scale;
+    new->verticalOffset = 0;
     new->horizontalPosition = horizontalPosition;
     new->horizontalScalingCompensation = compensation;
     new->slice = slice;
@@ -256,7 +258,7 @@ SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizon
     return new;
 }
 
-SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizontalPosition, SABRE_Slice slice)
+SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizontalPosition, float verticalOffset, SABRE_Slice slice)
 {
     int err = 0;
     SABRE_RenderObject *new = SABRE_GetNextUnusedRO();
@@ -269,6 +271,7 @@ SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizont
     new->sortValue = sortValue;
     new->objectType = SABRE_SPRITE_RO;
     new->scale = scale;
+    new->verticalOffset = verticalOffset;
     new->horizontalPosition = horizontalPosition;
     new->horizontalScalingCompensation = 0;
     new->slice = slice;
@@ -303,8 +306,11 @@ void SABRE_RenderObjects()
     int horizontalPosition = 0;
     float verticalPosition = height * 0.5f;
     SABRE_RenderObject *iterator = NULL;
-    float verticalResolutionFactor = screenHeight / 480.0f;
+    float verticalResolutionFactor = SABRE_screenHeight / SABRE_heightUnit;
     const float horizontalCompensationThreshold = 0.0315f; // threshold for growing the compensation
+
+    textureDrawCalls = 0;
+    spriteDrawCalls = 0;
 
     for (iterator = SABRE_ROListManager.head; iterator != NULL; iterator = iterator->next)
     {
@@ -314,13 +320,17 @@ void SABRE_RenderObjects()
             SABRE_slice.slice = iterator->slice.slice;
             SendActivationEvent(SABRE_TEXTURE_ACTOR);
             draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition, iterator->scale);
+            textureDrawCalls++;
         }
         else if (iterator->objectType == SABRE_SPRITE_RO)
         {
             SABRE_slice.anim = iterator->slice.anim;
             SABRE_slice.slice = iterator->slice.slice;
             SendActivationEvent(SABRE_SPRITE_ACTOR);
-            draw_from(SABRE_SPRITE_ACTOR, iterator->horizontalPosition, verticalPosition + (((480.0f * iterator->scale) - ((float)iterator->scale * (float)getclone("SABRE_SpriteActor.0")->height))*0.5f) * verticalResolutionFactor, iterator->scale * verticalResolutionFactor);
+            draw_from(SABRE_SPRITE_ACTOR, iterator->horizontalPosition,
+                verticalPosition + ((SABRE_halfHeightUnit - (float)SABRE_sprites[SABRE_slice.anim - 1].halfHeight) - (iterator->verticalOffset * SABRE_heightUnit)) * iterator->scale * verticalResolutionFactor,
+                iterator->scale * verticalResolutionFactor);
+            spriteDrawCalls++;
         }
     }
 }

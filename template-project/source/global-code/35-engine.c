@@ -16,6 +16,10 @@ typedef struct SABRE_CameraStruct
     SABRE_Vector2 plane;
 }SABRE_Camera;
 
+const float SABRE_heightUnit = 480.0f;
+const float SABRE_halfHeightUnit = SABRE_heightUnit * 0.5f;
+float SABRE_screenWidth = 640.0f, SABRE_screenHeight = 480.0f;
+
 SABRE_Camera SABRE_camera;
 
 struct SABRE_KeybindStruct
@@ -34,10 +38,13 @@ struct SABRE_KeybindStruct
 
 typedef struct SABRE_KeyboardStateStruct
 {
-    char forward, backward;
-    char turnLeft, turnRight;
-    char strafeLeft, strafeRight;
-    char interact;
+    char pressedForward,     releasedForward,     forward,     prevForward;
+    char pressedBackward,    releasedBackward,    backward,    prevBackward;
+    char pressedTurnLeft,    releasedTurnLeft,    turnLeft,    prevTurnLeft;
+    char pressedTurnRight,   releasedTurnRight,   turnRight,   prevTurnRight;
+    char pressedStrafeLeft,  releasedStrafeLeft,  strafeLeft,  prevStrafeLeft;
+    char pressedStrafeRight, releasedStrafeRight, strafeRight, prevStrafeRight;
+    char pressedInteract,    releasedInteract,    interact,    prevInteract;
 }SABRE_KeyboardState;
 
 SABRE_KeyboardState SABRE_keys;
@@ -46,7 +53,8 @@ struct SABRE_PlayerStruct
 {
     float moveSpeed;
     float turnSpeed;
-}SABRE_player;
+    float radius;
+}SABRE_player = { 0.05f, 0.05f, 0.2f };
 
 typedef struct SABRE_SliceStruct
 {
@@ -120,13 +128,37 @@ void SABRE_UpdateKeyboardState()
 {
     char *keys = GetKeyState();
 
-    SABRE_keys.forward      = keys[SABRE_binds.forward];
-    SABRE_keys.backward     = keys[SABRE_binds.backward];
-    SABRE_keys.turnLeft     = keys[SABRE_binds.turnLeft];
-    SABRE_keys.turnRight    = keys[SABRE_binds.turnRight];
-    SABRE_keys.strafeLeft   = keys[SABRE_binds.strafeLeft];
-    SABRE_keys.strafeRight  = keys[SABRE_binds.strafeRight];
-    SABRE_keys.interact     = keys[SABRE_binds.interact];
+    SABRE_keys.prevForward      = SABRE_keys.forward;
+    SABRE_keys.prevBackward     = SABRE_keys.backward;
+    SABRE_keys.prevTurnLeft     = SABRE_keys.turnLeft;
+    SABRE_keys.prevTurnRight    = SABRE_keys.turnRight;
+    SABRE_keys.prevStrafeLeft   = SABRE_keys.strafeLeft;
+    SABRE_keys.prevStrafeRight  = SABRE_keys.strafeRight;
+    SABRE_keys.prevInteract     = SABRE_keys.interact;
+
+    SABRE_keys.forward          = keys[SABRE_binds.forward];
+    SABRE_keys.backward         = keys[SABRE_binds.backward];
+    SABRE_keys.turnLeft         = keys[SABRE_binds.turnLeft];
+    SABRE_keys.turnRight        = keys[SABRE_binds.turnRight];
+    SABRE_keys.strafeLeft       = keys[SABRE_binds.strafeLeft];
+    SABRE_keys.strafeRight      = keys[SABRE_binds.strafeRight];
+    SABRE_keys.interact         = keys[SABRE_binds.interact];
+
+    SABRE_keys.pressedForward       = !SABRE_keys.prevForward       && SABRE_keys.forward;
+    SABRE_keys.pressedBackward      = !SABRE_keys.prevBackward      && SABRE_keys.backward;
+    SABRE_keys.pressedTurnLeft      = !SABRE_keys.prevTurnLeft      && SABRE_keys.turnLeft;
+    SABRE_keys.pressedTurnRight     = !SABRE_keys.prevTurnRight     && SABRE_keys.turnRight;
+    SABRE_keys.pressedStrafeLeft    = !SABRE_keys.prevStrafeLeft    && SABRE_keys.strafeLeft;
+    SABRE_keys.pressedStrafeRight   = !SABRE_keys.prevStrafeRight   && SABRE_keys.strafeRight;
+    SABRE_keys.pressedInteract      = !SABRE_keys.prevInteract      && SABRE_keys.interact;
+
+    SABRE_keys.releasedForward      = SABRE_keys.prevForward        && !SABRE_keys.forward;
+    SABRE_keys.releasedBackward     = SABRE_keys.prevBackward       && !SABRE_keys.backward;
+    SABRE_keys.releasedTurnLeft     = SABRE_keys.prevTurnLeft       && !SABRE_keys.turnLeft;
+    SABRE_keys.releasedTurnRight    = SABRE_keys.prevTurnRight      && !SABRE_keys.turnRight;
+    SABRE_keys.releasedStrafeLeft   = SABRE_keys.prevStrafeLeft     && !SABRE_keys.strafeLeft;
+    SABRE_keys.releasedStrafeRight  = SABRE_keys.prevStrafeRight    && !SABRE_keys.strafeRight;
+    SABRE_keys.releasedInteract     = SABRE_keys.prevInteract       && !SABRE_keys.interact;
 }
 
 void SABRE_Quit();
@@ -167,6 +199,7 @@ void SABRE_FreeTextureStore();
 void SABRE_FreeSpriteStore();
 void SABRE_FreeRenderObjectList();
 void SABRE_FreeEntityList();
+void SABRE_FreeProjectileList();
 
 void SABRE_Quit()
 {
@@ -176,19 +209,28 @@ void SABRE_Quit()
         VisibilityState("SABRE_PlayerController", DISABLE);
         VisibilityState("SABRE_TextureActor", DISABLE);
         VisibilityState("SABRE_SpriteActor", DISABLE);
+
         EventDisable("SABRE_Screen", EVENTALL);
         EventDisable("SABRE_PlayerController", EVENTALL);
         EventDisable("SABRE_TextureActor", EVENTALL);
         EventDisable("SABRE_SpriteActor", EVENTALL);
+
         SABRE_FreeTextureStore();
-        DEBUG_MSG_FROM("[quit (1/5)] Freed texture store memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (1/6)] Freed texture store memory.", "SABRE_Quit");
+
         SABRE_FreeSpriteStore();
-        DEBUG_MSG_FROM("[quit (2/5)] Freed sprite store memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (2/6)] Freed sprite store memory.", "SABRE_Quit");
+
+        SABRE_FreeProjectileList();
+        DEBUG_MSG_FROM("[quit (3/6)] Freed projectile list memory.", "SABRE_Quit");
+
         SABRE_FreeEntityList();
-        DEBUG_MSG_FROM("[quit (3/5)] Freed entity list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (4/6)] Freed entity list memory.", "SABRE_Quit");
+
         SABRE_FreeRenderObjectList();
-        DEBUG_MSG_FROM("[quit (4/5)] Freed render object list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (5/6)] Freed render object list memory.", "SABRE_Quit");
+
         SABRE_gameState = SABRE_FINISHED;
-        DEBUG_MSG_FROM("[quit (5/5)] SABRE cleanup complete.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (6/6)] SABRE cleanup complete.", "SABRE_Quit");
     }
 }

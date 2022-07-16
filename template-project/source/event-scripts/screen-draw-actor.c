@@ -41,8 +41,6 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
     erase(0, 0, 0, 1);
     SABRE_InitializeFrame();
 
-    drawCalls = 0;
-
     invDet = 1.0f / (float)(camera->plane.x * camera->dir.y - camera->dir.x * camera->plane.y);
 
     for (iterator = SABRE_entities; iterator != NULL; iterator = iterator->next)
@@ -64,23 +62,23 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             transformY = -1;
         }
 
-        spriteScreenX = (screenWidth / 2.0f) * (1 + transformX / transformY);
+        spriteScreenX = (SABRE_screenWidth / 2.0f) * (1 + transformX / transformY);
         scale = 1.0f / transformY;
         scaledHalfWidth = sprite->halfWidth * scale;
 
-        if (transformY > 0 && spriteScreenX > 0 - scaledHalfWidth && spriteScreenX < screenWidth + scaledHalfWidth)
+        if (transformY > 0 && spriteScreenX > 0 - scaledHalfWidth && spriteScreenX < SABRE_screenWidth + scaledHalfWidth)
         {
             // +1 to compensate for the existence of the project management label
             SABRE_slice.anim = entity->sprite + 1;
             SABRE_slice.slice = 0;
-            SABRE_AddSpriteRO(transformY, scale, spriteScreenX, SABRE_slice);
+            SABRE_AddSpriteRO(transformY, scale, spriteScreenX, entity->pos.z, SABRE_slice);
         }
     }
 
-    for (slice = 0; slice < screenWidth; slice++)
+    for (slice = 0; slice < SABRE_screenWidth; slice++)
     {
         // calculate the position and direction of the ray
-        cameraX = 2.0f * (float)slice / (float)screenWidth - 1; // x on the camera plane
+        cameraX = 2.0f * (float)slice / (float)SABRE_screenWidth - 1; // x on the camera plane
         rayPosX = camera->pos.x; // set the begin position of the ray to the player's position
         rayPosY = camera->pos.y;
         rayDirX = camera->dir.x + camera->plane.x * cameraX; // set the direction of the ray
@@ -151,7 +149,7 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
                 perpWallDist = (sideDistY - deltaDistY);
 
             // calculate the height of the current line of the wall to be drawn
-            wallSliceHeight = (float)screenHeight / (float)perpWallDist;
+            wallSliceHeight = (float)SABRE_screenHeight / (float)perpWallDist;
 
             // calculate the right texture to use
             SABRE_slice.anim = map[rayMapY][rayMapX];
@@ -196,7 +194,6 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             }
 
             wallHit = 0;
-            drawCalls++;
         }
 
         slice += (short)max(floor(scale) - 1, 0) + horizontalScalingCompensation * (scale > 1.0f - (horizontalCompensationThreshold - 0.0001f));

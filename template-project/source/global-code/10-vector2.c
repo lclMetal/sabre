@@ -1,3 +1,5 @@
+#define SABRE_VECTOR2_ZERO SABRE_CreateVector2(0.0f, 0.0f)
+
 typedef struct SABRE_Vector2Struct
 {
     float x, y;
@@ -54,6 +56,14 @@ void SABRE_AddVector2InPlace(SABRE_Vector2 *a, SABRE_Vector2 b)
     a->y += b.y;
 }
 
+SABRE_Vector2 SABRE_SubstractVector2(SABRE_Vector2 a, SABRE_Vector2 b)
+{
+    SABRE_Vector2 new;
+    new.x = a.x - b.x;
+    new.y = a.y - b.y;
+    return new;
+}
+
 float SABRE_DotProductVector2(SABRE_Vector2 a, SABRE_Vector2 b)
 {
     return a.x * b.x + a.y * b.y;
@@ -90,4 +100,9 @@ void SABRE_NormalizeVector2InPlace(SABRE_Vector2 *vec)
     }
 
     SABRE_ScaleVector2InPlace(vec, 1.0f / magnitude);
+}
+
+int SABRE_IsZeroVector2(SABRE_Vector2 vec)
+{
+    return (vec.x == 0 && vec.y == 0);
 }
