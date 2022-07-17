@@ -162,6 +162,8 @@ void debugMsgFrom(const char *msg, const char *label, int line)
 
 
 // ..\source\global-code\10-vector2.c
+#define SABRE_VECTOR2_ZERO SABRE_CreateVector2(0.0f, 0.0f)
+
 typedef struct SABRE_Vector2Struct
 {
     float x, y;
@@ -218,6 +220,14 @@ void SABRE_AddVector2InPlace(SABRE_Vector2 *a, SABRE_Vector2 b)
     a->y += b.y;
 }
 
+SABRE_Vector2 SABRE_SubstractVector2(SABRE_Vector2 a, SABRE_Vector2 b)
+{
+    SABRE_Vector2 new;
+    new.x = a.x - b.x;
+    new.y = a.y - b.y;
+    return new;
+}
+
 float SABRE_DotProductVector2(SABRE_Vector2 a, SABRE_Vector2 b)
 {
     return a.x * b.x + a.y * b.y;
@@ -256,8 +266,161 @@ void SABRE_NormalizeVector2InPlace(SABRE_Vector2 *vec)
     SABRE_ScaleVector2InPlace(vec, 1.0f / magnitude);
 }
 
+int SABRE_IsZeroVector2(SABRE_Vector2 vec)
+{
+    return (vec.x == 0 && vec.y == 0);
+}
+
+
+// ..\source\global-code\15-vector3.c
+#define SABRE_VECTOR3_ZERO SABRE_CreateVector3(0.0f, 0.0f, 0.0f)
+
+typedef struct SABRE_Vector3Struct
+{
+    float x, y, z;
+}SABRE_Vector3;
+
+SABRE_Vector3 SABRE_CreateVector3(float x, float y, float z)
+{
+    SABRE_Vector3 new;
+    new.x = x;
+    new.y = y;
+    new.z = z;
+    return new;
+}
+
+SABRE_Vector3 SABRE_Vector2ToVector3(SABRE_Vector2 vec2, float z)
+{
+    SABRE_Vector3 new;
+    new.x = vec2.x;
+    new.y = vec2.y;
+    new.z = z;
+    return new;
+}
+
+SABRE_Vector2 SABRE_Vector3ToVector2WithoutZ(SABRE_Vector3 vec3)
+{
+    SABRE_Vector2 new;
+    new.x = vec3.x;
+    new.y = vec3.y;
+    return new;
+}
+
+SABRE_Vector3 SABRE_ScaleVector3(SABRE_Vector3 vec, float scale)
+{
+    SABRE_Vector3 new;
+    new.x = vec.x * scale;
+    new.y = vec.y * scale;
+    new.z = vec.z * scale;
+    return new;
+}
+
+void SABRE_ScaleVector3InPlace(SABRE_Vector3 *vec, float scale)
+{
+    vec->x *= scale;
+    vec->y *= scale;
+    vec->z *= scale;
+}
+
+SABRE_Vector3 SABRE_AddVector3(SABRE_Vector3 a, SABRE_Vector3 b)
+{
+    SABRE_Vector3 new;
+    new.x = a.x + b.x;
+    new.y = a.y + b.y;
+    new.z = a.z + b.z;
+    return new;
+}
+
+void SABRE_AddVector3InPlace(SABRE_Vector3 *a, SABRE_Vector3 b)
+{
+    a->x += b.x;
+    a->y += b.y;
+    a->z += b.z;
+}
+
+float SABRE_DotProductVector3(SABRE_Vector3 a, SABRE_Vector3 b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+float SABRE_MagnitudeVector3(SABRE_Vector3 a)
+{
+    return sqrt(SABRE_DotProductVector3(a, a));
+}
+
+SABRE_Vector3 SABRE_NormalizeVector3(SABRE_Vector3 vec)
+{
+    float magnitude = SABRE_MagnitudeVector3(vec);
+
+    if (abs(magnitude) <= 0.0001f)
+    {
+        DEBUG_MSG_FROM("Unable to normalize: vector magnitude was 0.", "SABRE_NormalizeVector3");
+        return SABRE_CreateVector3(0.0f, 0.0f, 0.0f);
+    }
+
+    return SABRE_ScaleVector3(vec, 1.0f / magnitude);
+}
+
+void SABRE_NormalizeVector3InPlace(SABRE_Vector3 *vec)
+{
+    float magnitude = SABRE_MagnitudeVector3(*vec);
+
+    if (abs(magnitude) <= 0.0001f)
+    {
+        DEBUG_MSG_FROM("Unable to normalize: vector magnitude was 0.", "SABRE_NormalizeVector3InPlace");
+        vec->x = 0.0f;
+        vec->y = 0.0f;
+        vec->z = 0.0f;
+        return;
+    }
+
+    SABRE_ScaleVector3InPlace(vec, 1.0f / magnitude);
+}
+
 
 // ..\source\global-code\20-misc-functions.c
+float SABRE_LimitValue01(float val)
+{
+    return max(0, min(1, val));
+}
+
+// algorithm by user Grumdrig on stack overflow: https://stackoverflow.com/a/1501725
+float SABRE_PointToLineSegmentDistance(SABRE_Vector2 a, SABRE_Vector2 b, SABRE_Vector2 p, SABRE_Vector2 *projectionResult)
+{
+    float projectionLength;
+    SABRE_Vector2 projection;
+    SABRE_Vector2 ab = SABRE_SubstractVector2(b, a);
+    SABRE_Vector2 ap = SABRE_SubstractVector2(p, a);
+    float l2 = pow(a.x - b.x, 2) + pow(a.y - b.y, 2);
+
+    if (l2 == 0.0f) return distance(p.x, p.y, a.x, a.y);
+
+    projectionLength = SABRE_LimitValue01(SABRE_DotProductVector2(ap, ab) / (float)l2);
+    projection = SABRE_AddVector2(a, SABRE_ScaleVector2(ab, projectionLength));
+
+    if (projectionResult)
+        *projectionResult = projection;
+
+    return distance(p.x, p.y, projection.x, projection.y);
+}
+
+int SABRE_LineToPointCollision(SABRE_Vector2 a, SABRE_Vector2 b, SABRE_Vector2 p, float lineWidth, float pointRadius)
+{
+    float collisionThreshold = lineWidth + pointRadius;
+    return SABRE_PointToLineSegmentDistance(a, b, p, NULL) <= collisionThreshold;
+}
+
+float SABRE_GetPositiveBiasedSign(float val)
+{
+    if (val < 0.0f) return -1.0f;
+    return 1.0f;
+}
+
+float SABRE_RandomBetween(float lim1, float lim2)
+{
+    return rand(max(lim1, lim2) - min(lim1, lim2)) + min(lim1, lim2);
+}
+
 float SABRE_NormalizeAngleTo360(float ang)
 {
     float tempAng = ang;
@@ -505,7 +668,7 @@ void SABRE_FreeDataStore(SABRE_DataStore *dataStore)
 typedef struct SABRE_EntityStruct
 {
     float radius;
-    SABRE_Vector2 pos;
+    SABRE_Vector3 pos;
     unsigned int sprite;
     unsigned char attributes;
     char name[256];
@@ -513,14 +676,27 @@ typedef struct SABRE_EntityStruct
 #define SABRE_ENTITY_DEFINED
 #endif
 
+#ifndef SABRE_PROJECTILE_DEFINED
+typedef struct SABRE_ProjectileStruct
+{
+    float speed;
+    float dropFactor;
+    SABRE_Vector3 dir;
+    SABRE_Entity *entity;
+}SABRE_Projectile;
+#define SABRE_PROJECTILE_DEFINED
+#endif
+
 typedef union SABRE_ListTypesUnion
 {
     struct SABRE_EntityStruct entity;
+    struct SABRE_ProjectileStruct projectile;
 }SABRE_ListTypes;
 
 typedef struct SABRE_ListStruct
 {
     struct SABRE_ListStruct *next;
+    struct SABRE_ListStruct *prev;
     SABRE_ListTypes data;
 }SABRE_List;
 
@@ -539,17 +715,47 @@ SABRE_List *SABRE_AddToList(SABRE_List **list, SABRE_ListTypes elem)
 
     new->data = elem;
     new->next = NULL;
+    new->prev = NULL;
 
     if (list && !(*list))
     {
         new->next = NULL;
+        new->prev = NULL;
         *list = new;
         return *list;
     }
+    else if (!list)
+    {
+        DEBUG_MSG_FROM("Invalid list pointer.", "SABRE_AddToList");
+        free(new);
+        return NULL;
+    }
 
     new->next = *list;
+    new->prev = NULL;
+    new->next->prev = new;
     *list = new;
     return *list;
+}
+
+void SABRE_RemoveFromList(SABRE_List **list, SABRE_List *remove)
+{
+    if (!list || !(*list) || !remove) return;
+
+    if (remove->prev)
+        remove->prev->next = remove->next;
+    else
+        *list = remove->next;
+
+    if (remove->next)
+        remove->next->prev = remove->prev;
+
+    if (!remove->prev && !remove->next)
+    {
+        *list = NULL;
+    }
+
+    free(remove);
 }
 
 void SABRE_FreeList(SABRE_List *list)
@@ -585,6 +791,10 @@ typedef struct SABRE_CameraStruct
     SABRE_Vector2 plane;
 }SABRE_Camera;
 
+const float SABRE_heightUnit = 480.0f;
+const float SABRE_halfHeightUnit = SABRE_heightUnit * 0.5f;
+float SABRE_screenWidth = 640.0f, SABRE_screenHeight = 480.0f;
+
 SABRE_Camera SABRE_camera;
 
 struct SABRE_KeybindStruct
@@ -603,10 +813,13 @@ struct SABRE_KeybindStruct
 
 typedef struct SABRE_KeyboardStateStruct
 {
-    char forward, backward;
-    char turnLeft, turnRight;
-    char strafeLeft, strafeRight;
-    char interact;
+    char pressedForward,     releasedForward,     forward,     prevForward;
+    char pressedBackward,    releasedBackward,    backward,    prevBackward;
+    char pressedTurnLeft,    releasedTurnLeft,    turnLeft,    prevTurnLeft;
+    char pressedTurnRight,   releasedTurnRight,   turnRight,   prevTurnRight;
+    char pressedStrafeLeft,  releasedStrafeLeft,  strafeLeft,  prevStrafeLeft;
+    char pressedStrafeRight, releasedStrafeRight, strafeRight, prevStrafeRight;
+    char pressedInteract,    releasedInteract,    interact,    prevInteract;
 }SABRE_KeyboardState;
 
 SABRE_KeyboardState SABRE_keys;
@@ -615,7 +828,8 @@ struct SABRE_PlayerStruct
 {
     float moveSpeed;
     float turnSpeed;
-}SABRE_player;
+    float radius;
+}SABRE_player = { 0.05f, 0.05f, 0.2f };
 
 typedef struct SABRE_SliceStruct
 {
@@ -689,13 +903,37 @@ void SABRE_UpdateKeyboardState()
 {
     char *keys = GetKeyState();
 
-    SABRE_keys.forward      = keys[SABRE_binds.forward];
-    SABRE_keys.backward     = keys[SABRE_binds.backward];
-    SABRE_keys.turnLeft     = keys[SABRE_binds.turnLeft];
-    SABRE_keys.turnRight    = keys[SABRE_binds.turnRight];
-    SABRE_keys.strafeLeft   = keys[SABRE_binds.strafeLeft];
-    SABRE_keys.strafeRight  = keys[SABRE_binds.strafeRight];
-    SABRE_keys.interact     = keys[SABRE_binds.interact];
+    SABRE_keys.prevForward      = SABRE_keys.forward;
+    SABRE_keys.prevBackward     = SABRE_keys.backward;
+    SABRE_keys.prevTurnLeft     = SABRE_keys.turnLeft;
+    SABRE_keys.prevTurnRight    = SABRE_keys.turnRight;
+    SABRE_keys.prevStrafeLeft   = SABRE_keys.strafeLeft;
+    SABRE_keys.prevStrafeRight  = SABRE_keys.strafeRight;
+    SABRE_keys.prevInteract     = SABRE_keys.interact;
+
+    SABRE_keys.forward          = keys[SABRE_binds.forward];
+    SABRE_keys.backward         = keys[SABRE_binds.backward];
+    SABRE_keys.turnLeft         = keys[SABRE_binds.turnLeft];
+    SABRE_keys.turnRight        = keys[SABRE_binds.turnRight];
+    SABRE_keys.strafeLeft       = keys[SABRE_binds.strafeLeft];
+    SABRE_keys.strafeRight      = keys[SABRE_binds.strafeRight];
+    SABRE_keys.interact         = keys[SABRE_binds.interact];
+
+    SABRE_keys.pressedForward       = !SABRE_keys.prevForward       && SABRE_keys.forward;
+    SABRE_keys.pressedBackward      = !SABRE_keys.prevBackward      && SABRE_keys.backward;
+    SABRE_keys.pressedTurnLeft      = !SABRE_keys.prevTurnLeft      && SABRE_keys.turnLeft;
+    SABRE_keys.pressedTurnRight     = !SABRE_keys.prevTurnRight     && SABRE_keys.turnRight;
+    SABRE_keys.pressedStrafeLeft    = !SABRE_keys.prevStrafeLeft    && SABRE_keys.strafeLeft;
+    SABRE_keys.pressedStrafeRight   = !SABRE_keys.prevStrafeRight   && SABRE_keys.strafeRight;
+    SABRE_keys.pressedInteract      = !SABRE_keys.prevInteract      && SABRE_keys.interact;
+
+    SABRE_keys.releasedForward      = SABRE_keys.prevForward        && !SABRE_keys.forward;
+    SABRE_keys.releasedBackward     = SABRE_keys.prevBackward       && !SABRE_keys.backward;
+    SABRE_keys.releasedTurnLeft     = SABRE_keys.prevTurnLeft       && !SABRE_keys.turnLeft;
+    SABRE_keys.releasedTurnRight    = SABRE_keys.prevTurnRight      && !SABRE_keys.turnRight;
+    SABRE_keys.releasedStrafeLeft   = SABRE_keys.prevStrafeLeft     && !SABRE_keys.strafeLeft;
+    SABRE_keys.releasedStrafeRight  = SABRE_keys.prevStrafeRight    && !SABRE_keys.strafeRight;
+    SABRE_keys.releasedInteract     = SABRE_keys.prevInteract       && !SABRE_keys.interact;
 }
 
 void SABRE_Quit();
@@ -736,6 +974,7 @@ void SABRE_FreeTextureStore();
 void SABRE_FreeSpriteStore();
 void SABRE_FreeRenderObjectList();
 void SABRE_FreeEntityList();
+void SABRE_FreeProjectileList();
 
 void SABRE_Quit()
 {
@@ -745,20 +984,29 @@ void SABRE_Quit()
         VisibilityState("SABRE_PlayerController", DISABLE);
         VisibilityState("SABRE_TextureActor", DISABLE);
         VisibilityState("SABRE_SpriteActor", DISABLE);
+
         EventDisable("SABRE_Screen", EVENTALL);
         EventDisable("SABRE_PlayerController", EVENTALL);
         EventDisable("SABRE_TextureActor", EVENTALL);
         EventDisable("SABRE_SpriteActor", EVENTALL);
+
         SABRE_FreeTextureStore();
-        DEBUG_MSG_FROM("[quit (1/5)] Freed texture store memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (1/6)] Freed texture store memory.", "SABRE_Quit");
+
         SABRE_FreeSpriteStore();
-        DEBUG_MSG_FROM("[quit (2/5)] Freed sprite store memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (2/6)] Freed sprite store memory.", "SABRE_Quit");
+
+        SABRE_FreeProjectileList();
+        DEBUG_MSG_FROM("[quit (3/6)] Freed projectile list memory.", "SABRE_Quit");
+
         SABRE_FreeEntityList();
-        DEBUG_MSG_FROM("[quit (3/5)] Freed entity list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (4/6)] Freed entity list memory.", "SABRE_Quit");
+
         SABRE_FreeRenderObjectList();
-        DEBUG_MSG_FROM("[quit (4/5)] Freed render object list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (5/6)] Freed render object list memory.", "SABRE_Quit");
+
         SABRE_gameState = SABRE_FINISHED;
-        DEBUG_MSG_FROM("[quit (5/5)] SABRE cleanup complete.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (6/6)] SABRE cleanup complete.", "SABRE_Quit");
     }
 }
 
@@ -1169,14 +1417,15 @@ void SABRE_FreeSpriteStore()
 // ..\source\global-code\55-entity.c
 enum SABRE_EntityAttributeFlags
 {
-    SABRE_ENTITY_HIDDEN = 1
+    SABRE_ENTITY_HIDDEN         = 1,
+    SABRE_ENTITY_NO_COLLISION   = 2
 };
 
 #ifndef SABRE_ENTITY_DEFINED
 typedef struct SABRE_EntityStruct
 {
     float radius;
-    SABRE_Vector2 pos;
+    SABRE_Vector3 pos;
     unsigned int sprite;
     unsigned char attributes;
     char name[256];
@@ -1186,6 +1435,7 @@ typedef struct SABRE_EntityStruct
 
 SABRE_List *SABRE_entities = NULL;
 
+SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, unsigned int sprite, unsigned char attributes, const char name[256]);
 SABRE_Entity *SABRE_GetEntity(const char name[256]);
 int SABRE_CountEntitiesInList();
 void SABRE_FreeEntityList();
@@ -1193,7 +1443,7 @@ void SABRE_FreeEntityList();
 SABRE_Entity *movableFlowerPot = NULL;
 SABRE_Entity *hiddenFlowerPot = NULL;
 
-#define SABRE_ENTITY_COUNT 11
+#define SABRE_ENTITY_COUNT 12
 
 void SABRE_SetEntities()
 {
@@ -1202,17 +1452,18 @@ void SABRE_SetEntities()
 
     SABRE_Entity tempEntities[SABRE_ENTITY_COUNT] =
     {
-        { 0.4f, { 8.5f, 1.5f }, 1, 0, "barrel.0" },
-        { 0.4f, { 7.5f, 1.5f }, 1, 0, "barrel.1" },
-        { 0.4f, { 6.5f, 1.5f }, 2, 0, "terra-cotta-planter.0" },
-        { 0.4f, { 8.5f, 2.5f }, 1, 0, "barrel.2" },
-        { 0.4f, { 7.5f, 2.5f }, 0, 0, "pillar.0" },
-        { 0.4f, { 6.5f, 2.5f }, 1, 0, "barrel.3" },
-        { 0.4f, { 6.5f, 3.5f }, 3, 0, "flower-pot.0" },
-        { 0.4f, { 7.0f, 3.5f }, 3, 0, "flower-pot.1" },
-        { 0.4f, { 7.5f, 3.5f }, 3, 0, "flower-pot.2" },
-        { 0.4f, { 8.0f, 3.5f }, 3, 0, "flower-pot.3" },
-        { 0.4f, { 8.5f, 3.5f }, 3, 0, "flower-pot.4" }
+        { 0.15f, { 8.5f, 1.5f }, 1, 0, "barrel.0" },
+        { 0.15f, { 7.5f, 1.5f }, 1, 0, "barrel.1" },
+        { 0.15f, { 6.5f, 1.5f }, 2, 0, "terra-cotta-planter.0" },
+        { 0.15f, { 8.5f, 2.5f }, 1, 0, "barrel.2" },
+        { 0.14f, { 2.5f, 2.5f }, 0, 0, "pillar.0" },
+        { 0.15f, { 6.5f, 2.5f }, 1, 0, "barrel.3" },
+        { 0.19f, { 6.5f, 3.5f }, 3, 0, "flower-pot.0" },
+        { 0.19f, { 7.0f, 3.5f }, 3, 0, "flower-pot.1" },
+        { 0.19f, { 7.5f, 3.5f }, 3, 0, "flower-pot.2" },
+        { 0.19f, { 8.0f, 3.5f }, 3, 0, "flower-pot.3" },
+        { 0.19f, { 8.5f, 3.5f }, 3, 0, "flower-pot.4" },
+        { 0.15f, { 2.5f, 8.5f }, 5, 0, "tree.4" }
     };
 
     for (i = 0; i < SABRE_ENTITY_COUNT; i++)
@@ -1224,6 +1475,33 @@ void SABRE_SetEntities()
     }
 }
 
+SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, unsigned int sprite, unsigned char attributes, const char name[256])
+{
+    SABRE_Entity new;
+    SABRE_ListTypes newListElement;
+
+    new.radius = radius;
+    new.pos = pos;
+    new.sprite = sprite;
+    new.attributes = attributes;
+
+    if (strlen(name) > 0)
+        strcpy(new.name, name);
+    else
+        sprintf(new.name, "entity.%d", SABRE_CountEntitiesInList());
+
+#if DEBUG
+// {
+    // char temp[300];
+    // sprintf(temp, "Added entity: %s", name);
+    // DEBUG_MSG_FROM(temp, "SABRE_AddEntity");
+// }
+#endif
+
+    newListElement.entity = new;
+    return &(SABRE_AddToList(&SABRE_entities, newListElement)->data.entity);
+}
+
 SABRE_Entity *SABRE_GetEntity(const char name[256])
 {
     SABRE_List *iterator = NULL;
@@ -1233,6 +1511,21 @@ SABRE_Entity *SABRE_GetEntity(const char name[256])
         if (strcmp(name, iterator->data.entity.name) == 0)
         {
             return &(iterator->data.entity);
+        }
+    }
+
+    return NULL;
+}
+
+SABRE_List *SABRE_GetEntityListObject(SABRE_Entity *entity)
+{
+    SABRE_List *iterator = NULL;
+
+    for (iterator = SABRE_entities; iterator != NULL; iterator = iterator->next)
+    {
+        if (entity == &iterator->data.entity)
+        {
+            return iterator;
         }
     }
 
@@ -1259,6 +1552,292 @@ void SABRE_FreeEntityList()
 }
 
 
+// ..\source\global-code\57-projectile.c
+#define SABRE_PROJECTILE_HANDLER_ACTOR "SABRE_ProjectileHandler"
+
+#define SABRE_PROJECTILE_HIT_WALL 1
+#define SABRE_PROJECTILE_HIT_ENTITY 2
+#define SABRE_PROJECTILE_HIT_FLOOR 3
+
+#ifndef SABRE_PROJECTILE_DEFINED
+typedef struct SABRE_ProjectileStruct
+{
+    float speed;
+    float dropFactor;
+    SABRE_Vector3 dir;
+    SABRE_Entity *entity;
+}SABRE_Projectile;
+#define SABRE_PROJECTILE_DEFINED
+#endif
+
+// Not really anything like infinity, merely a very high value,
+// but the word infinity is shorter than "very high value" :D
+#define SABRE_INFINITY 1e30
+
+SABRE_List *SABRE_projectiles = NULL;
+
+typedef struct SABRE_ProjectileHitDataStruct
+{
+    float dist;
+    unsigned char hitType;
+    SABRE_Projectile *projectile;
+    SABRE_Vector3 hitPosition;
+    SABRE_Entity *entityHit;
+}SABRE_ProjectileHitData;
+
+SABRE_ProjectileHitData SABRE_projectileHitData;
+
+SABRE_ProjectileHitData SABRE_CreateProjectileHit(unsigned char hitType, float dist, SABRE_Projectile *projectile, SABRE_Vector3 hitPosition, SABRE_Entity *entityHit)
+{
+    SABRE_ProjectileHitData new;
+
+    new.dist = dist;
+    new.hitType = hitType;
+    new.projectile = projectile;
+    new.hitPosition = hitPosition;
+    new.entityHit = entityHit;
+
+    return new;
+}
+
+void SABRE_SendProjectileHitEvent(SABRE_ProjectileHitData hitData)
+{
+    SABRE_projectileHitData = hitData;
+    SendActivationEvent(SABRE_PROJECTILE_HANDLER_ACTOR);
+}
+
+void SABRE_FireProjectile(SABRE_Vector3 dir, float speed, float dropFactor, float radius, SABRE_Vector3 pos, unsigned int sprite)
+{
+    char temp[256];
+    SABRE_Projectile new;
+    SABRE_ListTypes newListElement;
+
+    new.dir = SABRE_ScaleVector3(SABRE_NormalizeVector3(dir), speed);
+    new.speed = speed;
+    new.dropFactor = dropFactor;
+    sprintf(temp, "projectile.%d", SABRE_CountEntitiesInList());
+    new.entity = SABRE_AddEntity(radius, pos, sprite, SABRE_ENTITY_NO_COLLISION, temp);
+
+    newListElement.projectile = new;
+    SABRE_AddToList(&SABRE_projectiles, newListElement);
+}
+
+
+
+SABRE_List *SABRE_GetProjectileListObject(SABRE_Projectile *projectile)
+{
+    SABRE_List *iterator = NULL;
+
+    for (iterator = SABRE_projectiles; iterator != NULL; iterator = iterator->next)
+    {
+        if (projectile == &iterator->data.projectile)
+        {
+            return iterator;
+        }
+    }
+
+    return NULL;
+}
+
+SABRE_Vector2 SABRE_Raycast(SABRE_Vector2 rayStartPos, SABRE_Vector2 rayDirection)
+{
+    SABRE_Vector2 wallHitPosition;
+
+    float rayPosX = rayStartPos.x;
+    float rayPosY = rayStartPos.y;
+    float rayDirX = rayDirection.x;
+    float rayDirY = rayDirection.y;
+    float deltaX = (rayDirX == 0) ? SABRE_INFINITY : abs(1 / rayDirX);
+    float deltaY = (rayDirY == 0) ? SABRE_INFINITY : abs(1 / rayDirY);
+    float distX;
+    float distY;
+
+    int rayMapY = (int)rayPosY;
+    int rayMapX = (int)rayPosX;
+    int stepX;
+    int stepY;
+    int wallHit = 0;
+    int hitSide = 0;
+
+    stepX = 1 - (rayDirX < 0) * 2;
+    stepY = 1 - (rayDirY < 0) * 2;
+
+    if (rayDirX < 0) distX = (rayPosX - rayMapX) * deltaX;
+    else             distX = (rayMapX + 1 - rayPosX) * deltaX;
+
+    if (rayDirY < 0) distY = (rayPosY - rayMapY) * deltaY;
+    else             distY = (rayMapY + 1 - rayPosY) * deltaY;
+
+    while (!wallHit)
+    {
+        if (distX < distY)
+        {
+            distX += deltaX;
+            rayMapX += stepX;
+            hitSide = 0;
+        }
+        else
+        {
+            distY += deltaY;
+            rayMapY += stepY;
+            hitSide = 1;
+        }
+
+        if (!wallHit)
+            wallHit = (map[rayMapY][rayMapX] > 0);
+    }
+
+    if (hitSide)
+        return SABRE_CreateVector2(rayPosX + ((rayMapY - rayPosY + (1 - stepY) / 2.0f) / rayDirY) * rayDirX, rayMapY + (stepY < 0));
+
+    return SABRE_CreateVector2(rayMapX + (stepX < 0), rayPosY + ((rayMapX - rayPosX + (1 - stepX) / 2.0f) / rayDirX) * rayDirY);
+}
+
+SABRE_ProjectileHitData SABRE_CheckProjectileWallCollision(SABRE_Projectile *projectile)
+{
+    SABRE_Vector2 prevPos = SABRE_Vector3ToVector2WithoutZ(projectile->entity->pos);
+    SABRE_Vector2 nextPos = SABRE_AddVector2(prevPos, SABRE_Vector3ToVector2WithoutZ(projectile->dir));
+    SABRE_Vector2 wallHitPosition = SABRE_Raycast(prevPos, SABRE_Vector3ToVector2WithoutZ(projectile->dir));
+    SABRE_ProjectileHitData hitData = { SABRE_INFINITY };
+
+    float distToWall = distance(prevPos.x, prevPos.y, wallHitPosition.x, wallHitPosition.y);
+    float distToNextPos = distance(prevPos.x, prevPos.y, nextPos.x, nextPos.y);
+
+    if (distToWall < distToNextPos)
+        hitData = SABRE_CreateProjectileHit(SABRE_PROJECTILE_HIT_WALL, distToWall, projectile, SABRE_Vector2ToVector3(wallHitPosition, projectile->entity->pos.z), NULL);
+
+    return hitData;
+}
+
+SABRE_ProjectileHitData SABRE_CheckProjectileEntityCollision(SABRE_Projectile *projectile, SABRE_Entity *entity)
+{
+    float dist;
+    float keepDist;
+    float goBackDist;
+    float newDist;
+    float hitAngle;
+
+    SABRE_Vector2 collisionPos;
+    SABRE_Vector2 projection = SABRE_VECTOR2_ZERO;
+
+    SABRE_Vector2 entityPos = SABRE_Vector3ToVector2WithoutZ(entity->pos);
+
+    SABRE_Vector2 prevPos = SABRE_Vector3ToVector2WithoutZ(projectile->entity->pos);
+    SABRE_Vector2 nextPos = SABRE_AddVector2(prevPos, SABRE_Vector3ToVector2WithoutZ(projectile->dir));
+    SABRE_Vector2 prevToNext = SABRE_SubstractVector2(nextPos, prevPos);
+    SABRE_Vector2 prevToColl = prevToColl = SABRE_SubstractVector2(entityPos, prevPos);
+
+    SABRE_ProjectileHitData hitData = { SABRE_INFINITY };
+
+    if (entity->attributes & SABRE_ENTITY_NO_COLLISION)
+        return hitData;
+
+    // No need to process entities that are behind the projectile
+    if (SABRE_DotProductVector2(prevToColl, prevToNext) < 0)
+        return hitData;
+
+    dist = SABRE_PointToLineSegmentDistance(prevPos, nextPos, entityPos, &projection);
+    keepDist = projectile->entity->radius + entity->radius;
+    goBackDist = sqrt(pow(keepDist, 2) - pow(dist, 2));
+    newDist = distance(prevPos.x, prevPos.y, projection.x, projection.y) - goBackDist;
+
+    if (SABRE_LineToPointCollision(prevPos, nextPos, entityPos, projectile->entity->radius, entity->radius))
+    {
+        collisionPos = SABRE_AddVector2(prevPos, SABRE_ScaleVector2(SABRE_NormalizeVector2(SABRE_Vector3ToVector2WithoutZ(projectile->dir)), newDist));
+        hitAngle = degtorad(direction(entityPos.x, entityPos.y, collisionPos.x, collisionPos.y));
+        collisionPos.x = entityPos.x + cos(hitAngle) * keepDist;
+        collisionPos.y = entityPos.y - sin(hitAngle) * keepDist;
+
+        hitData = SABRE_CreateProjectileHit(SABRE_PROJECTILE_HIT_ENTITY, distance(prevPos.x, prevPos.y, collisionPos.x, collisionPos.y), projectile, SABRE_Vector2ToVector3(collisionPos, projectile->entity->pos.z), entity);
+    }
+
+    return hitData;
+}
+
+SABRE_ProjectileHitData SABRE_CheckProjectileEntityCollisions(SABRE_Projectile *projectile)
+{
+    SABRE_List *iterator = NULL;
+    SABRE_List *next = NULL;
+
+    float lowestDistance = SABRE_INFINITY;
+    SABRE_ProjectileHitData hitData = { SABRE_INFINITY };
+    SABRE_ProjectileHitData tempHitData = { SABRE_INFINITY };
+
+    for (iterator = SABRE_entities; iterator != NULL; iterator = next)
+    {
+        next = iterator->next;
+
+        tempHitData = SABRE_CheckProjectileEntityCollision(projectile, &iterator->data.entity);
+
+        if (tempHitData.dist < lowestDistance)
+        {
+            hitData = tempHitData;
+            lowestDistance = hitData.dist;
+        }
+    }
+
+    return hitData;
+}
+
+void SABRE_StopProjectileAtPosition(SABRE_Projectile *projectile, SABRE_Vector3 position)
+{
+    projectile->entity->pos = position;
+    projectile->dir = SABRE_VECTOR3_ZERO;
+}
+
+void SABRE_UpdateProjectiles()
+{
+    SABRE_List *next = NULL;
+    SABRE_List *iterator = NULL;
+
+    SABRE_ProjectileHitData wallHitData;
+    SABRE_ProjectileHitData entityHitData;
+
+    for (iterator = SABRE_projectiles; iterator != NULL; iterator = next)
+    {
+        next = iterator->next;
+
+        if (iterator->data.projectile.dir.x == 0 && iterator->data.projectile.dir.y == 0 && iterator->data.projectile.dir.z == 0)
+            continue;
+
+        wallHitData = SABRE_CheckProjectileWallCollision(&iterator->data.projectile);
+        entityHitData = SABRE_CheckProjectileEntityCollisions(&iterator->data.projectile);
+
+        if (entityHitData.dist < wallHitData.dist)
+        {
+            iterator->data.projectile.entity->pos = entityHitData.hitPosition;
+            SABRE_StopProjectileAtPosition(&iterator->data.projectile, entityHitData.hitPosition);
+            SABRE_SendProjectileHitEvent(entityHitData);
+        }
+        else if (wallHitData.dist < entityHitData.dist)
+        {
+            SABRE_StopProjectileAtPosition(&iterator->data.projectile, wallHitData.hitPosition);
+            SABRE_SendProjectileHitEvent(wallHitData);
+        }
+        else
+        {
+            if (iterator->data.projectile.entity->pos.z - iterator->data.projectile.dropFactor <= 0)
+            {
+                iterator->data.projectile.entity->pos.z = 0;
+                iterator->data.projectile.dir = SABRE_VECTOR3_ZERO;
+                SABRE_SendProjectileHitEvent(SABRE_CreateProjectileHit(SABRE_PROJECTILE_HIT_FLOOR, 0, &(iterator->data.projectile), iterator->data.projectile.entity->pos, NULL));
+            }
+            else
+            {
+                SABRE_AddVector3InPlace(&iterator->data.projectile.entity->pos, iterator->data.projectile.dir);
+                iterator->data.projectile.dir.z -= iterator->data.projectile.dropFactor;
+            }
+        }
+    }
+}
+
+void SABRE_FreeProjectileList()
+{
+    SABRE_FreeList(SABRE_projectiles);
+    SABRE_projectiles = NULL;
+}
+
+
 // ..\source\global-code\60-renderer.c
 enum SABRE_RenderObjectTypeEnum
 {
@@ -1272,6 +1851,7 @@ typedef struct SABRE_RenderObjectStruct
     enum SABRE_RenderObjectTypeEnum objectType;
 
     float scale;
+    float verticalOffset;
     int horizontalPosition;
     int horizontalScalingCompensation;
     SABRE_Slice slice;
@@ -1507,6 +2087,7 @@ SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizon
     new->sortValue = sortValue;
     new->objectType = SABRE_TEXTURE_RO;
     new->scale = scale;
+    new->verticalOffset = 0;
     new->horizontalPosition = horizontalPosition;
     new->horizontalScalingCompensation = compensation;
     new->slice = slice;
@@ -1518,7 +2099,7 @@ SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizon
     return new;
 }
 
-SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizontalPosition, SABRE_Slice slice)
+SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizontalPosition, float verticalOffset, SABRE_Slice slice)
 {
     int err = 0;
     SABRE_RenderObject *new = SABRE_GetNextUnusedRO();
@@ -1531,6 +2112,7 @@ SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizont
     new->sortValue = sortValue;
     new->objectType = SABRE_SPRITE_RO;
     new->scale = scale;
+    new->verticalOffset = verticalOffset;
     new->horizontalPosition = horizontalPosition;
     new->horizontalScalingCompensation = 0;
     new->slice = slice;
@@ -1565,8 +2147,11 @@ void SABRE_RenderObjects()
     int horizontalPosition = 0;
     float verticalPosition = height * 0.5f;
     SABRE_RenderObject *iterator = NULL;
-    float verticalResolutionFactor = screenHeight / 480.0f;
+    float verticalResolutionFactor = SABRE_screenHeight / SABRE_heightUnit;
     const float horizontalCompensationThreshold = 0.0315f; // threshold for growing the compensation
+
+    textureDrawCalls = 0;
+    spriteDrawCalls = 0;
 
     for (iterator = SABRE_ROListManager.head; iterator != NULL; iterator = iterator->next)
     {
@@ -1576,13 +2161,17 @@ void SABRE_RenderObjects()
             SABRE_slice.slice = iterator->slice.slice;
             SendActivationEvent(SABRE_TEXTURE_ACTOR);
             draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition, iterator->scale);
+            textureDrawCalls++;
         }
         else if (iterator->objectType == SABRE_SPRITE_RO)
         {
             SABRE_slice.anim = iterator->slice.anim;
             SABRE_slice.slice = iterator->slice.slice;
             SendActivationEvent(SABRE_SPRITE_ACTOR);
-            draw_from(SABRE_SPRITE_ACTOR, iterator->horizontalPosition, verticalPosition + (((480.0f * iterator->scale) - ((float)iterator->scale * (float)getclone("SABRE_SpriteActor.0")->height))*0.5f) * verticalResolutionFactor, iterator->scale * verticalResolutionFactor);
+            draw_from(SABRE_SPRITE_ACTOR, iterator->horizontalPosition,
+                verticalPosition + ((SABRE_halfHeightUnit - (float)SABRE_sprites[SABRE_slice.anim - 1].halfHeight) - (iterator->verticalOffset * SABRE_heightUnit)) * iterator->scale * verticalResolutionFactor,
+                iterator->scale * verticalResolutionFactor);
+            spriteDrawCalls++;
         }
     }
 }

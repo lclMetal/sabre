@@ -46,6 +46,13 @@ else if (keys->strafeRight && !keys->strafeLeft)
     SABRE_AddVector2InPlace(&newPos, SABRE_ScaleVector2(normalizedRightDir, moveSpeed));
 }
 
+// if (keys->releasedInteract)
+if (keys->interact)
+{
+    if (frame % 3 == 0)
+    SABRE_FireProjectile(SABRE_Vector2ToVector3(camera->dir, 0.2f), 0.1f, 0.002f, 0.01f, SABRE_Vector2ToVector3(SABRE_camera.pos, 0.3f), 6);
+}
+
 if (newPos.x != 0 || newPos.y != 0)
 {
     SABRE_NormalizeVector2InPlace(&newPos);
@@ -57,7 +64,7 @@ if (newPos.x != 0 || newPos.y != 0)
         SABRE_Entity *entity = NULL;
         float posX = newPos.x + camera->pos.x, posY = newPos.y + camera->pos.y;
         int coll = SABRE_GetSurroundingWalls(&posX, &posY, map);
-        float radius = 0.4f;
+        float radius = SABRE_player.radius;
 
         if ((coll & SABRE_TOP_L_MASK) == SABRE_TOP_L)
             SABRE_KeepDistance(&posX, &posY, (int)posX, (int)posY, radius);
@@ -79,10 +86,10 @@ if (newPos.x != 0 || newPos.y != 0)
         for (iterator = SABRE_entities; iterator != NULL; iterator = iterator->next)
         {
             entity = &iterator->data.entity;
-            if (entity->attributes & SABRE_ENTITY_HIDDEN)
+            if (entity->attributes & SABRE_ENTITY_NO_COLLISION)
                 continue;
 
-            SABRE_KeepDistance(&posX, &posY, entity->pos.x, entity->pos.y, entity->radius);
+            SABRE_KeepDistance(&posX, &posY, entity->pos.x, entity->pos.y, entity->radius + radius);
         }
 
         camera->pos = SABRE_CreateVector2(posX, posY);

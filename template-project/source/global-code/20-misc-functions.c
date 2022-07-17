@@ -1,3 +1,45 @@
+float SABRE_LimitValue01(float val)
+{
+    return max(0, min(1, val));
+}
+
+// algorithm by user Grumdrig on stack overflow: https://stackoverflow.com/a/1501725
+float SABRE_PointToLineSegmentDistance(SABRE_Vector2 a, SABRE_Vector2 b, SABRE_Vector2 p, SABRE_Vector2 *projectionResult)
+{
+    float projectionLength;
+    SABRE_Vector2 projection;
+    SABRE_Vector2 ab = SABRE_SubstractVector2(b, a);
+    SABRE_Vector2 ap = SABRE_SubstractVector2(p, a);
+    float l2 = pow(a.x - b.x, 2) + pow(a.y - b.y, 2);
+
+    if (l2 == 0.0f) return distance(p.x, p.y, a.x, a.y);
+
+    projectionLength = SABRE_LimitValue01(SABRE_DotProductVector2(ap, ab) / (float)l2);
+    projection = SABRE_AddVector2(a, SABRE_ScaleVector2(ab, projectionLength));
+
+    if (projectionResult)
+        *projectionResult = projection;
+
+    return distance(p.x, p.y, projection.x, projection.y);
+}
+
+int SABRE_LineToPointCollision(SABRE_Vector2 a, SABRE_Vector2 b, SABRE_Vector2 p, float lineWidth, float pointRadius)
+{
+    float collisionThreshold = lineWidth + pointRadius;
+    return SABRE_PointToLineSegmentDistance(a, b, p, NULL) <= collisionThreshold;
+}
+
+float SABRE_GetPositiveBiasedSign(float val)
+{
+    if (val < 0.0f) return -1.0f;
+    return 1.0f;
+}
+
+float SABRE_RandomBetween(float lim1, float lim2)
+{
+    return rand(max(lim1, lim2) - min(lim1, lim2)) + min(lim1, lim2);
+}
+
 float SABRE_NormalizeAngleTo360(float ang)
 {
     float tempAng = ang;
