@@ -49,8 +49,8 @@ else if (keys->strafeRight && !keys->strafeLeft)
 // if (keys->releasedInteract)
 if (keys->interact)
 {
-    if (frame % 3 == 0)
-    SABRE_FireProjectile(SABRE_Vector2ToVector3(camera->dir, 0.2f), 0.1f, 0.002f, 0.01f, SABRE_Vector2ToVector3(SABRE_camera.pos, 0.3f), 6);
+    if (frame % 5 == 0)
+    SABRE_FireProjectile(SABRE_Vector2ToVector3(camera->dir, 0.2f), 0.1f, 0.002f, 0.01f, SABRE_Vector2ToVector3(SABRE_camera.pos, 0.3f), SABRE_CreateAnimator(SABRE_CreateAnimation(0, 6)));
 }
 
 if (newPos.x != 0 || newPos.y != 0)

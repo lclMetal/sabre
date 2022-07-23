@@ -6,7 +6,7 @@ typedef struct SABRE_SpriteStruct
     unsigned int height;
     unsigned int halfWidth;
     unsigned int halfHeight;
-    unsigned int sprite;
+    unsigned int nframes;
     char name[256];
 }SABRE_Sprite;
 
@@ -48,7 +48,7 @@ int SABRE_AutoAddSprites()
 #if DEBUG
 {
     char temp[256];
-    sprintf(temp, "Added sprite: [%d \"%s\"]", i - 1, animName);
+    sprintf(temp, "Added sprite: [%d \"%s\" %d]", i - 1, animName, SABRE_sprites[SABRE_spriteStore.count-1].nframes);
     DEBUG_MSG_FROM(temp, "SABRE_AutoAddSprites");
 }
 #endif
@@ -64,10 +64,11 @@ int SABRE_AddSprite(const char spriteName[256])
     SABRE_Sprite newSprite;
 
     strcpy(newSprite.name, spriteName);
-    newSprite.width = SABRE_GetAnimationDimensionInPixels(SABRE_SPRITE_ACTOR, spriteName, SABRE_DIMENSION_X);
-    newSprite.height = SABRE_GetAnimationDimensionInPixels(SABRE_SPRITE_ACTOR, spriteName, SABRE_DIMENSION_Y);
+    newSprite.width = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_WIDTH);
+    newSprite.height = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_HEIGHT);
     newSprite.halfWidth = newSprite.width * 0.5f;
     newSprite.halfHeight = newSprite.height * 0.5f;
+    newSprite.nframes = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_NFRAMES);
 
     return SABRE_AddToDataStore(&SABRE_spriteStore, &newSprite);
 }

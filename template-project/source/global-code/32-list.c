@@ -1,10 +1,31 @@
+#ifndef SABRE_ANIMATION_DEFINED
+typedef struct SABRE_AnimationStruct
+{
+    float frameRate;
+    unsigned int nframes;
+    unsigned int sprite;
+}SABRE_Animation;
+#define SABRE_ANIMATION_DEFINED
+#endif
+
+#ifndef SABRE_ANIMATOR_DEFINED
+typedef struct SABRE_AnimatorStruct
+{
+    char state;
+    unsigned int animpos;
+    float accumulatedAnimpos;
+    SABRE_Animation anim;
+}SABRE_Animator;
+#define SABRE_ANIMATOR_DEFINED
+#endif
+
 #ifndef SABRE_ENTITY_DEFINED
 typedef struct SABRE_EntityStruct
 {
     float radius;
     SABRE_Vector3 pos;
-    unsigned int sprite;
     unsigned char attributes;
+    SABRE_Animator animator;
     char name[256];
 }SABRE_Entity;
 #define SABRE_ENTITY_DEFINED

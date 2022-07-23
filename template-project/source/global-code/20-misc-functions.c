@@ -113,10 +113,11 @@ int SABRE_StringEndsWith(const char *str, const char *str2)
     return !strcmp(&str[len1 - len2], str2);
 }
 
-#define SABRE_DIMENSION_X 0
-#define SABRE_DIMENSION_Y 1
+#define SABRE_ANIM_WIDTH 0
+#define SABRE_ANIM_HEIGHT 1
+#define SABRE_ANIM_NFRAMES 2
 
-int SABRE_GetAnimationDimensionInPixels(const char actorName[256], const char animName[256], int dimension)
+int SABRE_GetAnimationDataValue(const char actorName[256], const char animName[256], unsigned char dataValueType)
 {
     int i = 0;
     int dimensionPixels = 0;
@@ -133,21 +134,24 @@ int SABRE_GetAnimationDimensionInPixels(const char actorName[256], const char an
     SendActivationEvent(actorName); // this "finalizes" the animation change, resetting the actor's animpos
     animFrameCount = animationActor->nframes;
 
+    if (dataValueType == SABRE_ANIM_NFRAMES)
+        return animFrameCount;
+
     for (i = 0; i < animFrameCount; i++)
     {
         animationActor = getclone(animationActor->clonename); // this updates the width and height values
 
-        switch (dimension)
+        switch (dataValueType)
         {
             default:
-            case SABRE_DIMENSION_X:
+            case SABRE_ANIM_WIDTH:
                 if (animationActor->width > dimensionPixels)
                 {
                     dimensionPixels = animationActor->width;
                 }
                 break;
 
-            case SABRE_DIMENSION_Y:
+            case SABRE_ANIM_HEIGHT:
                 if (animationActor->height > dimensionPixels)
                 {
                     dimensionPixels = animationActor->height;
