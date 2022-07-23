@@ -553,6 +553,20 @@ int SABRE_GetAnimationDimensionInPixels(const char actorName[256], const char an
 }
 
 
+// ..\source\global-code\25-animation.c
+// typedef struct SABRE_AnimationStruct
+// {
+    // char nframes;
+    // float frameRate;
+    // char name[256];
+// }SABRE_Animation;
+
+// typedef struct SABRE_AnimatorStruct
+// {
+    // SABRE_Animation  
+// }SABRE_Animator;
+
+
 // ..\source\global-code\30-data-store.c
 #define SABRE_DATA_STORE_DOUBLING_LIMIT 128
 #define SABRE_DATA_STORE_GROW_AMOUNT 64 // SABRE_DATA_STORE_DOUBLING_LIMIT / 2
