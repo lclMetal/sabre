@@ -1,3 +1,6 @@
+#define SABRE_CEILING_ACTOR "SABRE_Ceiling"
+#define SABRE_FLOOR_ACTOR "SABRE_Floor"
+
 enum SABRE_GameStatesEnum
 {
     SABRE_UNINITIALIZED = 0,
@@ -63,6 +66,8 @@ typedef struct SABRE_SliceStruct
 }SABRE_Slice;
 
 SABRE_Slice SABRE_slice;
+SABRE_Color SABRE_defaultCeiling = { 215.0, 54.0, 91.0, 106, 158, 231, 1.0 };
+SABRE_Color SABRE_defaultFloor   = {  86.0, 76.0, 62.0, 106, 158,  38, 1.0 };
 
 // x = player
 // 000     abc
@@ -86,6 +91,16 @@ SABRE_Slice SABRE_slice;
 #define SABRE_LOW_MASK   0x02 // g
 #define SABRE_LOW_R      0x01 // h
 #define SABRE_LOW_R_MASK 0x0B // h && e && g
+
+void SABRE_SetCeilingColor(SABRE_Color color)
+{
+    SABRE_ColorActorByName(SABRE_CEILING_ACTOR, color);
+}
+
+void SABRE_SetFloorColor(SABRE_Color color)
+{
+    SABRE_ColorActorByName(SABRE_FLOOR_ACTOR, color);
+}
 
 int SABRE_GetSurroundingWalls(float *px, float *py, int map[LEVEL_HEIGHT][LEVEL_WIDTH])
 {
@@ -177,6 +192,10 @@ void SABRE_Start()
         {
             DEBUG_MSG_FROM("[init (4/5)] Sprite addition successful.", "SABRE_Start");
             CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
+            CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", 0, -270, true);
+            CreateActor("SABRE_Floor", "background", "(none)", "(none)", 0, 270, true);
+            SABRE_SetCeilingColor(SABRE_defaultCeiling);
+            SABRE_SetFloorColor(SABRE_defaultFloor);
             SABRE_gameState = SABRE_RUNNING;
             DEBUG_MSG_FROM("[init (5/5)] SABRE initialization complete.", "SABRE_Start");
 
