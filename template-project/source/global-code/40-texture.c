@@ -82,7 +82,7 @@ int SABRE_CalculateTextureWidth(SABRE_Texture *texture)
 
 int SABRE_CalculateTextureHeight(SABRE_Texture *texture)
 {
-    return SABRE_GetAnimationDimensionInPixels(SABRE_TEXTURE_ACTOR, texture->name, SABRE_DIMENSION_Y);
+    return SABRE_GetAnimationDataValue(SABRE_TEXTURE_ACTOR, texture->name, SABRE_ANIM_HEIGHT);
 }
 
 void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture)

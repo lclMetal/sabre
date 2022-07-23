@@ -494,10 +494,11 @@ int SABRE_StringEndsWith(const char *str, const char *str2)
     return !strcmp(&str[len1 - len2], str2);
 }
 
-#define SABRE_DIMENSION_X 0
-#define SABRE_DIMENSION_Y 1
+#define SABRE_ANIM_WIDTH 0
+#define SABRE_ANIM_HEIGHT 1
+#define SABRE_ANIM_NFRAMES 2
 
-int SABRE_GetAnimationDimensionInPixels(const char actorName[256], const char animName[256], int dimension)
+int SABRE_GetAnimationDataValue(const char actorName[256], const char animName[256], unsigned char dataValueType)
 {
     int i = 0;
     int dimensionPixels = 0;
@@ -514,21 +515,24 @@ int SABRE_GetAnimationDimensionInPixels(const char actorName[256], const char an
     SendActivationEvent(actorName); // this "finalizes" the animation change, resetting the actor's animpos
     animFrameCount = animationActor->nframes;
 
+    if (dataValueType == SABRE_ANIM_NFRAMES)
+        return animFrameCount;
+
     for (i = 0; i < animFrameCount; i++)
     {
         animationActor = getclone(animationActor->clonename); // this updates the width and height values
 
-        switch (dimension)
+        switch (dataValueType)
         {
             default:
-            case SABRE_DIMENSION_X:
+            case SABRE_ANIM_WIDTH:
                 if (animationActor->width > dimensionPixels)
                 {
                     dimensionPixels = animationActor->width;
                 }
                 break;
 
-            case SABRE_DIMENSION_Y:
+            case SABRE_ANIM_HEIGHT:
                 if (animationActor->height > dimensionPixels)
                 {
                     dimensionPixels = animationActor->height;
@@ -551,20 +555,6 @@ int SABRE_GetAnimationDimensionInPixels(const char actorName[256], const char an
 
     return dimensionPixels;
 }
-
-
-// ..\source\global-code\25-animation.c
-// typedef struct SABRE_AnimationStruct
-// {
-    // char nframes;
-    // float frameRate;
-    // char name[256];
-// }SABRE_Animation;
-
-// typedef struct SABRE_AnimatorStruct
-// {
-    // SABRE_Animation  
-// }SABRE_Animator;
 
 
 // ..\source\global-code\30-data-store.c
@@ -1326,7 +1316,7 @@ int SABRE_CalculateTextureWidth(SABRE_Texture *texture)
 
 int SABRE_CalculateTextureHeight(SABRE_Texture *texture)
 {
-    return SABRE_GetAnimationDimensionInPixels(SABRE_TEXTURE_ACTOR, texture->name, SABRE_DIMENSION_Y);
+    return SABRE_GetAnimationDataValue(SABRE_TEXTURE_ACTOR, texture->name, SABRE_ANIM_HEIGHT);
 }
 
 void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture)
@@ -1350,7 +1340,7 @@ typedef struct SABRE_SpriteStruct
     unsigned int height;
     unsigned int halfWidth;
     unsigned int halfHeight;
-    unsigned int sprite;
+    unsigned int nframes;
     char name[256];
 }SABRE_Sprite;
 
@@ -1392,7 +1382,7 @@ int SABRE_AutoAddSprites()
 #if DEBUG
 {
     char temp[256];
-    sprintf(temp, "Added sprite: [%d \"%s\"]", i - 1, animName);
+    sprintf(temp, "Added sprite: [%d \"%s\" %d]", i - 1, animName, SABRE_sprites[SABRE_spriteStore.count-1].nframes);
     DEBUG_MSG_FROM(temp, "SABRE_AutoAddSprites");
 }
 #endif
@@ -1408,10 +1398,11 @@ int SABRE_AddSprite(const char spriteName[256])
     SABRE_Sprite newSprite;
 
     strcpy(newSprite.name, spriteName);
-    newSprite.width = SABRE_GetAnimationDimensionInPixels(SABRE_SPRITE_ACTOR, spriteName, SABRE_DIMENSION_X);
-    newSprite.height = SABRE_GetAnimationDimensionInPixels(SABRE_SPRITE_ACTOR, spriteName, SABRE_DIMENSION_Y);
+    newSprite.width = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_WIDTH);
+    newSprite.height = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_HEIGHT);
     newSprite.halfWidth = newSprite.width * 0.5f;
     newSprite.halfHeight = newSprite.height * 0.5f;
+    newSprite.nframes = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_NFRAMES);
 
     return SABRE_AddToDataStore(&SABRE_spriteStore, &newSprite);
 }
@@ -1425,6 +1416,76 @@ void SABRE_FreeSpriteStore()
 {
     SABRE_FreeDataStore(&SABRE_spriteStore);
     SABRE_sprites = NULL;
+}
+
+
+// ..\source\global-code\52-animation.c
+typedef struct SABRE_AnimationStruct
+{
+    float frameRate;
+    unsigned int nframes;
+    unsigned int sprite;
+}SABRE_Animation;
+
+typedef struct SABRE_AnimatorStruct
+{
+    char state;
+    unsigned int animpos;
+    float accumulatedAnimpos;
+    SABRE_Animation anim;
+}SABRE_Animator;
+
+SABRE_Animation SABRE_CreateAnimation(float frameRate, unsigned int sprite)
+{
+    SABRE_Animation anim;
+
+    anim.frameRate = frameRate;
+    anim.nframes = SABRE_sprites != NULL ? SABRE_sprites[sprite].nframes : 1;
+    anim.sprite = sprite;
+
+    return anim;
+}
+
+void SABRE_ChangeAnimation(SABRE_Animator *animator, SABRE_Animation anim, char state)
+{
+    animator->state = state;
+    animator->animpos = 0;
+    animator->accumulatedAnimpos = 0.0f;
+    animator->anim = anim;
+}
+
+void SABRE_ChangeAnimationDirection(SABRE_Animator *animator, char state)
+{
+    animator->state = state;
+}
+
+SABRE_Animator SABRE_CreateAnimator(SABRE_Animation anim)
+{
+    SABRE_Animator animator;
+
+    animator.state = FORWARD;
+    animator.animpos = 0;
+    animator.accumulatedAnimpos = 0.0f;
+    animator.anim = anim;
+
+    return animator;
+}
+
+void SABRE_UpdateAnimation(SABRE_Animator *animator)
+{
+    if (!animator)
+    {
+        DEBUG_MSG_FROM("Invalid animator pointer", "SABRE_UpdateAnimation");
+        return;
+    }
+
+    animator->accumulatedAnimpos += animator->anim.frameRate / max(real_fps, 1);
+
+    if (animator->accumulatedAnimpos >= 1.0f)
+    {
+        animator->animpos = (animator->animpos + (int)animator->accumulatedAnimpos) % (int)max(animator->anim.nframes, 1);
+        animator->accumulatedAnimpos = max(0, animator->accumulatedAnimpos - (int)animator->accumulatedAnimpos);
+    }
 }
 
 
