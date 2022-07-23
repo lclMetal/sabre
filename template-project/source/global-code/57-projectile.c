@@ -51,7 +51,7 @@ void SABRE_SendProjectileHitEvent(SABRE_ProjectileHitData hitData)
     SendActivationEvent(SABRE_PROJECTILE_HANDLER_ACTOR);
 }
 
-void SABRE_FireProjectile(SABRE_Vector3 dir, float speed, float dropFactor, float radius, SABRE_Vector3 pos, unsigned int sprite)
+void SABRE_FireProjectile(SABRE_Vector3 dir, float speed, float dropFactor, float radius, SABRE_Vector3 pos, SABRE_Animator animator)
 {
     char temp[256];
     SABRE_Projectile new;
@@ -61,7 +61,7 @@ void SABRE_FireProjectile(SABRE_Vector3 dir, float speed, float dropFactor, floa
     new.speed = speed;
     new.dropFactor = dropFactor;
     sprintf(temp, "projectile.%d", SABRE_CountEntitiesInList());
-    new.entity = SABRE_AddEntity(radius, pos, sprite, SABRE_ENTITY_NO_COLLISION, temp);
+    new.entity = SABRE_AddEntity(radius, pos, animator, SABRE_ENTITY_NO_COLLISION, temp);
 
     newListElement.projectile = new;
     SABRE_AddToList(&SABRE_projectiles, newListElement);

@@ -50,7 +50,7 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             continue;
 
         entity = &iterator->data.entity;
-        sprite = &SABRE_sprites[entity->sprite];
+        sprite = &SABRE_sprites[entity->animator.anim.sprite];
         spriteX = entity->pos.x - camera->pos.x;
         spriteY = entity->pos.y - camera->pos.y;
 
@@ -69,8 +69,18 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
         if (transformY > 0 && spriteScreenX > 0 - scaledHalfWidth && spriteScreenX < SABRE_screenWidth + scaledHalfWidth)
         {
             // +1 to compensate for the existence of the project management label
-            SABRE_slice.anim = entity->sprite + 1;
-            SABRE_slice.slice = 0;
+            SABRE_slice.anim = entity->animator.anim.sprite + 1;
+
+            if (entity->animator.anim.nframes > 1)
+            {
+                SABRE_UpdateAnimation(&entity->animator);
+                SABRE_slice.slice = entity->animator.animpos;
+            }
+            else
+            {
+                SABRE_slice.slice = 0;
+            }
+
             SABRE_AddSpriteRO(transformY, scale, spriteScreenX, entity->pos.z, SABRE_slice);
         }
     }

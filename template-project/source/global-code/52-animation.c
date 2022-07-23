@@ -1,10 +1,14 @@
+#ifndef SABRE_ANIMATION_DEFINED
 typedef struct SABRE_AnimationStruct
 {
     float frameRate;
     unsigned int nframes;
     unsigned int sprite;
 }SABRE_Animation;
+#define SABRE_ANIMATION_DEFINED
+#endif
 
+#ifndef SABRE_ANIMATOR_DEFINED
 typedef struct SABRE_AnimatorStruct
 {
     char state;
@@ -12,6 +16,10 @@ typedef struct SABRE_AnimatorStruct
     float accumulatedAnimpos;
     SABRE_Animation anim;
 }SABRE_Animator;
+#define SABRE_ANIMATOR_DEFINED
+#endif
+
+#define SABRE_ANIMATOR_LITERAL(FPS, NFRAMES, SPRITE) { 0, 0, 0.0f, { FPS, NFRAMES, SPRITE } }
 
 SABRE_Animation SABRE_CreateAnimation(float frameRate, unsigned int sprite)
 {
@@ -56,6 +64,9 @@ void SABRE_UpdateAnimation(SABRE_Animator *animator)
         DEBUG_MSG_FROM("Invalid animator pointer", "SABRE_UpdateAnimation");
         return;
     }
+
+    if (animator->state == STOPPED)
+        return;
 
     animator->accumulatedAnimpos += animator->anim.frameRate / max(real_fps, 1);
 

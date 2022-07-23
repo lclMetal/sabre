@@ -668,13 +668,34 @@ void SABRE_FreeDataStore(SABRE_DataStore *dataStore)
 
 
 // ..\source\global-code\32-list.c
+#ifndef SABRE_ANIMATION_DEFINED
+typedef struct SABRE_AnimationStruct
+{
+    float frameRate;
+    unsigned int nframes;
+    unsigned int sprite;
+}SABRE_Animation;
+#define SABRE_ANIMATION_DEFINED
+#endif
+
+#ifndef SABRE_ANIMATOR_DEFINED
+typedef struct SABRE_AnimatorStruct
+{
+    char state;
+    unsigned int animpos;
+    float accumulatedAnimpos;
+    SABRE_Animation anim;
+}SABRE_Animator;
+#define SABRE_ANIMATOR_DEFINED
+#endif
+
 #ifndef SABRE_ENTITY_DEFINED
 typedef struct SABRE_EntityStruct
 {
     float radius;
     SABRE_Vector3 pos;
-    unsigned int sprite;
     unsigned char attributes;
+    SABRE_Animator animator;
     char name[256];
 }SABRE_Entity;
 #define SABRE_ENTITY_DEFINED
@@ -1420,13 +1441,17 @@ void SABRE_FreeSpriteStore()
 
 
 // ..\source\global-code\52-animation.c
+#ifndef SABRE_ANIMATION_DEFINED
 typedef struct SABRE_AnimationStruct
 {
     float frameRate;
     unsigned int nframes;
     unsigned int sprite;
 }SABRE_Animation;
+#define SABRE_ANIMATION_DEFINED
+#endif
 
+#ifndef SABRE_ANIMATOR_DEFINED
 typedef struct SABRE_AnimatorStruct
 {
     char state;
@@ -1434,6 +1459,10 @@ typedef struct SABRE_AnimatorStruct
     float accumulatedAnimpos;
     SABRE_Animation anim;
 }SABRE_Animator;
+#define SABRE_ANIMATOR_DEFINED
+#endif
+
+#define SABRE_ANIMATOR_LITERAL(FPS, NFRAMES, SPRITE) { 0, 0, 0.0f, { FPS, NFRAMES, SPRITE } }
 
 SABRE_Animation SABRE_CreateAnimation(float frameRate, unsigned int sprite)
 {
@@ -1479,6 +1508,9 @@ void SABRE_UpdateAnimation(SABRE_Animator *animator)
         return;
     }
 
+    if (animator->state == STOPPED)
+        return;
+
     animator->accumulatedAnimpos += animator->anim.frameRate / max(real_fps, 1);
 
     if (animator->accumulatedAnimpos >= 1.0f)
@@ -1490,6 +1522,27 @@ void SABRE_UpdateAnimation(SABRE_Animator *animator)
 
 
 // ..\source\global-code\55-entity.c
+#ifndef SABRE_ANIMATION_DEFINED
+typedef struct SABRE_AnimationStruct
+{
+    float frameRate;
+    unsigned int nframes;
+    unsigned int sprite;
+}SABRE_Animation;
+#define SABRE_ANIMATION_DEFINED
+#endif
+
+#ifndef SABRE_ANIMATOR_DEFINED
+typedef struct SABRE_AnimatorStruct
+{
+    char state;
+    unsigned int animpos;
+    float accumulatedAnimpos;
+    SABRE_Animation anim;
+}SABRE_Animator;
+#define SABRE_ANIMATOR_DEFINED
+#endif
+
 enum SABRE_EntityAttributeFlags
 {
     SABRE_ENTITY_HIDDEN         = 1,
@@ -1501,8 +1554,8 @@ typedef struct SABRE_EntityStruct
 {
     float radius;
     SABRE_Vector3 pos;
-    unsigned int sprite;
     unsigned char attributes;
+    SABRE_Animator animator;
     char name[256];
 }SABRE_Entity;
 #define SABRE_ENTITY_DEFINED
@@ -1510,13 +1563,14 @@ typedef struct SABRE_EntityStruct
 
 SABRE_List *SABRE_entities = NULL;
 
-SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, unsigned int sprite, unsigned char attributes, const char name[256]);
+SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned char attributes, const char name[256]);
 SABRE_Entity *SABRE_GetEntity(const char name[256]);
 int SABRE_CountEntitiesInList();
 void SABRE_FreeEntityList();
 
 SABRE_Entity *movableFlowerPot = NULL;
 SABRE_Entity *hiddenFlowerPot = NULL;
+SABRE_Entity *inCorner = NULL;
 
 #define SABRE_ENTITY_COUNT 12
 
@@ -1527,38 +1581,40 @@ void SABRE_SetEntities()
 
     SABRE_Entity tempEntities[SABRE_ENTITY_COUNT] =
     {
-        { 0.15f, { 8.5f, 1.5f }, 1, 0, "barrel.0" },
-        { 0.15f, { 7.5f, 1.5f }, 1, 0, "barrel.1" },
-        { 0.15f, { 6.5f, 1.5f }, 2, 0, "terra-cotta-planter.0" },
-        { 0.15f, { 8.5f, 2.5f }, 1, 0, "barrel.2" },
-        { 0.14f, { 2.5f, 2.5f }, 0, 0, "pillar.0" },
-        { 0.15f, { 6.5f, 2.5f }, 1, 0, "barrel.3" },
-        { 0.19f, { 6.5f, 3.5f }, 3, 0, "flower-pot.0" },
-        { 0.19f, { 7.0f, 3.5f }, 3, 0, "flower-pot.1" },
-        { 0.19f, { 7.5f, 3.5f }, 3, 0, "flower-pot.2" },
-        { 0.19f, { 8.0f, 3.5f }, 3, 0, "flower-pot.3" },
-        { 0.19f, { 8.5f, 3.5f }, 3, 0, "flower-pot.4" },
-        { 0.15f, { 2.5f, 8.5f }, 5, 0, "tree.4" }
+        { 0.15f, { 8.5f, 1.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 1), "barrel.0" },
+        { 0.15f, { 7.5f, 1.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 1), "barrel.1" },
+        { 0.15f, { 6.5f, 1.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 2), "terra-cotta-planter.0" },
+        { 0.15f, { 8.5f, 2.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 1), "barrel.2" },
+        { 0.14f, { 2.5f, 2.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 0), "pillar.0" },
+        { 0.15f, { 6.5f, 2.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 1), "barrel.3" },
+        { 0.19f, { 6.5f, 3.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.0" },
+        { 0.19f, { 7.0f, 3.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.1" },
+        { 0.19f, { 7.5f, 3.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.2" },
+        { 0.19f, { 8.0f, 3.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.3" },
+        { 0.19f, { 8.5f, 3.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.4" },
+        // { 0.15f, { 2.5f, 8.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 5), "tree.4" }
+        { 0.15f, { 2.5f, 8.5f }, 0, SABRE_ANIMATOR_LITERAL(10, 1, 7), "dude.0" }
     };
 
     for (i = 0; i < SABRE_ENTITY_COUNT; i++)
     {
         data.entity = tempEntities[i];
+        data.entity.animator = SABRE_CreateAnimator(SABRE_CreateAnimation(tempEntities[i].animator.anim.frameRate, tempEntities[i].animator.anim.sprite));
 
         if (SABRE_AddToList(&SABRE_entities, data))
             DEBUG_MSG_FROM("Added new entity", "SABRE_SetEntities");
     }
 }
 
-SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, unsigned int sprite, unsigned char attributes, const char name[256])
+SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned char attributes, const char name[256])
 {
     SABRE_Entity new;
     SABRE_ListTypes newListElement;
 
     new.radius = radius;
     new.pos = pos;
-    new.sprite = sprite;
     new.attributes = attributes;
+    new.animator = animator;
 
     if (strlen(name) > 0)
         strcpy(new.name, name);
@@ -1681,7 +1737,7 @@ void SABRE_SendProjectileHitEvent(SABRE_ProjectileHitData hitData)
     SendActivationEvent(SABRE_PROJECTILE_HANDLER_ACTOR);
 }
 
-void SABRE_FireProjectile(SABRE_Vector3 dir, float speed, float dropFactor, float radius, SABRE_Vector3 pos, unsigned int sprite)
+void SABRE_FireProjectile(SABRE_Vector3 dir, float speed, float dropFactor, float radius, SABRE_Vector3 pos, SABRE_Animator animator)
 {
     char temp[256];
     SABRE_Projectile new;
@@ -1691,7 +1747,7 @@ void SABRE_FireProjectile(SABRE_Vector3 dir, float speed, float dropFactor, floa
     new.speed = speed;
     new.dropFactor = dropFactor;
     sprintf(temp, "projectile.%d", SABRE_CountEntitiesInList());
-    new.entity = SABRE_AddEntity(radius, pos, sprite, SABRE_ENTITY_NO_COLLISION, temp);
+    new.entity = SABRE_AddEntity(radius, pos, animator, SABRE_ENTITY_NO_COLLISION, temp);
 
     newListElement.projectile = new;
     SABRE_AddToList(&SABRE_projectiles, newListElement);
