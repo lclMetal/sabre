@@ -17,6 +17,7 @@ typedef struct SABRE_CameraStruct
     SABRE_Vector2 prevDir;
     SABRE_Vector2 dir;
     SABRE_Vector2 plane;
+    float vPos;
 }SABRE_Camera;
 
 const float SABRE_heightUnit = 480.0f;
@@ -27,15 +28,17 @@ SABRE_Camera SABRE_camera;
 
 struct SABRE_KeybindStruct
 {
-    char forward, backward;
-    char turnLeft, turnRight;
-    char strafeLeft, strafeRight;
-    char interact;
+    short forward, backward;
+    short turnLeft, turnRight;
+    short strafeLeft, strafeRight;
+    short crouch;
+    short interact;
 }SABRE_binds =
 {
     KEY_w, KEY_s, // forward, backward
     KEY_a, KEY_d, // turn left, right
     KEY_q, KEY_e, // strafe left, right
+    KEY_LCTRL,    // crouch
     KEY_r         // interact
 };
 
@@ -47,6 +50,7 @@ typedef struct SABRE_KeyboardStateStruct
     char pressedTurnRight,   releasedTurnRight,   turnRight,   prevTurnRight;
     char pressedStrafeLeft,  releasedStrafeLeft,  strafeLeft,  prevStrafeLeft;
     char pressedStrafeRight, releasedStrafeRight, strafeRight, prevStrafeRight;
+    char pressedCrouch,      releasedCrouch,      crouch,      prevCrouch;
     char pressedInteract,    releasedInteract,    interact,    prevInteract;
 }SABRE_KeyboardState;
 
@@ -56,8 +60,10 @@ struct SABRE_PlayerStruct
 {
     float moveSpeed;
     float turnSpeed;
+    float crouchSpeed;
+    float crouchHeightChange;
     float radius;
-}SABRE_player = { 0.05f, 0.05f, 0.2f };
+}SABRE_player = { 0.05f, 0.05f, 5.0f, 50.0f, 0.2f };
 
 typedef struct SABRE_SliceStruct
 {
@@ -149,6 +155,7 @@ void SABRE_UpdateKeyboardState()
     SABRE_keys.prevTurnRight    = SABRE_keys.turnRight;
     SABRE_keys.prevStrafeLeft   = SABRE_keys.strafeLeft;
     SABRE_keys.prevStrafeRight  = SABRE_keys.strafeRight;
+    SABRE_keys.prevCrouch       = SABRE_keys.crouch;
     SABRE_keys.prevInteract     = SABRE_keys.interact;
 
     SABRE_keys.forward          = keys[SABRE_binds.forward];
@@ -157,6 +164,7 @@ void SABRE_UpdateKeyboardState()
     SABRE_keys.turnRight        = keys[SABRE_binds.turnRight];
     SABRE_keys.strafeLeft       = keys[SABRE_binds.strafeLeft];
     SABRE_keys.strafeRight      = keys[SABRE_binds.strafeRight];
+    SABRE_keys.crouch           = keys[SABRE_binds.crouch];
     SABRE_keys.interact         = keys[SABRE_binds.interact];
 
     SABRE_keys.pressedForward       = !SABRE_keys.prevForward       && SABRE_keys.forward;
@@ -165,6 +173,7 @@ void SABRE_UpdateKeyboardState()
     SABRE_keys.pressedTurnRight     = !SABRE_keys.prevTurnRight     && SABRE_keys.turnRight;
     SABRE_keys.pressedStrafeLeft    = !SABRE_keys.prevStrafeLeft    && SABRE_keys.strafeLeft;
     SABRE_keys.pressedStrafeRight   = !SABRE_keys.prevStrafeRight   && SABRE_keys.strafeRight;
+    SABRE_keys.pressedCrouch        = !SABRE_keys.prevCrouch        && SABRE_keys.crouch;
     SABRE_keys.pressedInteract      = !SABRE_keys.prevInteract      && SABRE_keys.interact;
 
     SABRE_keys.releasedForward      = SABRE_keys.prevForward        && !SABRE_keys.forward;
@@ -173,6 +182,7 @@ void SABRE_UpdateKeyboardState()
     SABRE_keys.releasedTurnRight    = SABRE_keys.prevTurnRight      && !SABRE_keys.turnRight;
     SABRE_keys.releasedStrafeLeft   = SABRE_keys.prevStrafeLeft     && !SABRE_keys.strafeLeft;
     SABRE_keys.releasedStrafeRight  = SABRE_keys.prevStrafeRight    && !SABRE_keys.strafeRight;
+    SABRE_keys.releasedCrouch       = SABRE_keys.prevCrouch         && !SABRE_keys.crouch;
     SABRE_keys.releasedInteract     = SABRE_keys.prevInteract       && !SABRE_keys.interact;
 }
 
@@ -192,8 +202,8 @@ void SABRE_Start()
         {
             DEBUG_MSG_FROM("[init (4/5)] Sprite addition successful.", "SABRE_Start");
             CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
-            CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", 0, -270, true);
-            CreateActor("SABRE_Floor", "background", "(none)", "(none)", 0, 270, true);
+            CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + view.height * 0.5 - 270, true);
+            CreateActor("SABRE_Floor", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + view.height * 0.5 + 270, true);
             SABRE_SetCeilingColor(SABRE_defaultCeiling);
             SABRE_SetFloorColor(SABRE_defaultFloor);
             SABRE_gameState = SABRE_RUNNING;

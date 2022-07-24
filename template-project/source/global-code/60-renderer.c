@@ -319,7 +319,7 @@ void SABRE_RenderObjects()
             SABRE_slice.anim = iterator->slice.anim;
             SABRE_slice.slice = iterator->slice.slice;
             SendActivationEvent(SABRE_TEXTURE_ACTOR);
-            draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition, iterator->scale);
+            draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition - SABRE_camera.vPos * iterator->scale, iterator->scale);
             textureDrawCalls++;
         }
         else if (iterator->objectType == SABRE_SPRITE_RO)
@@ -328,7 +328,7 @@ void SABRE_RenderObjects()
             SABRE_slice.slice = iterator->slice.slice;
             SendActivationEvent(SABRE_SPRITE_ACTOR);
             draw_from(SABRE_SPRITE_ACTOR, iterator->horizontalPosition,
-                verticalPosition + ((SABRE_halfHeightUnit - (float)SABRE_sprites[SABRE_slice.anim - 1].halfHeight) - (iterator->verticalOffset * SABRE_heightUnit)) * iterator->scale * verticalResolutionFactor,
+                verticalPosition + ((SABRE_halfHeightUnit - (float)SABRE_sprites[SABRE_slice.anim - 1].halfHeight - SABRE_camera.vPos * 2) - (iterator->verticalOffset * SABRE_heightUnit)) * iterator->scale * verticalResolutionFactor,
                 iterator->scale * verticalResolutionFactor);
             spriteDrawCalls++;
         }

@@ -46,6 +46,23 @@ else if (keys->strafeRight && !keys->strafeLeft)
     SABRE_AddVector2InPlace(&newPos, SABRE_ScaleVector2(normalizedRightDir, moveSpeed));
 }
 
+if (keys->crouch && camera->vPos < SABRE_player.crouchHeightChange)
+{
+    camera->vPos += SABRE_player.crouchSpeed;
+}
+else if (!keys->crouch && camera->vPos > 0.0f)
+{
+    camera->vPos -= SABRE_player.crouchSpeed;
+}
+else if (keys->crouch)
+{
+    camera->vPos = SABRE_player.crouchHeightChange;
+}
+else
+{
+    camera->vPos = 0.0f;
+}
+
 // if (keys->releasedInteract)
 if (keys->interact)
 {
