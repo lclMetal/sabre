@@ -192,8 +192,8 @@ void SABRE_Start()
         {
             DEBUG_MSG_FROM("[init (4/5)] Sprite addition successful.", "SABRE_Start");
             CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
-            CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", 0, -270, true);
-            CreateActor("SABRE_Floor", "background", "(none)", "(none)", 0, 270, true);
+            CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + view.height * 0.5 - 270, true);
+            CreateActor("SABRE_Floor", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + view.height * 0.5 + 270, true);
             SABRE_SetCeilingColor(SABRE_defaultCeiling);
             SABRE_SetFloorColor(SABRE_defaultFloor);
             SABRE_gameState = SABRE_RUNNING;
