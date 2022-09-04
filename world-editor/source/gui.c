@@ -4,10 +4,18 @@
 #define BOTTOM_RIGHT 3
 #define CENTER_TOP 4
 
+Actor *createMenuLabel(char text[256]);
 void guiItemFloat(int corner, int xOffset, int yOffset);
 void guiItemFloatActor(char actorName[256], int corner, int xOffset, int yOffset);
 void guiItemFloatRelativeToActor(char actorName[256], int corner, int xOffset, int yOffset);
 void showTooltip(char *tooltipText);
+
+Actor *createMenuLabel(char text[256])
+{
+    Actor *a = CreateActor("menuLabelText", "icon", "(none)", "(none)", 0, 0, true);
+    strcpy(a->text, text);
+    return a;
+}
 
 //This function can be used to place the current actor on the screen in relation to the specified
 //corner of the screen
