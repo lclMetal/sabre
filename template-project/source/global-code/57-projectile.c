@@ -129,7 +129,7 @@ SABRE_Vector2 SABRE_Raycast(SABRE_Vector2 rayStartPos, SABRE_Vector2 rayDirectio
         }
 
         if (!wallHit)
-            wallHit = (map[rayMapY][rayMapX] > 0);
+            wallHit = (SABRE_level.map[rayMapY * SABRE_level.width + rayMapX].texture > 0);
     }
 
     if (hitSide)

@@ -149,7 +149,7 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
                 }
 
                 // check if a wall has been hit
-                if (map[rayMapY][rayMapX] > 0) wallHit = 1;
+                if (SABRE_level.map[rayMapY * SABRE_level.width + rayMapX].texture > 0) wallHit = 1;
             }
 
             // calculate the perpendicular distance between the wall and the camera plane
@@ -162,7 +162,7 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             wallSliceHeight = (float)SABRE_screenHeight / (float)perpWallDist;
 
             // calculate the right texture to use
-            SABRE_slice.anim = map[rayMapY][rayMapX];
+            SABRE_slice.anim = SABRE_level.map[rayMapY * SABRE_level.width + rayMapX].texture;
             texture = &SABRE_textures[SABRE_slice.anim - 1];
 
             // calculate where the wall was hit
@@ -188,15 +188,15 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             // If a part of this wall has already been drawn this frame, set the render object list manager's
             // curr pointer to point to that render object in the list, as the next slice will be somewhere
             // very near to that in depth
-            if (mapROs[rayMapY][rayMapX])
+            if (SABRE_level.map[rayMapY * SABRE_level.width + rayMapX].renderObject)
             {
-                SABRE_ROListManager.curr = mapROs[rayMapY][rayMapX];
+                SABRE_ROListManager.curr = SABRE_level.map[rayMapY * SABRE_level.width + rayMapX].renderObject;
             }
 
             SABRE_AddTextureRO(perpWallDist, scale, slice, horizontalScalingCompensation, SABRE_slice);
 
             // Set the last used render object pointer for this wall
-            mapROs[rayMapY][rayMapX] = SABRE_ROListManager.curr;
+            SABRE_level.map[rayMapY * SABRE_level.width + rayMapX].renderObject = SABRE_ROListManager.curr;
 
             if (!texture->isWindow)
             {

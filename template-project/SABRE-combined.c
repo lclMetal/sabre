@@ -1102,6 +1102,52 @@ void SABRE_FreeList(SABRE_List *list)
 #define SABRE_CEILING_ACTOR "SABRE_Ceiling"
 #define SABRE_FLOOR_ACTOR "SABRE_Floor"
 
+typedef struct SABRE_SliceStruct
+{
+    short anim;
+    short slice;
+}SABRE_Slice;
+
+#ifndef SABRE_RENDER_OBJECT_DEFINED
+enum SABRE_RenderObjectTypeEnum
+{
+    SABRE_TEXTURE_RO,
+    SABRE_SPRITE_RO
+};
+
+typedef struct SABRE_RenderObjectStruct
+{
+    float sortValue;
+    enum SABRE_RenderObjectTypeEnum objectType;
+
+    float scale;
+    float verticalOffset;
+    int horizontalPosition;
+    int horizontalScalingCompensation;
+    SABRE_Slice slice;
+
+    struct SABRE_RenderObjectStruct *prev;
+    struct SABRE_RenderObjectStruct *next;
+}SABRE_RenderObject;
+#define SABRE_RENDER_OBJECT_DEFINED
+#endif
+
+#ifndef SABRE_LEVEL_DEFINED
+typedef struct SABRE_LevelTileStruct
+{
+    unsigned texture;
+    struct SABRE_RenderObjectStruct *renderObject;
+}SABRE_LevelTile;
+
+typedef struct SABRE_LevelStruct
+{
+    unsigned width;
+    unsigned height;
+    SABRE_LevelTile *map;
+}SABRE_Level;
+#define SABRE_LEVEL_DEFINED
+#endif
+
 enum SABRE_GameStatesEnum
 {
     SABRE_UNINITIALIZED = 0,
@@ -1166,12 +1212,6 @@ struct SABRE_PlayerStruct
     float radius;
 }SABRE_player = { 0.05f, 0.05f, 5.0f, 50.0f, 0.2f };
 
-typedef struct SABRE_SliceStruct
-{
-    short anim;
-    short slice;
-}SABRE_Slice;
-
 SABRE_Slice SABRE_slice;
 SABRE_Color SABRE_defaultCeiling = { 215.0, 54.0, 91.0, 106, 158, 231, 1.0 };
 SABRE_Color SABRE_defaultFloor   = {  86.0, 76.0, 62.0, 106, 158,  38, 1.0 };
@@ -1209,7 +1249,7 @@ void SABRE_SetFloorColor(SABRE_Color color)
     SABRE_ColorActorByName(SABRE_FLOOR_ACTOR, color);
 }
 
-int SABRE_GetSurroundingWalls(float *px, float *py, int map[LEVEL_HEIGHT][LEVEL_WIDTH])
+int SABRE_GetSurroundingWalls(float *px, float *py, SABRE_Level*level)
 {
     int i, j, rows = 3, cols = 3, mid = 0, collisions = 0;
 
@@ -1223,7 +1263,7 @@ int SABRE_GetSurroundingWalls(float *px, float *py, int map[LEVEL_HEIGHT][LEVEL_
                 int row = (int)*py - 1 + j;
                 int col = (int)*px - 1 + i;
 
-                collisions += (map[row][col] > 0) << SABRE_COLLISION_MASK_SIZE - (j * cols + i - mid);
+                collisions += (level->map[row * level->width + col].texture > 0) << SABRE_COLLISION_MASK_SIZE - (j * cols + i - mid);
             }
         }
     }
@@ -1325,6 +1365,7 @@ void SABRE_Start()
     }
 }
 
+int SABRE_FreeLevel();
 void SABRE_FreeTextureStore();
 void SABRE_FreeSpriteStore();
 void SABRE_FreeRenderObjectList();
@@ -1345,23 +1386,26 @@ void SABRE_Quit()
         EventDisable("SABRE_TextureActor", EVENTALL);
         EventDisable("SABRE_SpriteActor", EVENTALL);
 
+        SABRE_FreeLevel();
+        DEBUG_MSG_FROM("[quit (1/7)] Freed level data memory.", "SABRE_Quit");
+
         SABRE_FreeTextureStore();
-        DEBUG_MSG_FROM("[quit (1/6)] Freed texture store memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (2/7)] Freed texture store memory.", "SABRE_Quit");
 
         SABRE_FreeSpriteStore();
-        DEBUG_MSG_FROM("[quit (2/6)] Freed sprite store memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (3/7)] Freed sprite store memory.", "SABRE_Quit");
 
         SABRE_FreeProjectileList();
-        DEBUG_MSG_FROM("[quit (3/6)] Freed projectile list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (4/7)] Freed projectile list memory.", "SABRE_Quit");
 
         SABRE_FreeEntityList();
-        DEBUG_MSG_FROM("[quit (4/6)] Freed entity list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (5/7)] Freed entity list memory.", "SABRE_Quit");
 
         SABRE_FreeRenderObjectList();
-        DEBUG_MSG_FROM("[quit (5/6)] Freed render object list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (6/7)] Freed render object list memory.", "SABRE_Quit");
 
         SABRE_gameState = SABRE_FINISHED;
-        DEBUG_MSG_FROM("[quit (6/6)] SABRE cleanup complete.", "SABRE_Quit");
+        DEBUG_MSG_FROM("[quit (7/7)] SABRE cleanup complete.", "SABRE_Quit");
     }
 }
 
@@ -1579,6 +1623,123 @@ void SABRE_LeaveEventTrigger(SABRE_EventTrigger *event)
             }
             break;
     }
+}
+
+
+// ..\source\global-code\38-level.c
+#ifndef SABRE_RENDER_OBJECT_DEFINED
+typedef struct SABRE_RenderObjectStruct
+{
+    float sortValue;
+    enum SABRE_RenderObjectTypeEnum objectType;
+
+    float scale;
+    float verticalOffset;
+    int horizontalPosition;
+    int horizontalScalingCompensation;
+    SABRE_Slice slice;
+
+    struct SABRE_RenderObjectStruct *prev;
+    struct SABRE_RenderObjectStruct *next;
+}SABRE_RenderObject;
+#define SABRE_RENDER_OBJECT_DEFINED
+#endif
+
+#ifndef SABRE_LEVEL_DEFINED
+typedef struct SABRE_LevelTileStruct
+{
+    unsigned texture;
+    struct SABRE_RenderObjectStruct *renderObject;
+}SABRE_LevelTile;
+
+typedef struct SABRE_LevelStruct
+{
+    unsigned width;
+    unsigned height;
+    SABRE_LevelTile *map;
+}SABRE_Level;
+#define SABRE_LEVEL_DEFINED
+#endif
+
+SABRE_Level SABRE_level;
+
+int SABRE_FreeLevel();
+int SABRE_InitLevel(SABRE_Level *level, unsigned width, unsigned height);
+int SABRE_FreeLevelData(SABRE_Level *level);
+int SABRE_AllocLevel(SABRE_Level *level);
+int SABRE_SetLevelDataFromArray(SABRE_Level *level, unsigned width, unsigned height, unsigned arr[]);
+
+int SABRE_InitLevel(SABRE_Level *level, unsigned width, unsigned height)
+{
+    unsigned levelSize = width * height;
+    if (!level) return 1; // 1: invalid pointer
+    if (levelSize < min(width, height)) return 2; // 2: detected unsigned integer wrap around
+                                                  // e.g. width and/or height is too big (very unlikely :P)
+
+    level->width = width;
+    level->height = height;
+    level->map = NULL;
+
+    return 0;
+}
+
+int SABRE_FreeLevel()
+{
+    return SABRE_FreeLevelData(&SABRE_level);
+}
+
+int SABRE_FreeLevelData(SABRE_Level *level)
+{
+    if (!level) return 1; // 1: invalid pointer
+    if (!level->map) return 2; // 2: no map data to free
+
+    free(level->map);
+    level->map = NULL;
+
+    return 0;
+}
+
+int SABRE_AllocLevel(SABRE_Level *level)
+{
+    unsigned mapSize;
+
+    if (!level) return 1; // 1: invalid pointer
+
+    SABRE_FreeLevel(level);
+
+    mapSize = level->width * level->height;
+    level->map = malloc(mapSize * (sizeof *(level->map)));
+
+    if (!level->map) return 2; // 2: allocation failed
+
+    return 0;
+}
+
+int SABRE_SetLevelDataFromArray(SABRE_Level *level, unsigned width, unsigned height, unsigned arr[])
+{
+    if (!level) return 1; // 1: invalid pointer
+    if (!arr) return 2; // 2: invalid map data array pointer
+
+    SABRE_FreeLevel(level);
+    if (SABRE_InitLevel(level, width, height) == 2) return 3; // invalid map dimensions
+
+    if (SABRE_AllocLevel(level) == 0)
+    {
+        unsigned i, j;
+
+        for (i = 0; i < height; i++)
+        {
+            for (j = 0; j < width; j++)
+            {
+                level->map[i * width + j].texture = arr[i * width + j];
+                level->map[i * width + j].renderObject = NULL;
+            }
+        }
+
+        return 0;
+    }
+
+    return 3; // 3: level allocation failed
 }
 
 
@@ -2145,7 +2306,7 @@ SABRE_Vector2 SABRE_Raycast(SABRE_Vector2 rayStartPos, SABRE_Vector2 rayDirectio
         }
 
         if (!wallHit)
-            wallHit = (map[rayMapY][rayMapX] > 0);
+            wallHit = (SABRE_level.map[rayMapY * SABRE_level.width + rayMapX].texture > 0);
     }
 
     if (hitSide)
@@ -2300,6 +2461,7 @@ void SABRE_FreeProjectileList()
 
 
 // ..\source\global-code\60-renderer.c
+#ifndef SABRE_RENDER_OBJECT_DEFINED
 enum SABRE_RenderObjectTypeEnum
 {
     SABRE_TEXTURE_RO,
@@ -2320,8 +2482,8 @@ typedef struct SABRE_RenderObjectStruct
     struct SABRE_RenderObjectStruct *prev;
     struct SABRE_RenderObjectStruct *next;
 }SABRE_RenderObject;
-
-SABRE_RenderObject *mapROs[LEVEL_HEIGHT][LEVEL_WIDTH];
+#define SABRE_RENDER_OBJECT_DEFINED
+#endif
 
 struct SABRE_RenderObjectListManagerStruct
 {
@@ -2396,11 +2558,11 @@ void SABRE_InitializeFrame()
 {
     int i, j;
 
-    for (j = 0; j < LEVEL_HEIGHT; j++)
+    for (j = 0; j < SABRE_level.height; j++)
     {
-        for (i = 0; i < LEVEL_WIDTH; i++)
+        for (i = 0; i < SABRE_level.width; i++)
         {
-            mapROs[j][i] = NULL;
+            SABRE_level.map[j * SABRE_level.width + i].renderObject = NULL;
         }
     }
 
