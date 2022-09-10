@@ -1,3 +1,4 @@
+#ifndef SABRE_RENDER_OBJECT_DEFINED
 enum SABRE_RenderObjectTypeEnum
 {
     SABRE_TEXTURE_RO,
@@ -18,8 +19,8 @@ typedef struct SABRE_RenderObjectStruct
     struct SABRE_RenderObjectStruct *prev;
     struct SABRE_RenderObjectStruct *next;
 }SABRE_RenderObject;
-
-SABRE_RenderObject *mapROs[LEVEL_HEIGHT][LEVEL_WIDTH];
+#define SABRE_RENDER_OBJECT_DEFINED
+#endif
 
 struct SABRE_RenderObjectListManagerStruct
 {
@@ -94,11 +95,11 @@ void SABRE_InitializeFrame()
 {
     int i, j;
 
-    for (j = 0; j < LEVEL_HEIGHT; j++)
+    for (j = 0; j < SABRE_level.height; j++)
     {
-        for (i = 0; i < LEVEL_WIDTH; i++)
+        for (i = 0; i < SABRE_level.width; i++)
         {
-            mapROs[j][i] = NULL;
+            SABRE_level.map[j * SABRE_level.width + i].renderObject = NULL;
         }
     }
 

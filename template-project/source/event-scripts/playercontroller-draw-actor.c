@@ -67,7 +67,7 @@ else
 if (keys->interact)
 {
     if (frame % 5 == 0)
-    SABRE_FireProjectile(SABRE_Vector2ToVector3(camera->dir, 0.2f), 0.1f, 0.002f, 0.01f, SABRE_Vector2ToVector3(SABRE_camera.pos, 0.3f), SABRE_CreateAnimator(SABRE_CreateAnimation(0, 6)));
+        SABRE_FireProjectile(SABRE_Vector2ToVector3(camera->dir, 0.2f), 0.1f, 0.002f, 0.01f, SABRE_Vector2ToVector3(camera->pos, 0.3f), SABRE_CreateAnimator(SABRE_CreateAnimation(0, 6)));
 }
 
 if (newPos.x != 0 || newPos.y != 0)
@@ -80,7 +80,7 @@ if (newPos.x != 0 || newPos.y != 0)
         SABRE_List *iterator = NULL;
         SABRE_Entity *entity = NULL;
         float posX = newPos.x + camera->pos.x, posY = newPos.y + camera->pos.y;
-        int coll = SABRE_GetSurroundingWalls(&posX, &posY, map);
+        int coll = SABRE_GetSurroundingWalls(&posX, &posY, &SABRE_level);
         float radius = SABRE_player.radius;
 
         if ((coll & SABRE_TOP_L_MASK) == SABRE_TOP_L)
