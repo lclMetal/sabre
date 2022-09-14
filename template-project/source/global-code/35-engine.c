@@ -229,8 +229,46 @@ void SABRE_UpdateKeyboardState()
 void SABRE_Quit();
 void SABRE_SetEntities();
 
+void SABRE_DisableActor(const char *actorName)
+{
+    VisibilityState(actorName, DISABLE);
+    EventDisable(actorName, EVENTALL);
+}
+
+void SABRE_EnableActor(const char *actorName)
+{
+    VisibilityState(actorName, ENABLE);
+    EventEnable(actorName, EVENTALL);
+}
+
+void SABRE_DisableActors()
+{
+    SABRE_DisableActor("SABRE_Screen");
+    SABRE_DisableActor("SABRE_PlayerController");
+    SABRE_DisableActor("SABRE_ProjectileHandler");
+    SABRE_DisableActor("SABRE_TriggerHandler");
+    SABRE_DisableActor("SABRE_TextureActor");
+    SABRE_DisableActor("SABRE_SpriteActor");
+    SABRE_DisableActor("SABRE_Ceiling");
+    SABRE_DisableActor("SABRE_Floor");
+}
+
+void SABRE_EnableActors()
+{
+    SABRE_EnableActor("SABRE_Screen");
+    SABRE_EnableActor("SABRE_PlayerController");
+    SABRE_EnableActor("SABRE_ProjectileHandler");
+    SABRE_EnableActor("SABRE_TriggerHandler");
+    SABRE_EnableActor("SABRE_TextureActor");
+    SABRE_EnableActor("SABRE_SpriteActor");
+    SABRE_EnableActor("SABRE_Ceiling");
+    SABRE_EnableActor("SABRE_Floor");
+}
+
 void SABRE_Start()
 {
+    SABRE_EnableActors();
+
     DEBUG_MSG_FROM("[init (1/5)] Signal textureActor to start adding textures.", "SABRE_Start");
     SendActivationEvent("SABRE_TextureActor");
     if (SABRE_gameState == SABRE_TEXTURES_ADDED)
@@ -275,15 +313,7 @@ void SABRE_Quit()
 {
     if (SABRE_gameState != SABRE_FINISHED)
     {
-        VisibilityState("SABRE_Screen", DISABLE);
-        VisibilityState("SABRE_PlayerController", DISABLE);
-        VisibilityState("SABRE_TextureActor", DISABLE);
-        VisibilityState("SABRE_SpriteActor", DISABLE);
-
-        EventDisable("SABRE_Screen", EVENTALL);
-        EventDisable("SABRE_PlayerController", EVENTALL);
-        EventDisable("SABRE_TextureActor", EVENTALL);
-        EventDisable("SABRE_SpriteActor", EVENTALL);
+        SABRE_DisableActors();
 
         SABRE_FreeLevel();
         DEBUG_MSG_FROM("[quit (1/7)] Freed level data memory.", "SABRE_Quit");
