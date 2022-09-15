@@ -18,6 +18,8 @@ SABRE_DataStore SABRE_textureStore;
 // without having to cast pointers all the time
 SABRE_Texture *SABRE_textures = NULL;
 
+int SABRE_ValidateTextureIndex(int index);
+
 int SABRE_AutoAddTextures();
 int SABRE_AddTexture(const char textureName[256]);
 int SABRE_CalculateTextureWidth(SABRE_Texture *texture);
@@ -25,6 +27,15 @@ int SABRE_CalculateTextureHeight(SABRE_Texture *texture);
 
 void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture);
 void SABRE_FreeTextureStore();
+
+int SABRE_ValidateTextureIndex(int index)
+{
+    if (index > 0 && index < SABRE_textureStore.count)
+        return index; // offset by one because the first texture index
+                      // is reserved for the "texture missing" texture
+
+    return 0;
+}
 
 // only works for non-animated textures
 int SABRE_AutoAddTextures()
@@ -50,7 +61,7 @@ int SABRE_AutoAddTextures()
 #if DEBUG
 {
     char temp[256];
-    sprintf(temp, "Added texture: [%d \"%s\"]", i - 1, animName);
+    sprintf(temp, "Added texture: [%d \"%s\"]", i - 2, animName);
     DEBUG_MSG_FROM(temp, "SABRE_AutoAddTextures");
 }
 #endif
