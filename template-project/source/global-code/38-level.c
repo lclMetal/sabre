@@ -112,3 +112,30 @@ int SABRE_SetLevelDataFromArray(SABRE_Level *level, unsigned width, unsigned hei
 
     return 3; // 3: level allocation failed
 }
+
+int SABRE_SetLevelDataFrom2DIntArray(SABRE_Level *level, unsigned width, unsigned height, int **arr)
+{
+    if (!level) return 1; // 1: invalid pointer
+    if (!arr) return 2; // 2: invalid map data array pointer
+
+    SABRE_FreeLevel(level);
+    if (SABRE_InitLevel(level, width, height) == 2) return 3; // invalid map dimensions
+
+    if (SABRE_AllocLevel(level) == 0)
+    {
+        unsigned i, j;
+
+        for (i = 0; i < height; i++)
+        {
+            for (j = 0; j < width; j++)
+            {
+                level->map[i * width + j].texture = arr[i][j];
+                level->map[i * width + j].renderObject = NULL;
+            }
+        }
+
+        return 0;
+    }
+
+    return 3; // 3: level allocation failed
+}
