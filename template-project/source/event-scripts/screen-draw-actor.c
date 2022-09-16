@@ -198,7 +198,7 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             // Set the last used render object pointer for this wall
             SABRE_level.map[rayMapY * SABRE_level.width + rayMapX].renderObject = SABRE_ROListManager.curr;
 
-            if (!texture->isWindow)
+            if (!texture->isWindow || rayMapY < 1 || rayMapX < 1 || rayMapY >= SABRE_level.height - 1 || rayMapX >= SABRE_level.width - 1)
             {
                 solidWallHit = 1;
             }
