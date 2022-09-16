@@ -978,6 +978,8 @@ typedef struct SABRE_LevelTileStruct
 
 typedef struct SABRE_LevelStruct
 {
+    char validated;
+
     unsigned width;
     unsigned height;
     SABRE_LevelTile *map;
@@ -1164,9 +1166,6 @@ void SABRE_UpdateKeyboardState()
     SABRE_keys.releasedInteract     = SABRE_keys.prevInteract       && !SABRE_keys.interact;
 }
 
-void SABRE_Quit();
-void SABRE_SetEntities();
-
 void SABRE_DisableActor(const char *actorName)
 {
     VisibilityState(actorName, DISABLE);
@@ -1203,49 +1202,73 @@ void SABRE_EnableActors()
     SABRE_EnableActor("SABRE_Floor");
 }
 
+// from level.c
+int SABRE_ValidateCurrentLevel();
+
+// from entity.c
+void SABRE_SetEntities();
+
+void SABRE_Quit();
+
+#define SABRE_STRINGIFY(X) #X
+#define SABRE_EXPAND_STRINGIFY(X) SABRE_STRINGIFY(X)
+#define SABRE_PROCESS_STEP_LABEL(NAME, STAGE, STAGES) "[" NAME " (" SABRE_STRINGIFY(STAGE) "/" SABRE_EXPAND_STRINGIFY(STAGES) ")] "
+
+#define SABRE_INIT_STAGES 6
+#define SABRE_INIT_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("init", STAGE, SABRE_INIT_STAGES)
+
+#define SABRE_QUIT_STAGES 7
+#define SABRE_QUIT_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("quit", STAGE, SABRE_QUIT_STAGES)
+
 void SABRE_Start()
 {
     SABRE_EnableActors();
 
-    DEBUG_MSG_FROM("[init (1/5)] Signal textureActor to start adding textures.", "SABRE_Start");
+    DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(1) "Signal textureActor to start adding textures.", "SABRE_Start");
     SendActivationEvent("SABRE_TextureActor");
     if (SABRE_gameState == SABRE_TEXTURES_ADDED)
     {
-        DEBUG_MSG_FROM("[init (2/5)] Texture addition successful.", "SABRE_Start");
-        DEBUG_MSG_FROM("[init (3/5)] Signal spriteActor to start adding sprites.", "SABRE_Start");
+        DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Texture addition successful.", "SABRE_Start");
+        DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(3) "Signal spriteActor to start adding sprites.", "SABRE_Start");
         SendActivationEvent("SABRE_SpriteActor");
         if (SABRE_gameState == SABRE_SPRITES_ADDED)
         {
-            DEBUG_MSG_FROM("[init (4/5)] Sprite addition successful.", "SABRE_Start");
+            DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Sprite addition successful.", "SABRE_Start");
+
+            if (SABRE_ValidateCurrentLevel() == 0)
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(5) "Level validation done, no errors.", "SABRE_Start");
+            else
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(5) "Warning! At least one missing texture was detected.", "SABRE_Start");
+
             CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
             CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + view.height * 0.5 - 270, true);
             CreateActor("SABRE_Floor", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + view.height * 0.5 + 270, true);
             SABRE_SetCeilingColor(SABRE_defaultCeiling);
             SABRE_SetFloorColor(SABRE_defaultFloor);
             SABRE_gameState = SABRE_RUNNING;
-            DEBUG_MSG_FROM("[init (5/5)] SABRE initialization complete.", "SABRE_Start");
+            DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(6) "SABRE initialization complete.", "SABRE_Start");
 
             SABRE_SetEntities(); // Set the test entities
         }
         else
         {
-            DEBUG_MSG_FROM("[init (4/5)] Sprite addition failed.", "SABRE_Start");
+            DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Error! Sprite addition failed.", "SABRE_Start");
             SABRE_Quit();
         }
     }
     else
     {
-        DEBUG_MSG_FROM("[init (2/5)] Texture addition failed.", "SABRE_Start");
+        DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Error! Texture addition failed.", "SABRE_Start");
         SABRE_Quit();
     }
 }
 
-int SABRE_FreeLevel();
-void SABRE_FreeTextureStore();
-void SABRE_FreeSpriteStore();
-void SABRE_FreeRenderObjectList();
-void SABRE_FreeEntityList();
-void SABRE_FreeProjectileList();
+int SABRE_FreeLevel();              // from level.c
+void SABRE_FreeTextureStore();      // from texture.c
+void SABRE_FreeSpriteStore();       // from sprite.c
+void SABRE_FreeRenderObjectList();  // from render.c
+void SABRE_FreeEntityList();        // from entity.c
+void SABRE_FreeProjectileList();    // from projectile.c
 
 void SABRE_Quit()
 {
@@ -1254,25 +1277,25 @@ void SABRE_Quit()
         SABRE_DisableActors();
 
         SABRE_FreeLevel();
-        DEBUG_MSG_FROM("[quit (1/7)] Freed level data memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(1) "Freed level data memory.", "SABRE_Quit");
 
         SABRE_FreeTextureStore();
-        DEBUG_MSG_FROM("[quit (2/7)] Freed texture store memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(2) "Freed texture store memory.", "SABRE_Quit");
 
         SABRE_FreeSpriteStore();
-        DEBUG_MSG_FROM("[quit (3/7)] Freed sprite store memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(3) "Freed sprite store memory.", "SABRE_Quit");
 
         SABRE_FreeProjectileList();
-        DEBUG_MSG_FROM("[quit (4/7)] Freed projectile list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(4) "Freed projectile list memory.", "SABRE_Quit");
 
         SABRE_FreeEntityList();
-        DEBUG_MSG_FROM("[quit (5/7)] Freed entity list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(5) "Freed entity list memory.", "SABRE_Quit");
 
         SABRE_FreeRenderObjectList();
-        DEBUG_MSG_FROM("[quit (6/7)] Freed render object list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(6) "Freed render object list memory.", "SABRE_Quit");
 
         SABRE_gameState = SABRE_FINISHED;
-        DEBUG_MSG_FROM("[quit (7/7)] SABRE cleanup complete.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(7) "SABRE cleanup complete.", "SABRE_Quit");
     }
 }
 
@@ -1521,6 +1544,8 @@ typedef struct SABRE_LevelTileStruct
 
 typedef struct SABRE_LevelStruct
 {
+    char validated;
+
     unsigned width;
     unsigned height;
     SABRE_LevelTile *map;
@@ -1528,13 +1553,50 @@ typedef struct SABRE_LevelStruct
 #define SABRE_LEVEL_DEFINED
 #endif
 
+// from texture.c
+int SABRE_ValidateTextureIndex(int index);
+
 SABRE_Level SABRE_level;
 
 int SABRE_FreeLevel();
+int SABRE_PrintLevel(SABRE_Level *level);
 int SABRE_InitLevel(SABRE_Level *level, unsigned width, unsigned height);
 int SABRE_FreeLevelData(SABRE_Level *level);
 int SABRE_AllocLevel(SABRE_Level *level);
+int SABRE_ValidateLevel(SABRE_Level *level);
+int SABRE_ValidateCurrentLevel();
 int SABRE_SetLevelDataFromArray(SABRE_Level *level, unsigned width, unsigned height, unsigned arr[]);
+
+int  SABRE_PrintLevel(SABRE_Level *level)
+{
+    unsigned i, j;
+    char temp[256] = "";
+    char temp2[256] = "";
+    unsigned width = 0;
+    unsigned height = 0;
+
+    if (!level) return 1; // 1: invalid pointer
+    if (!level->map) return 2; // 2: no map data to free
+
+    width = level->width;
+    height = level->height;
+
+    DEBUG_MSG_FROM("Printing level:", "SABRE_PrintLevel");
+
+    for (i = 0; i < height; i++)
+    {
+        for (j = 0; j < width; j++)
+        {
+            sprintf(temp2, "%d, ", level->map[i * width + j].texture);
+            strcat(temp, temp2);
+        }
+
+        DEBUG_MSG_FROM(temp, "SABRE_PrintLevel");
+        strcpy(temp, "");
+    }
+
+    return 0;
+}
 
 int SABRE_InitLevel(SABRE_Level *level, unsigned width, unsigned height)
 {
@@ -1543,6 +1605,7 @@ int SABRE_InitLevel(SABRE_Level *level, unsigned width, unsigned height)
     if (levelSize < min(width, height)) return 2; // 2: detected unsigned integer wrap around
                                                   // e.g. width and/or height is too big (very unlikely :P)
 
+    level->validated = 0;
     level->width = width;
     level->height = height;
     level->map = NULL;
@@ -1580,6 +1643,49 @@ int SABRE_AllocLevel(SABRE_Level *level)
     if (!level->map) return 2; // 2: allocation failed
 
     return 0;
+}
+
+// Iterate over the map and validate each tile's texture against the textureStore contents.
+// Any invalid texture values are modified to the value representing a missing texture.
+// Returns a value indicating whether invalid textures were found (1) or not (0).
+int SABRE_ValidateLevel(SABRE_Level *level)
+{
+    int result = 0;
+    unsigned i, j;
+    unsigned index = 0;
+    unsigned width = level->width;
+    unsigned height = level->height;
+    unsigned validatedIndex = 0;
+
+    if (level->validated)
+        return 0; // 0: level already validated
+
+    for (i = 0; i < height; i++)
+    {
+        for (j = 0; j < width; j++)
+        {
+            index = level->map[i * width + j].texture;
+
+            if (index == 0) // current tile is empty
+                continue;
+
+            validatedIndex = SABRE_ValidateTextureIndex(index);
+            level->map[i * width + j].texture = validatedIndex + 1; // offset by one because the first texture index
+                                                                    // is reserved for the "texture missing" texture
+
+            if (validatedIndex == 0)
+                result = 1; // 1: level has at least one invalid texture index
+        }
+    }
+
+    level->validated = 1;
+
+    return result; // 0: no errors, 1: see above
+}
+
+int SABRE_ValidateCurrentLevel()
+{
+    return SABRE_ValidateLevel(&SABRE_level);
 }
 
 int SABRE_SetLevelDataFromArray(SABRE_Level *level, unsigned width, unsigned height, unsigned arr[])
@@ -1658,6 +1764,8 @@ SABRE_DataStore SABRE_textureStore;
 // without having to cast pointers all the time
 SABRE_Texture *SABRE_textures = NULL;
 
+int SABRE_ValidateTextureIndex(int index);
+
 int SABRE_AutoAddTextures();
 int SABRE_AddTexture(const char textureName[256]);
 int SABRE_CalculateTextureWidth(SABRE_Texture *texture);
@@ -1665,6 +1773,15 @@ int SABRE_CalculateTextureHeight(SABRE_Texture *texture);
 
 void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture);
 void SABRE_FreeTextureStore();
+
+int SABRE_ValidateTextureIndex(int index)
+{
+    if (index > 0 && index < SABRE_textureStore.count)
+        return index; // offset by one because the first texture index
+                      // is reserved for the "texture missing" texture
+
+    return 0;
+}
 
 // only works for non-animated textures
 int SABRE_AutoAddTextures()
@@ -1690,7 +1807,7 @@ int SABRE_AutoAddTextures()
 #if DEBUG
 {
     char temp[256];
-    sprintf(temp, "Added texture: [%d \"%s\"]", i - 1, animName);
+    sprintf(temp, "Added texture: [%d \"%s\"]", i - 2, animName);
     DEBUG_MSG_FROM(temp, "SABRE_AutoAddTextures");
 }
 #endif
