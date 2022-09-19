@@ -11,6 +11,8 @@ typedef struct SABRE_RenderObjectStruct
     enum SABRE_RenderObjectTypeEnum objectType;
 
     float scale;
+    int width;
+    int height;
     float verticalOffset;
     int horizontalPosition;
     int horizontalScalingCompensation;
@@ -234,7 +236,7 @@ SABRE_RenderObject *SABRE_GetNextUnusedRO()
     }
 }
 
-SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizontalPosition, int compensation, SABRE_Slice slice)
+SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int width, int height, int horizontalPosition, int compensation, SABRE_Slice slice)
 {
     int err = 0;
     SABRE_RenderObject *new = SABRE_GetNextUnusedRO();
@@ -247,6 +249,8 @@ SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizon
     new->sortValue = sortValue;
     new->objectType = SABRE_TEXTURE_RO;
     new->scale = scale;
+    new->width = width;
+    new->height = height;
     new->verticalOffset = 0;
     new->horizontalPosition = horizontalPosition;
     new->horizontalScalingCompensation = compensation;
@@ -272,6 +276,8 @@ SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizont
     new->sortValue = sortValue;
     new->objectType = SABRE_SPRITE_RO;
     new->scale = scale;
+    new->width = 0;
+    new->height = 0;
     new->verticalOffset = verticalOffset;
     new->horizontalPosition = horizontalPosition;
     new->horizontalScalingCompensation = 0;
@@ -320,7 +326,8 @@ void SABRE_RenderObjects()
             SABRE_slice.anim = iterator->slice.anim;
             SABRE_slice.slice = iterator->slice.slice;
             SendActivationEvent(SABRE_TEXTURE_ACTOR);
-            draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition - SABRE_camera.vPos * iterator->scale, iterator->scale);
+            draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition - SABRE_camera.vPos * (iterator->height / SABRE_halfHeightUnit),
+                iterator->scale);
             textureDrawCalls++;
         }
         else if (iterator->objectType == SABRE_SPRITE_RO)

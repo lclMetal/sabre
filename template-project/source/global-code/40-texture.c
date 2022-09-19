@@ -19,6 +19,7 @@ SABRE_DataStore SABRE_textureStore;
 SABRE_Texture *SABRE_textures = NULL;
 
 int SABRE_ValidateTextureIndex(int index);
+int SABRE_IsWindowTexture(int index);
 
 int SABRE_AutoAddTextures();
 int SABRE_AddTexture(const char textureName[256]);
@@ -35,6 +36,11 @@ int SABRE_ValidateTextureIndex(int index)
                       // is reserved for the "texture missing" texture
 
     return 0;
+}
+
+int SABRE_IsWindowTexture(int index)
+{
+    return SABRE_textures[index].isWindow;
 }
 
 // only works for non-animated textures

@@ -1,3 +1,6 @@
+const unsigned long SABRE_NORMAL    = 0;
+const unsigned long SABRE_IS_WINDOW = (1 << 0);
+
 #ifndef SABRE_RENDER_OBJECT_DEFINED
 typedef struct SABRE_RenderObjectStruct
 {
@@ -5,6 +8,8 @@ typedef struct SABRE_RenderObjectStruct
     enum SABRE_RenderObjectTypeEnum objectType;
 
     float scale;
+    int width;
+    int height;
     float verticalOffset;
     int horizontalPosition;
     int horizontalScalingCompensation;
@@ -20,6 +25,7 @@ typedef struct SABRE_RenderObjectStruct
 typedef struct SABRE_LevelTileStruct
 {
     unsigned texture;
+    unsigned long properties;
     struct SABRE_RenderObjectStruct *renderObject;
 }SABRE_LevelTile;
 
@@ -36,6 +42,7 @@ typedef struct SABRE_LevelStruct
 
 // from texture.c
 int SABRE_ValidateTextureIndex(int index);
+int SABRE_IsWindowTexture(int index);
 
 SABRE_Level SABRE_level;
 
@@ -132,8 +139,9 @@ int SABRE_AllocLevel(SABRE_Level *level)
 int SABRE_ValidateLevel(SABRE_Level *level)
 {
     int result = 0;
+    size_t index = 0;
     unsigned i, j;
-    unsigned index = 0;
+    unsigned textureIndex = 0;
     unsigned width = level->width;
     unsigned height = level->height;
     unsigned validatedIndex = 0;
@@ -145,14 +153,20 @@ int SABRE_ValidateLevel(SABRE_Level *level)
     {
         for (j = 0; j < width; j++)
         {
-            index = level->map[i * width + j].texture;
+            index = i * width + j;
 
-            if (index == 0) // current tile is empty
+            textureIndex = level->map[index].texture;
+
+            if (textureIndex == 0) // current tile is empty
+            {
+                level->map[index].properties = SABRE_NORMAL;
                 continue;
+            }
 
-            validatedIndex = SABRE_ValidateTextureIndex(index);
-            level->map[i * width + j].texture = validatedIndex + 1; // offset by one because the first texture index
-                                                                    // is reserved for the "texture missing" texture
+            validatedIndex = SABRE_ValidateTextureIndex(textureIndex);
+            level->map[index].properties = (SABRE_IsWindowTexture(validatedIndex)) ? SABRE_IS_WINDOW : SABRE_NORMAL;
+            level->map[index].texture = validatedIndex + 1; // offset by one because the first texture index
+                                                            // is reserved for the "texture missing" texture
 
             if (validatedIndex == 0)
                 result = 1; // 1: level has at least one invalid texture index
@@ -180,13 +194,17 @@ int SABRE_SetLevelDataFromArray(SABRE_Level *level, unsigned width, unsigned hei
     if (SABRE_AllocLevel(level) == 0)
     {
         unsigned i, j;
+        size_t index = 0;
 
         for (i = 0; i < height; i++)
         {
             for (j = 0; j < width; j++)
             {
-                level->map[i * width + j].texture = arr[i * width + j];
-                level->map[i * width + j].renderObject = NULL;
+                index = i * width + j;
+
+                level->map[index].properties = SABRE_NORMAL;
+                level->map[index].texture = arr[index];
+                level->map[index].renderObject = NULL;
             }
         }
 
@@ -207,13 +225,17 @@ int SABRE_SetLevelDataFrom2DIntArray(SABRE_Level *level, unsigned width, unsigne
     if (SABRE_AllocLevel(level) == 0)
     {
         unsigned i, j;
+        size_t index = 0;
 
         for (i = 0; i < height; i++)
         {
             for (j = 0; j < width; j++)
             {
-                level->map[i * width + j].texture = arr[i][j];
-                level->map[i * width + j].renderObject = NULL;
+                index = i * width + j;
+
+                level->map[index].properties = SABRE_NORMAL;
+                level->map[index].texture = arr[i][j];
+                level->map[index].renderObject = NULL;
             }
         }
 

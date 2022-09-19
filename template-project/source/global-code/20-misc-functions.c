@@ -3,6 +3,13 @@ float SABRE_LimitValue01(float val)
     return max(0, min(1, val));
 }
 
+Actor *SABRE_gc2(char *actorName, long cloneNum)
+{
+    char cName[256];
+    sprintf(cName, "%s.%d", actorName, cloneNum);
+    return getclone(cName);
+}
+
 // algorithm by user Grumdrig on stack overflow: https://stackoverflow.com/a/1501725
 float SABRE_PointToLineSegmentDistance(SABRE_Vector2 a, SABRE_Vector2 b, SABRE_Vector2 p, SABRE_Vector2 *projectionResult)
 {

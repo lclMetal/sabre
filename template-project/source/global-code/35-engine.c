@@ -20,6 +20,8 @@ typedef struct SABRE_RenderObjectStruct
     enum SABRE_RenderObjectTypeEnum objectType;
 
     float scale;
+    int width;
+    int height;
     float verticalOffset;
     int horizontalPosition;
     int horizontalScalingCompensation;
@@ -35,6 +37,7 @@ typedef struct SABRE_RenderObjectStruct
 typedef struct SABRE_LevelTileStruct
 {
     unsigned texture;
+    unsigned long properties;
     struct SABRE_RenderObjectStruct *renderObject;
 }SABRE_LevelTile;
 
@@ -111,7 +114,12 @@ struct SABRE_PlayerStruct
     float crouchSpeed;
     float crouchHeightChange;
     float radius;
-}SABRE_player = { 0.05f, 0.05f, 5.0f, 50.0f, 0.2f };
+}SABRE_player = { 0.05f, 0.05f, 5.0f, 60.0f, 0.2f };
+
+struct SABRE_GraphicsSettingsStruct
+{
+    unsigned char windowRenderDepth; // how many windows can be rendered in a line, 0 means no limit
+}SABRE_graphicsSettings = { 0 };
 
 SABRE_Slice SABRE_slice;
 SABRE_Color SABRE_defaultCeiling = { 215.0, 54.0, 91.0, 106, 158, 231, 1.0 };
@@ -303,8 +311,8 @@ void SABRE_Start()
                 DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(5) "Warning! At least one missing texture was detected.", "SABRE_Start");
 
             CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
-            CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + view.height * 0.5 - 270, true);
-            CreateActor("SABRE_Floor", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + view.height * 0.5 + 270, true);
+            CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + SABRE_Screen.height * 0.5 - 270, true);
+            CreateActor("SABRE_Floor", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + SABRE_Screen.height * 0.5 + 270, true);
             SABRE_SetCeilingColor(SABRE_defaultCeiling);
             SABRE_SetFloorColor(SABRE_defaultFloor);
             SABRE_gameState = SABRE_RUNNING;
