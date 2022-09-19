@@ -172,7 +172,7 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
                 {
                     if (tile->properties & SABRE_IS_WINDOW)
                     {
-                        if (rayIsInsideWindow || windowCount >= 5) // Already a window, no need to render anything
+                        if (rayIsInsideWindow || (SABRE_graphicsSettings.windowRenderDepth && windowCount >= SABRE_graphicsSettings.windowRenderDepth)) // Already a window, no need to render anything
                         {
                             continue;
                         }
@@ -191,7 +191,7 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
                         wallHit = 1;
                     }
                 }
-                else if (rayIsInsideWindow && windowCount < 5)
+                else if (rayIsInsideWindow && (SABRE_graphicsSettings.windowRenderDepth == 0 || windowCount < SABRE_graphicsSettings.windowRenderDepth))
                 {
                     windowCount++;
                     rayIsInsideWindow = 0;

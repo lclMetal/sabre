@@ -116,6 +116,11 @@ struct SABRE_PlayerStruct
     float radius;
 }SABRE_player = { 0.05f, 0.05f, 5.0f, 60.0f, 0.2f };
 
+struct SABRE_GraphicsSettingsStruct
+{
+    unsigned char windowRenderDepth; // how many windows can be rendered in a line, 0 means no limit
+}SABRE_graphicsSettings = { 0 };
+
 SABRE_Slice SABRE_slice;
 SABRE_Color SABRE_defaultCeiling = { 215.0, 54.0, 91.0, 106, 158, 231, 1.0 };
 SABRE_Color SABRE_defaultFloor   = {  86.0, 76.0, 62.0, 106, 158,  38, 1.0 };
