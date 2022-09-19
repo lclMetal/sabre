@@ -685,6 +685,11 @@ float SABRE_LimitValue01(float val)
     return max(0, min(1, val));
 }
 
+int SABRE_LimitIntValue(int val, int minVal, int maxVal)
+{
+    return max(min(minVal, maxVal), min(val, max(minVal, maxVal)));
+}
+
 Actor *SABRE_gc2(char *actorName, long cloneNum)
 {
     char cName[256];
@@ -1266,21 +1271,26 @@ void SABRE_SetFloorColor(SABRE_Color color)
     SABRE_ColorActorByName(SABRE_FLOOR_ACTOR, color);
 }
 
-int SABRE_GetSurroundingWalls(float *px, float *py, SABRE_Level*level)
+int SABRE_GetSurroundingWalls(float *px, float *py, SABRE_Level *level)
 {
-    int i, j, rows = 3, cols = 3, mid = 0, collisions = 0;
+    int i, j, edge = 0, rows = 3, cols = 3, mid = 0, collisions = 0;
 
     for (j = 0; j < rows; j++)
     {
         for (i = 0; i < cols; i++)
         {
+            edge = 0;
+
             if (j == 1 && i == 1) mid = 1;
             else
             {
                 int row = (int)*py - 1 + j;
                 int col = (int)*px - 1 + i;
 
-                collisions += (level->map[row * level->width + col].texture > 0) << SABRE_COLLISION_MASK_SIZE - (j * cols + i - mid);
+                if (row < 1 || row > level->height - 2) edge = 1;
+                if (col < 1 || col > level->width - 2) edge = 1;
+
+                collisions += (level->map[row * level->width + col].texture > 0 || edge) << SABRE_COLLISION_MASK_SIZE - (j * cols + i - mid);
             }
         }
     }

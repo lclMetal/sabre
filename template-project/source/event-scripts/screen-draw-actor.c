@@ -40,6 +40,7 @@ char rayIsInsideWindow = 0;
 short prevWindowTexture = 0;
 
 char solidWallHit = 0;
+char levelEdgeHit = 0;
 
 SABRE_List *iterator = NULL; // pointer to the entity to process
 
@@ -136,6 +137,7 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             sideDistY = (rayMapY + 1 - rayPosY) * deltaDistY;
         }
 
+        levelEdgeHit = 0;
         solidWallHit = 0;
         windowCount = 0;
         willRenderAWindow = 0;
@@ -163,6 +165,15 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
                 }
 
                 rayMapIndex = rayMapY * SABRE_level.width + rayMapX;
+
+                if ((hitSide == 0 && (rayMapY > SABRE_level.height - 2 || rayMapY < 1)) ||
+                    (hitSide == 1 && (rayMapX > SABRE_level.width - 2 || rayMapX < 1)) ||
+                    rayMapY < 0 || rayMapX < 0 || rayMapY > SABRE_level.height - 1 || rayMapX > SABRE_level.width - 1)
+                {
+                    levelEdgeHit = 1;
+                    break;
+                }
+
                 tile = &SABRE_level.map[rayMapIndex];
 
                 willRenderAWindow = 0;
@@ -206,6 +217,9 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
                     prevWindowTexture = tile->texture;
                 }
             }
+
+            if (levelEdgeHit)
+                break;
 
             // calculate the perpendicular distance between the wall and the camera plane
             if (!hitSide)

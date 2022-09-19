@@ -3,6 +3,11 @@ float SABRE_LimitValue01(float val)
     return max(0, min(1, val));
 }
 
+int SABRE_LimitIntValue(int val, int minVal, int maxVal)
+{
+    return max(min(minVal, maxVal), min(val, max(minVal, maxVal)));
+}
+
 Actor *SABRE_gc2(char *actorName, long cloneNum)
 {
     char cName[256];
