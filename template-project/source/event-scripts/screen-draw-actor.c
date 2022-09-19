@@ -173,6 +173,13 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
                     levelEdgeHit = 1;
                     break;
                 }
+                else if ((hitSide == 1 && (rayMapY > SABRE_level.height - 2 || rayMapY < 1)) ||
+                         (hitSide == 0 && (rayMapX > SABRE_level.width - 2 || rayMapX < 1)))
+                {
+                    levelEdgeHit = 2;
+                    tile = &SABRE_level.map[SABRE_LimitIntValue(rayMapY, 0, SABRE_level.height - 1) * SABRE_level.width + SABRE_LimitIntValue(rayMapX, 0, SABRE_level.width - 1)];
+                    break;
+                }
 
                 tile = &SABRE_level.map[rayMapIndex];
 
@@ -218,7 +225,7 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
                 }
             }
 
-            if (levelEdgeHit)
+            if (levelEdgeHit && SABRE_graphicsSettings.levelEdgeMode == 0)
                 break;
 
             // calculate the perpendicular distance between the wall and the camera plane
@@ -232,8 +239,14 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 
             // calculate the right texture to use
             SABRE_slice.anim = tile->texture;
-            if (SABRE_slice.anim == 0 && prevWindowTexture)
-                SABRE_slice.anim = prevWindowTexture;
+            if (SABRE_slice.anim == 0)
+            {
+                if (prevWindowTexture)
+                    SABRE_slice.anim = prevWindowTexture;
+                if (levelEdgeHit)
+                    SABRE_slice.anim = SABRE_graphicsSettings.levelEdgeTextureIndex;
+            }
+
             texture = &SABRE_textures[SABRE_slice.anim - 1];
 
             // calculate where the wall was hit
@@ -279,6 +292,9 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             {
                 prevWindowTexture = SABRE_slice.anim;
             }
+
+            if (levelEdgeHit)
+                break;
 
             wallHit = 0;
         }

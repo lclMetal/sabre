@@ -118,8 +118,10 @@ struct SABRE_PlayerStruct
 
 struct SABRE_GraphicsSettingsStruct
 {
-    unsigned char windowRenderDepth; // how many windows can be rendered in a line, 0 means no limit
-}SABRE_graphicsSettings = { 0 };
+    unsigned char windowRenderDepth;// how many windows can be rendered in a line, 0 means no limit
+    unsigned char levelEdgeMode;    // how the level edges should be handled, 0: don't render, 1: render with specified texture
+    int levelEdgeTextureIndex;      // the texture to use for level edge mode 1
+}SABRE_graphicsSettings = { 0, 1, 4 };
 
 SABRE_Slice SABRE_slice;
 SABRE_Color SABRE_defaultCeiling = { 215.0, 54.0, 91.0, 106, 158, 231, 1.0 };
