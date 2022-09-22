@@ -85,6 +85,11 @@ if (SABRE_gameState == SABRE_RUNNING)
             int coll = SABRE_GetSurroundingWalls(&posX, &posY, &SABRE_level);
             float radius = SABRE_player.radius;
 
+            posX = fmod(posX, SABRE_level.width);
+            if (posX < 0) posX += SABRE_level.width;
+            posY = fmod(posY, SABRE_level.height);
+            if (posY < 0) posY += SABRE_level.height;
+
             if ((coll & SABRE_TOP_L_MASK) == SABRE_TOP_L)
                 SABRE_KeepDistance(&posX, &posY, (int)posX, (int)posY, radius);
             if ((coll & SABRE_TOP_MASK) == SABRE_TOP)

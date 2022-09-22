@@ -690,6 +690,12 @@ int SABRE_LimitIntValue(int val, int minVal, int maxVal)
     return max(min(minVal, maxVal), min(val, max(minVal, maxVal)));
 }
 
+int SABRE_WrapIntValue(int val, int limit)
+{
+    int mod = val % limit;
+    return (mod < 0) ? mod + limit : mod;
+}
+
 Actor *SABRE_gc2(char *actorName, long cloneNum)
 {
     char cName[256];
@@ -1234,7 +1240,7 @@ struct SABRE_GraphicsSettingsStruct
     unsigned char windowRenderDepth;// how many windows can be rendered in a line, 0 means no limit
     unsigned char levelEdgeMode;    // how the level edges should be handled, 0: don't render, 1: render with specified texture
     int levelEdgeTextureIndex;      // the texture to use for level edge mode 1
-}SABRE_graphicsSettings = { 0, 1, 4 };
+}SABRE_graphicsSettings = { 0, 2, 5 };
 
 SABRE_Slice SABRE_slice;
 SABRE_Color SABRE_defaultCeiling = { 215.0, 54.0, 91.0, 106, 158, 231, 1.0 };
@@ -1289,8 +1295,16 @@ int SABRE_GetSurroundingWalls(float *px, float *py, SABRE_Level *level)
                 int row = (int)*py - 1 + j;
                 int col = (int)*px - 1 + i;
 
-                if (row < 1 || row > level->height - 2) edge = 1;
-                if (col < 1 || col > level->width - 2) edge = 1;
+                if (SABRE_graphicsSettings.levelEdgeMode < 2)
+                {
+                    if (row < 1 || row > level->height - 2) edge = 1;
+                    if (col < 1 || col > level->width - 2) edge = 1;
+                }
+                else
+                {
+                    row = SABRE_WrapIntValue(row, level->height);
+                    col = SABRE_WrapIntValue(col, level->width);
+                }
 
                 collisions += (level->map[row * level->width + col].texture > 0 || edge) << SABRE_COLLISION_MASK_SIZE - (j * cols + i - mid);
             }

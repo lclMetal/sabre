@@ -8,6 +8,12 @@ int SABRE_LimitIntValue(int val, int minVal, int maxVal)
     return max(min(minVal, maxVal), min(val, max(minVal, maxVal)));
 }
 
+int SABRE_WrapIntValue(int val, int limit)
+{
+    int mod = val % limit;
+    return (mod < 0) ? mod + limit : mod;
+}
+
 Actor *SABRE_gc2(char *actorName, long cloneNum)
 {
     char cName[256];
