@@ -48,7 +48,7 @@ SABRE_Entity *movableFlowerPot = NULL;
 SABRE_Entity *hiddenFlowerPot = NULL;
 SABRE_Entity *inCorner = NULL;
 
-#define SABRE_ENTITY_COUNT 12
+#define SABRE_ENTITY_COUNT 22
 
 void SABRE_SetEntities()
 {
@@ -68,6 +68,16 @@ void SABRE_SetEntities()
         { 0.19f, { 7.5f, 3.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.2" },
         { 0.19f, { 8.0f, 3.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.3" },
         { 0.19f, { 8.5f, 3.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.4" },
+        { 0.19f, { 6.5f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.0" },
+        { 0.19f, { 7.0f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.1" },
+        { 0.19f, { 7.5f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.2" },
+        { 0.19f, { 8.0f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.3" },
+        { 0.19f, { 8.5f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.4" },
+        { 0.19f, { 6.75f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.5" },
+        { 0.19f, { 7.25f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.6" },
+        { 0.19f, { 7.75f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.7" },
+        { 0.19f, { 8.25f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.8" },
+        { 0.19f, { 8.75f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.9" },
         // { 0.15f, { 2.5f, 8.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 5), "tree.4" }
         { 0.15f, { 2.5f, 8.5f }, 0, SABRE_ANIMATOR_LITERAL(10, 1, 7), "dude.0" }
     };

@@ -14,6 +14,14 @@ int SABRE_WrapIntValue(int val, int limit)
     return (mod < 0) ? mod + limit : mod;
 }
 
+float SABRE_WrapFloatValue(float val, int limit)
+{
+    int mod = (int)val % limit;
+    float decimals = val - (int)val;
+
+    return (mod + decimals < 0) ? mod + decimals + limit : mod + decimals;
+}
+
 Actor *SABRE_gc2(char *actorName, long cloneNum)
 {
     char cName[256];

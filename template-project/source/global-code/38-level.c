@@ -22,11 +22,12 @@ typedef struct SABRE_RenderObjectStruct
 #endif
 
 #ifndef SABRE_LEVEL_DEFINED
+#define SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH 5
 typedef struct SABRE_LevelTileStruct
 {
     unsigned texture;
     unsigned long properties;
-    struct SABRE_RenderObjectStruct *renderObject;
+    struct SABRE_RenderObjectStruct *renderObject[SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH + 1];
 }SABRE_LevelTile;
 
 typedef struct SABRE_LevelStruct
@@ -193,7 +194,7 @@ int SABRE_SetLevelDataFromArray(SABRE_Level *level, unsigned width, unsigned hei
 
     if (SABRE_AllocLevel(level) == 0)
     {
-        unsigned i, j;
+        unsigned i, j, k;
         size_t index = 0;
 
         for (i = 0; i < height; i++)
@@ -204,7 +205,11 @@ int SABRE_SetLevelDataFromArray(SABRE_Level *level, unsigned width, unsigned hei
 
                 level->map[index].properties = SABRE_NORMAL;
                 level->map[index].texture = arr[index];
-                level->map[index].renderObject = NULL;
+
+                for (k = 0; k <= SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH; k++)
+                {
+                    level->map[index].renderObject[k] = NULL;
+                }
             }
         }
 
@@ -224,7 +229,7 @@ int SABRE_SetLevelDataFrom2DIntArray(SABRE_Level *level, unsigned width, unsigne
 
     if (SABRE_AllocLevel(level) == 0)
     {
-        unsigned i, j;
+        unsigned i, j, k;
         size_t index = 0;
 
         for (i = 0; i < height; i++)
@@ -235,7 +240,11 @@ int SABRE_SetLevelDataFrom2DIntArray(SABRE_Level *level, unsigned width, unsigne
 
                 level->map[index].properties = SABRE_NORMAL;
                 level->map[index].texture = arr[i][j];
-                level->map[index].renderObject = NULL;
+
+                for (k = 0; k <= SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH; k++)
+                {
+                    level->map[index].renderObject[k] = NULL;
+                }
             }
         }
 

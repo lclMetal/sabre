@@ -95,13 +95,19 @@ SABRE_RenderObject *SABRE_ConcatenateROList(SABRE_RenderObject *dest, SABRE_Rend
 
 void SABRE_InitializeFrame()
 {
-    int i, j;
+    int i, j, k;
+    size_t index = 0;
 
     for (j = 0; j < SABRE_level.height; j++)
     {
         for (i = 0; i < SABRE_level.width; i++)
         {
-            SABRE_level.map[j * SABRE_level.width + i].renderObject = NULL;
+            index = j * SABRE_level.width + i;
+
+            for (k = 0; k <= SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH; k++)
+            {
+                SABRE_level.map[index].renderObject[k] = NULL;
+            }
         }
     }
 
