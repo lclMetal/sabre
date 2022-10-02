@@ -34,11 +34,12 @@ typedef struct SABRE_RenderObjectStruct
 #endif
 
 #ifndef SABRE_LEVEL_DEFINED
+#define SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH 5
 typedef struct SABRE_LevelTileStruct
 {
     unsigned texture;
     unsigned long properties;
-    struct SABRE_RenderObjectStruct *renderObject;
+    struct SABRE_RenderObjectStruct *renderObject[SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH + 1];
 }SABRE_LevelTile;
 
 typedef struct SABRE_LevelStruct
@@ -116,12 +117,17 @@ struct SABRE_PlayerStruct
     float radius;
 }SABRE_player = { 0.05f, 0.05f, 5.0f, 60.0f, 0.2f };
 
+#define SABRE_EDGE_MODE_NO_RENDER 0
+#define SABRE_EDGE_MODE_TEXTURE 1
+#define SABRE_EDGE_MODE_WRAP 2
+
 struct SABRE_GraphicsSettingsStruct
 {
-    unsigned char windowRenderDepth;// how many windows can be rendered in a line, 0 means no limit
-    unsigned char levelEdgeMode;    // how the level edges should be handled, 0: don't render, 1: render with specified texture
-    int levelEdgeTextureIndex;      // the texture to use for level edge mode 1
-}SABRE_graphicsSettings = { 0, 2, 5 };
+    unsigned char windowRenderDepth;    // how many windows can be rendered in a line, 0 means no limit
+    unsigned char levelEdgeWrapDepth;   // how many times the raycast is allowed to wrap around the level in level edge mode 2
+    unsigned char levelEdgeMode;        // how the level edges should be handled, 0: don't render, 1: render with specified texture
+    int levelEdgeTextureIndex;          // the texture to use for level edge mode 1
+}SABRE_graphicsSettings = { 0, 2, SABRE_EDGE_MODE_TEXTURE, 3 };
 
 SABRE_Slice SABRE_slice;
 SABRE_Color SABRE_defaultCeiling = { 215.0, 54.0, 91.0, 106, 158, 231, 1.0 };
@@ -149,6 +155,16 @@ SABRE_Color SABRE_defaultFloor   = {  86.0, 76.0, 62.0, 106, 158,  38, 1.0 };
 #define SABRE_LOW_MASK   0x02 // g
 #define SABRE_LOW_R      0x01 // h
 #define SABRE_LOW_R_MASK 0x0B // h && e && g
+
+void SABRE_ValidateGraphicsSettings()
+{
+    SABRE_graphicsSettings.levelEdgeWrapDepth = SABRE_LimitIntValue(SABRE_graphicsSettings.levelEdgeWrapDepth, 0, SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH);
+    SABRE_graphicsSettings.levelEdgeTextureIndex += 2;
+    if (SABRE_ValidateTextureIndex(SABRE_graphicsSettings.levelEdgeTextureIndex - 1) == 0)
+    {
+        SABRE_graphicsSettings.levelEdgeTextureIndex = 1; // texture index 1 indicates a missing texture
+    }
+}
 
 void SABRE_SetCeilingColor(SABRE_Color color)
 {
@@ -293,6 +309,9 @@ int SABRE_ValidateCurrentLevel();
 // from entity.c
 void SABRE_SetEntities();
 
+// from texture.c
+int SABRE_ValidateTextureIndex(int index);
+
 void SABRE_Quit();
 
 #define SABRE_STRINGIFY(X) #X
@@ -324,6 +343,8 @@ void SABRE_Start()
                 DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(5) "Level validation done, no errors.", "SABRE_Start");
             else
                 DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(5) "Warning! At least one missing texture was detected.", "SABRE_Start");
+
+            SABRE_ValidateGraphicsSettings();
 
             CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
             CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + SABRE_Screen.height * 0.5 - 270, true);

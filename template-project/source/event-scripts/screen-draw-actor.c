@@ -17,8 +17,8 @@ float deltaDistX, deltaDistY; // distance ray has to travel from one side to ano
 
 float scale;
 float scaledHalfWidth;
-short horizontalScalingCompensation; // amount of pixels to shift the drawing position to right
-                                     // to compensate for the bigger width resulting from scaling
+short horizontalScalingCompensation = 0; // amount of pixels to shift the drawing position to right
+                                         // to compensate for the bigger width resulting from scaling
 const float horizontalCompensationThreshold = 0.0315f; // threshold for growing the compensation
 
 SABRE_Texture *texture = NULL;
@@ -39,14 +39,11 @@ int sliceWidth = 0;
 char willRenderAWindow = 0;
 char windowCount = 0;
 char wrapCount = 0;
-char wrapLimit = 2;
 char rayIsInsideWindow = 0;
 short prevWindowTexture = 0;
 
 char solidWallHit = 0;
 char levelEdgeHit = 0;
-
-char temp[256];
 
 SABRE_List *iterator = NULL; // pointer to the entity to process
 
@@ -122,6 +119,15 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 
         wallHit = 0;
         hitSide = 0;
+        solidWallHit = 0;
+        levelEdgeHit = 0;
+        windowCount = 0;
+        wrapCount = 0;
+        willRenderAWindow = 0;
+        rayIsInsideWindow = 0;
+        prevWindowTexture = 0;
+        texture = NULL;
+        horizontalScalingCompensation = 0;
 
         // calculate the step and the initial sideDistX and sideDistY
         if (rayDirX < 0) // if the ray is moving left
@@ -144,15 +150,6 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             rayStepY = 1;
             sideDistY = (rayMapY + 1 - rayPosY) * deltaDistY;
         }
-
-        levelEdgeHit = 0;
-        solidWallHit = 0;
-        windowCount = 0;
-        wrapCount = 0;
-        willRenderAWindow = 0;
-        rayIsInsideWindow = 0;
-        prevWindowTexture = 0;
-        texture = NULL;
 
         while (!solidWallHit)
         {
@@ -177,38 +174,38 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 
                 rayMapIndex = rayMapY * SABRE_level.width + rayMapX;
 
-                if (SABRE_graphicsSettings.levelEdgeMode == 2)
+                // level edge wrap
+                if (SABRE_graphicsSettings.levelEdgeMode == SABRE_EDGE_MODE_WRAP)
                 {
                     rayMapY = SABRE_WrapIntValue(rayMapY, SABRE_level.height);
                     rayMapX = SABRE_WrapIntValue(rayMapX, SABRE_level.width);
                     newRayMapIndex = rayMapY * SABRE_level.width + rayMapX;
 
+                    // check if a wrap happened
                     if (newRayMapIndex != rayMapIndex)
                         wrapCount++;
 
                     rayMapIndex = newRayMapIndex;
+                    tile = &SABRE_level.map[rayMapIndex];
 
-                    if (wrapCount >= wrapLimit)
+                    // limit wrap count to avoid infinite loop
+                    if (wrapCount > SABRE_graphicsSettings.levelEdgeWrapDepth)
+                    {
                         wallHit = 1;
+                        levelEdgeHit = 3;
+                        break;
+                    }
                 }
                 else
                 {
-                    if ((hitSide == 0 && (rayMapY > SABRE_level.height - 2 || rayMapY < 1)) ||
-                        (hitSide == 1 && (rayMapX > SABRE_level.width - 2 || rayMapX < 1)) ||
-                        rayMapY < 0 || rayMapX < 0 || rayMapY > SABRE_level.height - 1 || rayMapX > SABRE_level.width - 1)
-                    {
-                        levelEdgeHit = 1;
-                        break;
-                    }
-                    else if ((hitSide == 1 && (rayMapY > SABRE_level.height - 2 || rayMapY < 1)) ||
-                             (hitSide == 0 && (rayMapX > SABRE_level.width - 2 || rayMapX < 1)))
+                    // check if raycast reached the level edge
+                    if (rayMapY > SABRE_level.height - 2 || rayMapY < 1 ||
+                        rayMapX > SABRE_level.width  - 2 || rayMapX < 1)
                     {
                         levelEdgeHit = 2;
-                        tile = &SABRE_level.map[SABRE_LimitIntValue(rayMapY, 0, SABRE_level.height - 1) * SABRE_level.width + SABRE_LimitIntValue(rayMapX, 0, SABRE_level.width - 1)];
+                        tile = &SABRE_level.map[rayMapIndex];
                         break;
                     }
-
-                    rayMapIndex = SABRE_LimitIntValue(rayMapY, 0, SABRE_level.height - 1) * SABRE_level.width + SABRE_LimitIntValue(rayMapX, 0, SABRE_level.width - 1);
                 }
 
                 tile = &SABRE_level.map[rayMapIndex];
@@ -255,15 +252,24 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
                 else
                     perpWallDist = (sideDistY - deltaDistY);
 
-                if (wallHit && willRenderAWindow && tile->renderObject && abs(perpWallDist - tile->renderObject->sortValue) < 1 && slice < (tile->renderObject->horizontalPosition + tile->renderObject->width + 1))
+                if (wallHit && willRenderAWindow && tile->renderObject[wrapCount] && abs(perpWallDist - tile->renderObject[wrapCount]->sortValue) < 1 && slice < (tile->renderObject[wrapCount]->horizontalPosition + tile->renderObject[wrapCount]->width + 1))
                 {
                     wallHit = 0;
                     prevWindowTexture = tile->texture;
                 }
             }
 
-            if ((levelEdgeHit == 1 || levelEdgeHit && tile->texture == 0) && SABRE_graphicsSettings.levelEdgeMode == 0)
+            if (levelEdgeHit && tile->texture == 0 && SABRE_graphicsSettings.levelEdgeMode == SABRE_EDGE_MODE_NO_RENDER ||
+                levelEdgeHit == 3 && SABRE_graphicsSettings.levelEdgeMode == SABRE_EDGE_MODE_WRAP)
+            {
                 break;
+            }
+
+            // calculate the perpendicular distance between the wall and the camera plane
+            if (!hitSide)
+                perpWallDist = (sideDistX - deltaDistX);
+            else
+                perpWallDist = (sideDistY - deltaDistY);
 
             // calculate the height of the current line of the wall to be drawn
             wallSliceHeight = (float)SABRE_screenHeight / (float)perpWallDist;
@@ -274,7 +280,7 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             {
                 if (prevWindowTexture)
                     SABRE_slice.anim = prevWindowTexture;
-                if (levelEdgeHit || wrapCount >= wrapLimit)
+                if (levelEdgeHit)
                     SABRE_slice.anim = SABRE_graphicsSettings.levelEdgeTextureIndex;
             }
 
@@ -283,10 +289,8 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             // calculate where the wall was hit
             if (hitSide)
                 wallHitX = rayPosX + ((unwrappedRayMapY - rayPosY + (1 - rayStepY) / 2.0f) / rayDirY) * rayDirX;
-                // wallHitX = rayPosX + ((rayMapY - rayPosY + (1 - rayStepY) / 2.0f) / rayDirY) * rayDirX;
             else
                 wallHitX = rayPosY + ((unwrappedRayMapX - rayPosX + (1 - rayStepX) / 2.0f) / rayDirX) * rayDirY;
-                // wallHitX = rayPosY + ((rayMapX - rayPosX + (1 - rayStepX) / 2.0f) / rayDirX) * rayDirY;
 
             // get only the decimal part, which represents the hit position along the horizontal
             // axis of the texture
@@ -306,9 +310,9 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             // If a part of this wall has already been drawn this frame, set the render object list manager's
             // curr pointer to point to that render object in the list, as the next slice will be somewhere
             // very near to that in depth
-            if (tile->renderObject)
+            if (tile->renderObject[wrapCount])
             {
-                SABRE_ROListManager.curr = tile->renderObject;
+                SABRE_ROListManager.curr = tile->renderObject[wrapCount];
             }
 
             sliceWidth = (short)max(floor(scale) - 1, 0) + horizontalScalingCompensation * (scale > 1.0f - (horizontalCompensationThreshold - 0.0001f));
@@ -316,10 +320,9 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
             SABRE_AddTextureRO(perpWallDist, scale, sliceWidth, wallSliceHeight, slice, horizontalScalingCompensation, SABRE_slice);
 
             // Set the last used render object pointer for this wall
-            tile->renderObject = SABRE_ROListManager.curr;
+            tile->renderObject[wrapCount] = SABRE_ROListManager.curr;
 
-            // if (!texture->isWindow || rayMapY < 1 || rayMapX < 1 || rayMapY >= SABRE_level.height - 1 || rayMapX >= SABRE_level.width - 1)
-            if (!texture->isWindow || levelEdgeHit == 2 || wrapCount >= wrapLimit || wrapCount > 1 && texture->isWindow && perpWallDist > 5)
+            if (!texture->isWindow || levelEdgeHit == 2)
             {
                 solidWallHit = 1;
             }
