@@ -45,6 +45,8 @@ short prevWindowTexture = 0;
 char solidWallHit = 0;
 char levelEdgeHit = 0;
 
+SABRE_Vector2 p1, p2;
+
 SABRE_List *iterator = NULL; // pointer to the entity to process
 
 // only the 1st clone (cloneindex 0) will execute this code, as the other ones are just going
@@ -343,3 +345,9 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 
     SABRE_RenderObjects();
 }
+
+setpen(0, 255, 0, 0, 3);
+p1 = SABRE_WorldToScreen(SABRE_CreateVector2(3.0f, 3.0f));
+p2 = SABRE_WorldToScreen(SABRE_CreateVector2(2.0f, 2.0f));
+moveto(p1.x, p1.y);
+lineto(p2.x, p2.y);

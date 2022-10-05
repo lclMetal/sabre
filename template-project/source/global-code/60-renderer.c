@@ -314,6 +314,24 @@ void SABRE_PrintROList()
     }
 }
 
+SABRE_Vector2 SABRE_WorldToScreen(SABRE_Vector2 pos)
+{
+    float invDet = 1.0f / (float)(SABRE_camera.plane.x * SABRE_camera.dir.y - SABRE_camera.dir.x * SABRE_camera.plane.y);
+    SABRE_Vector2 translatedPos;
+    SABRE_Vector2 transformedPos;
+    SABRE_Vector2 screenPos;
+    translatedPos.x = pos.x - SABRE_camera.pos.x;
+    translatedPos.y = pos.y - SABRE_camera.pos.y;
+
+    transformedPos.x = invDet * (SABRE_camera.dir.y * translatedPos.x - SABRE_camera.dir.x * translatedPos.y);
+    transformedPos.y = invDet * (-SABRE_camera.plane.y * translatedPos.x + SABRE_camera.plane.x * translatedPos.y);
+
+    screenPos.x = (SABRE_screenWidth / 2.0f) * (1 + transformedPos.x / transformedPos.y);
+    screenPos.y = (SABRE_screenHeight / 2.0f) * (1 + 1.0f / transformedPos.y);//(1 + translatedPos.y / transformedPos.y);
+
+    return screenPos;
+}
+
 void SABRE_RenderObjects()
 {
     int horizontalPosition = 0;

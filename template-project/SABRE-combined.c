@@ -1283,16 +1283,6 @@ SABRE_Color SABRE_defaultFloor   = {  86.0, 76.0, 62.0, 106, 158,  38, 1.0 };
 #define SABRE_LOW_R      0x01 // h
 #define SABRE_LOW_R_MASK 0x0B // h && e && g
 
-void SABRE_ValidateGraphicsSettings()
-{
-    SABRE_graphicsSettings.levelEdgeWrapDepth = SABRE_LimitIntValue(SABRE_graphicsSettings.levelEdgeWrapDepth, 0, SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH);
-    SABRE_graphicsSettings.levelEdgeTextureIndex += 2;
-    if (SABRE_ValidateTextureIndex(SABRE_graphicsSettings.levelEdgeTextureIndex - 1) == 0)
-    {
-        SABRE_graphicsSettings.levelEdgeTextureIndex = 1; // texture index 1 indicates a missing texture
-    }
-}
-
 void SABRE_SetCeilingColor(SABRE_Color color)
 {
     SABRE_ColorActorByName(SABRE_CEILING_ACTOR, color);
@@ -1450,6 +1440,16 @@ void SABRE_Quit();
 
 #define SABRE_QUIT_STAGES 7
 #define SABRE_QUIT_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("quit", STAGE, SABRE_QUIT_STAGES)
+
+void SABRE_ValidateGraphicsSettings()
+{
+    SABRE_graphicsSettings.levelEdgeWrapDepth = SABRE_LimitIntValue(SABRE_graphicsSettings.levelEdgeWrapDepth, 0, SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH);
+    SABRE_graphicsSettings.levelEdgeTextureIndex += 2;
+    if (SABRE_ValidateTextureIndex(SABRE_graphicsSettings.levelEdgeTextureIndex - 1) == 0)
+    {
+        SABRE_graphicsSettings.levelEdgeTextureIndex = 1; // texture index 1 indicates a missing texture
+    }
+}
 
 void SABRE_Start()
 {
@@ -3106,6 +3106,24 @@ void SABRE_PrintROList()
             iterator->slice.anim, iterator->slice.slice);
         DEBUG_MSG(temp);
     }
+}
+
+SABRE_Vector2 SABRE_WorldToScreen(SABRE_Vector2 pos)
+{
+    float invDet = 1.0f / (float)(SABRE_camera.plane.x * SABRE_camera.dir.y - SABRE_camera.dir.x * SABRE_camera.plane.y);
+    SABRE_Vector2 translatedPos;
+    SABRE_Vector2 transformedPos;
+    SABRE_Vector2 screenPos;
+    translatedPos.x = pos.x - SABRE_camera.pos.x;
+    translatedPos.y = pos.y - SABRE_camera.pos.y;
+
+    transformedPos.x = invDet * (SABRE_camera.dir.y * translatedPos.x - SABRE_camera.dir.x * translatedPos.y);
+    transformedPos.y = invDet * (-SABRE_camera.plane.y * translatedPos.x + SABRE_camera.plane.x * translatedPos.y);
+
+    screenPos.x = (SABRE_screenWidth / 2.0f) * (1 + transformedPos.x / transformedPos.y);
+    screenPos.y = (SABRE_screenHeight / 2.0f) * (1 + 1.0f / transformedPos.y);//(1 + translatedPos.y / transformedPos.y);
+
+    return screenPos;
 }
 
 void SABRE_RenderObjects()
