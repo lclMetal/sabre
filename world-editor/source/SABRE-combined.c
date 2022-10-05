@@ -522,6 +522,32 @@ float SABRE_LimitValue01(float val)
     return max(0, min(1, val));
 }
 
+int SABRE_LimitIntValue(int val, int minVal, int maxVal)
+{
+    return max(min(minVal, maxVal), min(val, max(minVal, maxVal)));
+}
+
+int SABRE_WrapIntValue(int val, int limit)
+{
+    int mod = val % limit;
+    return (mod < 0) ? mod + limit : mod;
+}
+
+float SABRE_WrapFloatValue(float val, int limit)
+{
+    int mod = (int)val % limit;
+    float decimals = val - (int)val;
+
+    return (mod + decimals < 0) ? mod + decimals + limit : mod + decimals;
+}
+
+Actor *SABRE_gc2(char *actorName, long cloneNum)
+{
+    char cName[256];
+    sprintf(cName, "%s.%d", actorName, cloneNum);
+    return getclone(cName);
+}
+
 // algorithm by user Grumdrig on stack overflow: https://stackoverflow.com/a/1501725
 float SABRE_PointToLineSegmentDistance(SABRE_Vector2 a, SABRE_Vector2 b, SABRE_Vector2 p, SABRE_Vector2 *projectionResult)
 {
@@ -958,6 +984,8 @@ typedef struct SABRE_RenderObjectStruct
     enum SABRE_RenderObjectTypeEnum objectType;
 
     float scale;
+    int width;
+    int height;
     float verticalOffset;
     int horizontalPosition;
     int horizontalScalingCompensation;
@@ -970,10 +998,12 @@ typedef struct SABRE_RenderObjectStruct
 #endif
 
 #ifndef SABRE_LEVEL_DEFINED
+#define SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH 5
 typedef struct SABRE_LevelTileStruct
 {
     unsigned texture;
-    struct SABRE_RenderObjectStruct *renderObject;
+    unsigned long properties;
+    struct SABRE_RenderObjectStruct *renderObject[SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH + 1];
 }SABRE_LevelTile;
 
 typedef struct SABRE_LevelStruct
@@ -1049,7 +1079,19 @@ struct SABRE_PlayerStruct
     float crouchSpeed;
     float crouchHeightChange;
     float radius;
-}SABRE_player = { 0.05f, 0.05f, 5.0f, 50.0f, 0.2f };
+}SABRE_player = { 0.05f, 0.05f, 5.0f, 60.0f, 0.2f };
+
+#define SABRE_EDGE_MODE_NO_RENDER 0
+#define SABRE_EDGE_MODE_TEXTURE 1
+#define SABRE_EDGE_MODE_WRAP 2
+
+struct SABRE_GraphicsSettingsStruct
+{
+    unsigned char windowRenderDepth;    // how many windows can be rendered in a line, 0 means no limit
+    unsigned char levelEdgeWrapDepth;   // how many times the raycast is allowed to wrap around the level in level edge mode 2
+    unsigned char levelEdgeMode;        // how the level edges should be handled, 0: don't render, 1: render with specified texture
+    int levelEdgeTextureIndex;          // the texture to use for level edge mode 1
+}SABRE_graphicsSettings = { 0, 2, SABRE_EDGE_MODE_TEXTURE, 3 };
 
 SABRE_Slice SABRE_slice;
 SABRE_Color SABRE_defaultCeiling = { 215.0, 54.0, 91.0, 106, 158, 231, 1.0 };
@@ -1088,21 +1130,34 @@ void SABRE_SetFloorColor(SABRE_Color color)
     SABRE_ColorActorByName(SABRE_FLOOR_ACTOR, color);
 }
 
-int SABRE_GetSurroundingWalls(float *px, float *py, SABRE_Level*level)
+int SABRE_GetSurroundingWalls(float *px, float *py, SABRE_Level *level)
 {
-    int i, j, rows = 3, cols = 3, mid = 0, collisions = 0;
+    int i, j, edge = 0, rows = 3, cols = 3, mid = 0, collisions = 0;
 
     for (j = 0; j < rows; j++)
     {
         for (i = 0; i < cols; i++)
         {
+            edge = 0;
+
             if (j == 1 && i == 1) mid = 1;
             else
             {
                 int row = (int)*py - 1 + j;
                 int col = (int)*px - 1 + i;
 
-                collisions += (level->map[row * level->width + col].texture > 0) << SABRE_COLLISION_MASK_SIZE - (j * cols + i - mid);
+                if (SABRE_graphicsSettings.levelEdgeMode < 2)
+                {
+                    if (row < 1 || row > level->height - 2) edge = 1;
+                    if (col < 1 || col > level->width - 2) edge = 1;
+                }
+                else
+                {
+                    row = SABRE_WrapIntValue(row, level->height);
+                    col = SABRE_WrapIntValue(col, level->width);
+                }
+
+                collisions += (level->map[row * level->width + col].texture > 0 || edge) << SABRE_COLLISION_MASK_SIZE - (j * cols + i - mid);
             }
         }
     }
@@ -1208,6 +1263,9 @@ int SABRE_ValidateCurrentLevel();
 // from entity.c
 void SABRE_SetEntities();
 
+// from texture.c
+int SABRE_ValidateTextureIndex(int index);
+
 void SABRE_Quit();
 
 #define SABRE_STRINGIFY(X) #X
@@ -1219,6 +1277,16 @@ void SABRE_Quit();
 
 #define SABRE_QUIT_STAGES 7
 #define SABRE_QUIT_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("quit", STAGE, SABRE_QUIT_STAGES)
+
+void SABRE_ValidateGraphicsSettings()
+{
+    SABRE_graphicsSettings.levelEdgeWrapDepth = SABRE_LimitIntValue(SABRE_graphicsSettings.levelEdgeWrapDepth, 0, SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH);
+    SABRE_graphicsSettings.levelEdgeTextureIndex += 2;
+    if (SABRE_ValidateTextureIndex(SABRE_graphicsSettings.levelEdgeTextureIndex - 1) == 0)
+    {
+        SABRE_graphicsSettings.levelEdgeTextureIndex = 1; // texture index 1 indicates a missing texture
+    }
+}
 
 void SABRE_Start()
 {
@@ -1240,9 +1308,11 @@ void SABRE_Start()
             else
                 DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(5) "Warning! At least one missing texture was detected.", "SABRE_Start");
 
+            SABRE_ValidateGraphicsSettings();
+
             CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
-            CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + view.height * 0.5 - 270, true);
-            CreateActor("SABRE_Floor", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + view.height * 0.5 + 270, true);
+            CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + SABRE_Screen.height * 0.5 - 270, true);
+            CreateActor("SABRE_Floor", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + SABRE_Screen.height * 0.5 + 270, true);
             SABRE_SetCeilingColor(SABRE_defaultCeiling);
             SABRE_SetFloorColor(SABRE_defaultFloor);
             SABRE_gameState = SABRE_RUNNING;
@@ -1517,6 +1587,9 @@ void SABRE_LeaveEventTrigger(SABRE_EventTrigger *event)
 
 
 // ..\source\global-code\38-level.c
+const unsigned long SABRE_NORMAL    = 0;
+const unsigned long SABRE_IS_WINDOW = (1 << 0);
+
 #ifndef SABRE_RENDER_OBJECT_DEFINED
 typedef struct SABRE_RenderObjectStruct
 {
@@ -1524,6 +1597,8 @@ typedef struct SABRE_RenderObjectStruct
     enum SABRE_RenderObjectTypeEnum objectType;
 
     float scale;
+    int width;
+    int height;
     float verticalOffset;
     int horizontalPosition;
     int horizontalScalingCompensation;
@@ -1536,10 +1611,12 @@ typedef struct SABRE_RenderObjectStruct
 #endif
 
 #ifndef SABRE_LEVEL_DEFINED
+#define SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH 5
 typedef struct SABRE_LevelTileStruct
 {
     unsigned texture;
-    struct SABRE_RenderObjectStruct *renderObject;
+    unsigned long properties;
+    struct SABRE_RenderObjectStruct *renderObject[SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH + 1];
 }SABRE_LevelTile;
 
 typedef struct SABRE_LevelStruct
@@ -1555,6 +1632,7 @@ typedef struct SABRE_LevelStruct
 
 // from texture.c
 int SABRE_ValidateTextureIndex(int index);
+int SABRE_IsWindowTexture(int index);
 
 SABRE_Level SABRE_level;
 
@@ -1651,8 +1729,9 @@ int SABRE_AllocLevel(SABRE_Level *level)
 int SABRE_ValidateLevel(SABRE_Level *level)
 {
     int result = 0;
+    size_t index = 0;
     unsigned i, j;
-    unsigned index = 0;
+    unsigned textureIndex = 0;
     unsigned width = level->width;
     unsigned height = level->height;
     unsigned validatedIndex = 0;
@@ -1664,14 +1743,20 @@ int SABRE_ValidateLevel(SABRE_Level *level)
     {
         for (j = 0; j < width; j++)
         {
-            index = level->map[i * width + j].texture;
+            index = i * width + j;
 
-            if (index == 0) // current tile is empty
+            textureIndex = level->map[index].texture;
+
+            if (textureIndex == 0) // current tile is empty
+            {
+                level->map[index].properties = SABRE_NORMAL;
                 continue;
+            }
 
-            validatedIndex = SABRE_ValidateTextureIndex(index);
-            level->map[i * width + j].texture = validatedIndex + 1; // offset by one because the first texture index
-                                                                    // is reserved for the "texture missing" texture
+            validatedIndex = SABRE_ValidateTextureIndex(textureIndex);
+            level->map[index].properties = (SABRE_IsWindowTexture(validatedIndex)) ? SABRE_IS_WINDOW : SABRE_NORMAL;
+            level->map[index].texture = validatedIndex + 1; // offset by one because the first texture index
+                                                            // is reserved for the "texture missing" texture
 
             if (validatedIndex == 0)
                 result = 1; // 1: level has at least one invalid texture index
@@ -1698,14 +1783,22 @@ int SABRE_SetLevelDataFromArray(SABRE_Level *level, unsigned width, unsigned hei
 
     if (SABRE_AllocLevel(level) == 0)
     {
-        unsigned i, j;
+        unsigned i, j, k;
+        size_t index = 0;
 
         for (i = 0; i < height; i++)
         {
             for (j = 0; j < width; j++)
             {
-                level->map[i * width + j].texture = arr[i * width + j];
-                level->map[i * width + j].renderObject = NULL;
+                index = i * width + j;
+
+                level->map[index].properties = SABRE_NORMAL;
+                level->map[index].texture = arr[index];
+
+                for (k = 0; k <= SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH; k++)
+                {
+                    level->map[index].renderObject[k] = NULL;
+                }
             }
         }
 
@@ -1725,14 +1818,22 @@ int SABRE_SetLevelDataFrom2DIntArray(SABRE_Level *level, unsigned width, unsigne
 
     if (SABRE_AllocLevel(level) == 0)
     {
-        unsigned i, j;
+        unsigned i, j, k;
+        size_t index = 0;
 
         for (i = 0; i < height; i++)
         {
             for (j = 0; j < width; j++)
             {
-                level->map[i * width + j].texture = arr[i][j];
-                level->map[i * width + j].renderObject = NULL;
+                index = i * width + j;
+
+                level->map[index].properties = SABRE_NORMAL;
+                level->map[index].texture = arr[i][j];
+
+                for (k = 0; k <= SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH; k++)
+                {
+                    level->map[index].renderObject[k] = NULL;
+                }
             }
         }
 
@@ -1765,6 +1866,7 @@ SABRE_DataStore SABRE_textureStore;
 SABRE_Texture *SABRE_textures = NULL;
 
 int SABRE_ValidateTextureIndex(int index);
+int SABRE_IsWindowTexture(int index);
 
 int SABRE_AutoAddTextures();
 int SABRE_AddTexture(const char textureName[256]);
@@ -1781,6 +1883,11 @@ int SABRE_ValidateTextureIndex(int index)
                       // is reserved for the "texture missing" texture
 
     return 0;
+}
+
+int SABRE_IsWindowTexture(int index)
+{
+    return SABRE_textures[index].isWindow;
 }
 
 // only works for non-animated textures
@@ -2074,7 +2181,7 @@ SABRE_Entity *movableFlowerPot = NULL;
 SABRE_Entity *hiddenFlowerPot = NULL;
 SABRE_Entity *inCorner = NULL;
 
-#define SABRE_ENTITY_COUNT 12
+#define SABRE_ENTITY_COUNT 22
 
 void SABRE_SetEntities()
 {
@@ -2094,6 +2201,16 @@ void SABRE_SetEntities()
         { 0.19f, { 7.5f, 3.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.2" },
         { 0.19f, { 8.0f, 3.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.3" },
         { 0.19f, { 8.5f, 3.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.4" },
+        { 0.19f, { 6.5f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.0" },
+        { 0.19f, { 7.0f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.1" },
+        { 0.19f, { 7.5f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.2" },
+        { 0.19f, { 8.0f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.3" },
+        { 0.19f, { 8.5f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.4" },
+        { 0.19f, { 6.75f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.5" },
+        { 0.19f, { 7.25f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.6" },
+        { 0.19f, { 7.75f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.7" },
+        { 0.19f, { 8.25f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.8" },
+        { 0.19f, { 8.75f, 5.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.9" },
         // { 0.15f, { 2.5f, 8.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 5), "tree.4" }
         { 0.15f, { 2.5f, 8.5f }, 0, SABRE_ANIMATOR_LITERAL(10, 1, 7), "dude.0" }
     };
@@ -2287,10 +2404,15 @@ SABRE_Vector2 SABRE_Raycast(SABRE_Vector2 rayStartPos, SABRE_Vector2 rayDirectio
 
     int rayMapY = (int)rayPosY;
     int rayMapX = (int)rayPosX;
+    int unwrappedRayMapY = rayMapY;
+    int unwrappedRayMapX = rayMapX;
     int stepX;
     int stepY;
+    int rayMapIndex = 0;
+    int newRayMapIndex = 0;
     int wallHit = 0;
     int hitSide = 0;
+    int wrapCount = 0;
 
     stepX = 1 - (rayDirX < 0) * 2;
     stepY = 1 - (rayDirY < 0) * 2;
@@ -2307,23 +2429,52 @@ SABRE_Vector2 SABRE_Raycast(SABRE_Vector2 rayStartPos, SABRE_Vector2 rayDirectio
         {
             distX += deltaX;
             rayMapX += stepX;
+            unwrappedRayMapX += stepX;
             hitSide = 0;
         }
         else
         {
             distY += deltaY;
             rayMapY += stepY;
+            unwrappedRayMapY += stepY;
             hitSide = 1;
         }
 
-        if (!wallHit)
-            wallHit = (SABRE_level.map[rayMapY * SABRE_level.width + rayMapX].texture > 0);
+        rayMapIndex = rayMapY * SABRE_level.width + rayMapX;
+
+        if (SABRE_graphicsSettings.levelEdgeMode == SABRE_EDGE_MODE_WRAP)
+        {
+            rayMapY = SABRE_WrapIntValue(rayMapY, SABRE_level.height);
+            rayMapX = SABRE_WrapIntValue(rayMapX, SABRE_level.width);
+            newRayMapIndex = rayMapY * SABRE_level.width + rayMapX;
+
+            // check if a wrap happened
+            if (newRayMapIndex != rayMapIndex)
+                wrapCount++;
+
+            rayMapIndex = newRayMapIndex;
+
+            // limit wrap count to avoid infinite loop
+            if (wrapCount > SABRE_graphicsSettings.levelEdgeWrapDepth)
+                break;
+        }
+        else
+        {
+            // check if raycast reached the level edge
+            if (rayMapY > SABRE_level.height - 2 || rayMapY < 1 ||
+                rayMapX > SABRE_level.width  - 2 || rayMapX < 1)
+            {
+                break;
+            }
+        }
+
+        wallHit = (SABRE_level.map[rayMapIndex].texture > 0);
     }
 
     if (hitSide)
-        return SABRE_CreateVector2(rayPosX + ((rayMapY - rayPosY + (1 - stepY) / 2.0f) / rayDirY) * rayDirX, rayMapY + (stepY < 0));
+        return SABRE_CreateVector2(rayPosX + ((unwrappedRayMapY - rayPosY + (1 - stepY) / 2.0f) / rayDirY) * rayDirX, unwrappedRayMapY + (stepY < 0));
 
-    return SABRE_CreateVector2(rayMapX + (stepX < 0), rayPosY + ((rayMapX - rayPosX + (1 - stepX) / 2.0f) / rayDirX) * rayDirY);
+    return SABRE_CreateVector2(unwrappedRayMapX + (stepX < 0), rayPosY + ((unwrappedRayMapX - rayPosX + (1 - stepX) / 2.0f) / rayDirX) * rayDirY);
 }
 
 SABRE_ProjectileHitData SABRE_CheckProjectileWallCollision(SABRE_Projectile *projectile)
@@ -2331,13 +2482,17 @@ SABRE_ProjectileHitData SABRE_CheckProjectileWallCollision(SABRE_Projectile *pro
     SABRE_Vector2 prevPos = SABRE_Vector3ToVector2WithoutZ(projectile->entity->pos);
     SABRE_Vector2 nextPos = SABRE_AddVector2(prevPos, SABRE_Vector3ToVector2WithoutZ(projectile->dir));
     SABRE_Vector2 wallHitPosition = SABRE_Raycast(prevPos, SABRE_Vector3ToVector2WithoutZ(projectile->dir));
+    SABRE_Vector2 wrappedWallHitPos;
     SABRE_ProjectileHitData hitData = { SABRE_INFINITY };
 
     float distToWall = distance(prevPos.x, prevPos.y, wallHitPosition.x, wallHitPosition.y);
     float distToNextPos = distance(prevPos.x, prevPos.y, nextPos.x, nextPos.y);
 
+    wrappedWallHitPos.x = SABRE_WrapFloatValue(wallHitPosition.x, SABRE_level.width);
+    wrappedWallHitPos.y = SABRE_WrapFloatValue(wallHitPosition.y, SABRE_level.height);
+
     if (distToWall < distToNextPos)
-        hitData = SABRE_CreateProjectileHit(SABRE_PROJECTILE_HIT_WALL, distToWall, projectile, SABRE_Vector2ToVector3(wallHitPosition, projectile->entity->pos.z), NULL);
+        hitData = SABRE_CreateProjectileHit(SABRE_PROJECTILE_HIT_WALL, distToWall, projectile, SABRE_Vector2ToVector3(wrappedWallHitPos, projectile->entity->pos.z), NULL);
 
     return hitData;
 }
@@ -2358,7 +2513,7 @@ SABRE_ProjectileHitData SABRE_CheckProjectileEntityCollision(SABRE_Projectile *p
     SABRE_Vector2 prevPos = SABRE_Vector3ToVector2WithoutZ(projectile->entity->pos);
     SABRE_Vector2 nextPos = SABRE_AddVector2(prevPos, SABRE_Vector3ToVector2WithoutZ(projectile->dir));
     SABRE_Vector2 prevToNext = SABRE_SubstractVector2(nextPos, prevPos);
-    SABRE_Vector2 prevToColl = prevToColl = SABRE_SubstractVector2(entityPos, prevPos);
+    SABRE_Vector2 prevToColl = SABRE_SubstractVector2(entityPos, prevPos);
 
     SABRE_ProjectileHitData hitData = { SABRE_INFINITY };
 
@@ -2452,6 +2607,8 @@ void SABRE_UpdateProjectiles()
             if (iterator->data.projectile.entity->pos.z - iterator->data.projectile.dropFactor <= 0)
             {
                 iterator->data.projectile.entity->pos.z = 0;
+                iterator->data.projectile.entity->pos.x = SABRE_WrapFloatValue(iterator->data.projectile.entity->pos.x, SABRE_level.width);
+                iterator->data.projectile.entity->pos.y = SABRE_WrapFloatValue(iterator->data.projectile.entity->pos.y, SABRE_level.height);
                 iterator->data.projectile.dir = SABRE_VECTOR3_ZERO;
                 SABRE_SendProjectileHitEvent(SABRE_CreateProjectileHit(SABRE_PROJECTILE_HIT_FLOOR, 0, &(iterator->data.projectile), iterator->data.projectile.entity->pos, NULL));
             }
@@ -2485,6 +2642,8 @@ typedef struct SABRE_RenderObjectStruct
     enum SABRE_RenderObjectTypeEnum objectType;
 
     float scale;
+    int width;
+    int height;
     float verticalOffset;
     int horizontalPosition;
     int horizontalScalingCompensation;
@@ -2567,13 +2726,19 @@ SABRE_RenderObject *SABRE_ConcatenateROList(SABRE_RenderObject *dest, SABRE_Rend
 
 void SABRE_InitializeFrame()
 {
-    int i, j;
+    int i, j, k;
+    size_t index = 0;
 
     for (j = 0; j < SABRE_level.height; j++)
     {
         for (i = 0; i < SABRE_level.width; i++)
         {
-            SABRE_level.map[j * SABRE_level.width + i].renderObject = NULL;
+            index = j * SABRE_level.width + i;
+
+            for (k = 0; k <= SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH; k++)
+            {
+                SABRE_level.map[index].renderObject[k] = NULL;
+            }
         }
     }
 
@@ -2708,7 +2873,7 @@ SABRE_RenderObject *SABRE_GetNextUnusedRO()
     }
 }
 
-SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizontalPosition, int compensation, SABRE_Slice slice)
+SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int width, int height, int horizontalPosition, int compensation, SABRE_Slice slice)
 {
     int err = 0;
     SABRE_RenderObject *new = SABRE_GetNextUnusedRO();
@@ -2721,6 +2886,8 @@ SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int horizon
     new->sortValue = sortValue;
     new->objectType = SABRE_TEXTURE_RO;
     new->scale = scale;
+    new->width = width;
+    new->height = height;
     new->verticalOffset = 0;
     new->horizontalPosition = horizontalPosition;
     new->horizontalScalingCompensation = compensation;
@@ -2746,6 +2913,8 @@ SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizont
     new->sortValue = sortValue;
     new->objectType = SABRE_SPRITE_RO;
     new->scale = scale;
+    new->width = 0;
+    new->height = 0;
     new->verticalOffset = verticalOffset;
     new->horizontalPosition = horizontalPosition;
     new->horizontalScalingCompensation = 0;
@@ -2794,7 +2963,8 @@ void SABRE_RenderObjects()
             SABRE_slice.anim = iterator->slice.anim;
             SABRE_slice.slice = iterator->slice.slice;
             SendActivationEvent(SABRE_TEXTURE_ACTOR);
-            draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition - SABRE_camera.vPos * iterator->scale, iterator->scale);
+            draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition - SABRE_camera.vPos * (iterator->height / SABRE_halfHeightUnit),
+                iterator->scale);
             textureDrawCalls++;
         }
         else if (iterator->objectType == SABRE_SPRITE_RO)
