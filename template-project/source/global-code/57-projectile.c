@@ -99,10 +99,15 @@ SABRE_Vector2 SABRE_Raycast(SABRE_Vector2 rayStartPos, SABRE_Vector2 rayDirectio
 
     int rayMapY = (int)rayPosY;
     int rayMapX = (int)rayPosX;
+    int unwrappedRayMapY = rayMapY;
+    int unwrappedRayMapX = rayMapX;
     int stepX;
     int stepY;
+    int rayMapIndex = 0;
+    int newRayMapIndex = 0;
     int wallHit = 0;
     int hitSide = 0;
+    int wrapCount = 0;
 
     stepX = 1 - (rayDirX < 0) * 2;
     stepY = 1 - (rayDirY < 0) * 2;
@@ -119,23 +124,52 @@ SABRE_Vector2 SABRE_Raycast(SABRE_Vector2 rayStartPos, SABRE_Vector2 rayDirectio
         {
             distX += deltaX;
             rayMapX += stepX;
+            unwrappedRayMapX += stepX;
             hitSide = 0;
         }
         else
         {
             distY += deltaY;
             rayMapY += stepY;
+            unwrappedRayMapY += stepY;
             hitSide = 1;
         }
 
-        if (!wallHit)
-            wallHit = (SABRE_level.map[rayMapY * SABRE_level.width + rayMapX].texture > 0);
+        rayMapIndex = rayMapY * SABRE_level.width + rayMapX;
+
+        if (SABRE_graphicsSettings.levelEdgeMode == SABRE_EDGE_MODE_WRAP)
+        {
+            rayMapY = SABRE_WrapIntValue(rayMapY, SABRE_level.height);
+            rayMapX = SABRE_WrapIntValue(rayMapX, SABRE_level.width);
+            newRayMapIndex = rayMapY * SABRE_level.width + rayMapX;
+
+            // check if a wrap happened
+            if (newRayMapIndex != rayMapIndex)
+                wrapCount++;
+
+            rayMapIndex = newRayMapIndex;
+
+            // limit wrap count to avoid infinite loop
+            if (wrapCount > SABRE_graphicsSettings.levelEdgeWrapDepth)
+                break;
+        }
+        else
+        {
+            // check if raycast reached the level edge
+            if (rayMapY > SABRE_level.height - 2 || rayMapY < 1 ||
+                rayMapX > SABRE_level.width  - 2 || rayMapX < 1)
+            {
+                break;
+            }
+        }
+
+        wallHit = (SABRE_level.map[rayMapIndex].texture > 0);
     }
 
     if (hitSide)
-        return SABRE_CreateVector2(rayPosX + ((rayMapY - rayPosY + (1 - stepY) / 2.0f) / rayDirY) * rayDirX, rayMapY + (stepY < 0));
+        return SABRE_CreateVector2(rayPosX + ((unwrappedRayMapY - rayPosY + (1 - stepY) / 2.0f) / rayDirY) * rayDirX, unwrappedRayMapY + (stepY < 0));
 
-    return SABRE_CreateVector2(rayMapX + (stepX < 0), rayPosY + ((rayMapX - rayPosX + (1 - stepX) / 2.0f) / rayDirX) * rayDirY);
+    return SABRE_CreateVector2(unwrappedRayMapX + (stepX < 0), rayPosY + ((unwrappedRayMapX - rayPosX + (1 - stepX) / 2.0f) / rayDirX) * rayDirY);
 }
 
 SABRE_ProjectileHitData SABRE_CheckProjectileWallCollision(SABRE_Projectile *projectile)
@@ -143,13 +177,17 @@ SABRE_ProjectileHitData SABRE_CheckProjectileWallCollision(SABRE_Projectile *pro
     SABRE_Vector2 prevPos = SABRE_Vector3ToVector2WithoutZ(projectile->entity->pos);
     SABRE_Vector2 nextPos = SABRE_AddVector2(prevPos, SABRE_Vector3ToVector2WithoutZ(projectile->dir));
     SABRE_Vector2 wallHitPosition = SABRE_Raycast(prevPos, SABRE_Vector3ToVector2WithoutZ(projectile->dir));
+    SABRE_Vector2 wrappedWallHitPos;
     SABRE_ProjectileHitData hitData = { SABRE_INFINITY };
 
     float distToWall = distance(prevPos.x, prevPos.y, wallHitPosition.x, wallHitPosition.y);
     float distToNextPos = distance(prevPos.x, prevPos.y, nextPos.x, nextPos.y);
 
+    wrappedWallHitPos.x = SABRE_WrapFloatValue(wallHitPosition.x, SABRE_level.width);
+    wrappedWallHitPos.y = SABRE_WrapFloatValue(wallHitPosition.y, SABRE_level.height);
+
     if (distToWall < distToNextPos)
-        hitData = SABRE_CreateProjectileHit(SABRE_PROJECTILE_HIT_WALL, distToWall, projectile, SABRE_Vector2ToVector3(wallHitPosition, projectile->entity->pos.z), NULL);
+        hitData = SABRE_CreateProjectileHit(SABRE_PROJECTILE_HIT_WALL, distToWall, projectile, SABRE_Vector2ToVector3(wrappedWallHitPos, projectile->entity->pos.z), NULL);
 
     return hitData;
 }
@@ -170,7 +208,7 @@ SABRE_ProjectileHitData SABRE_CheckProjectileEntityCollision(SABRE_Projectile *p
     SABRE_Vector2 prevPos = SABRE_Vector3ToVector2WithoutZ(projectile->entity->pos);
     SABRE_Vector2 nextPos = SABRE_AddVector2(prevPos, SABRE_Vector3ToVector2WithoutZ(projectile->dir));
     SABRE_Vector2 prevToNext = SABRE_SubstractVector2(nextPos, prevPos);
-    SABRE_Vector2 prevToColl = prevToColl = SABRE_SubstractVector2(entityPos, prevPos);
+    SABRE_Vector2 prevToColl = SABRE_SubstractVector2(entityPos, prevPos);
 
     SABRE_ProjectileHitData hitData = { SABRE_INFINITY };
 
@@ -264,6 +302,8 @@ void SABRE_UpdateProjectiles()
             if (iterator->data.projectile.entity->pos.z - iterator->data.projectile.dropFactor <= 0)
             {
                 iterator->data.projectile.entity->pos.z = 0;
+                iterator->data.projectile.entity->pos.x = SABRE_WrapFloatValue(iterator->data.projectile.entity->pos.x, SABRE_level.width);
+                iterator->data.projectile.entity->pos.y = SABRE_WrapFloatValue(iterator->data.projectile.entity->pos.y, SABRE_level.height);
                 iterator->data.projectile.dir = SABRE_VECTOR3_ZERO;
                 SABRE_SendProjectileHitEvent(SABRE_CreateProjectileHit(SABRE_PROJECTILE_HIT_FLOOR, 0, &(iterator->data.projectile), iterator->data.projectile.entity->pos, NULL));
             }

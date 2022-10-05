@@ -3,6 +3,25 @@ float SABRE_LimitValue01(float val)
     return max(0, min(1, val));
 }
 
+int SABRE_LimitIntValue(int val, int minVal, int maxVal)
+{
+    return max(min(minVal, maxVal), min(val, max(minVal, maxVal)));
+}
+
+int SABRE_WrapIntValue(int val, int limit)
+{
+    int mod = val % limit;
+    return (mod < 0) ? mod + limit : mod;
+}
+
+float SABRE_WrapFloatValue(float val, int limit)
+{
+    int mod = (int)val % limit;
+    float decimals = val - (int)val;
+
+    return (mod + decimals < 0) ? mod + decimals + limit : mod + decimals;
+}
+
 Actor *SABRE_gc2(char *actorName, long cloneNum)
 {
     char cName[256];
