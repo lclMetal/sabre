@@ -3430,13 +3430,16 @@ void destroyPanel(Panel *panel)
 // TODO: make functions return error codes instead of just exiting
 // without doing anything, which can be difficult to debug
 
+#define GEUI_XY_SCREEN_CENTER -1, -1
+#define GEUI_XY_MOUSE_POSITION xmouse, ymouse
+
 Window *createWindow(char tag[256], Style style);
 Window *getWindowByTag(char tag[256]);
 Window *getWindowByIndex(int index);
 Window *getFirstOpenWindow();
-Window *openWindow(char tag[256]);
-void buildWindow(Window *window);
-Actor *createWindowBaseParent(Window *window);
+Window *openWindow(char tag[256], float startX, float startY);
+void buildWindow(Window *window, float startX, float startY);
+Actor *createWindowBaseParent(Window *window, float startX, float startY);
 void setWindowBaseParent(Window *window, char *parentName);
 void bringWindowToFront(Window *window);
 void closeWindow(Window *window);
@@ -3528,7 +3531,7 @@ Window *getFirstOpenWindow()
     return NULL;
 }
 
-Window *openWindow(char tag[256])
+Window *openWindow(char tag[256], float startX, float startY)
 {
     Window *window = getWindowByTag(tag);
 
@@ -3536,7 +3539,7 @@ Window *openWindow(char tag[256])
     if (window->isOpen) { DEBUG_MSG_FROM("window is already open", "openWindow"); return window; }
 
     updatePanelLayout(NULL, &window->mainPanel);
-    buildWindow(window);
+    buildWindow(window, startX, startY);
     buildItems(&window->mainPanel);
 
     window->isOpen = True;
@@ -3550,7 +3553,7 @@ Window *openWindow(char tag[256])
     return window;
 }
 
-void buildWindow(Window *window)
+void buildWindow(Window *window, float startX, float startY)
 {
     short i, j;
     Actor *tile;
@@ -3559,7 +3562,7 @@ void buildWindow(Window *window)
     short windowWidth, windowHeight;
     short tilesHorizontal, tilesVertical;
 
-    setWindowBaseParent(window, createWindowBaseParent(window)->clonename);
+    setWindowBaseParent(window, createWindowBaseParent(window, startX, startY)->clonename);
 
     tileWidth = window->style.tileWidth;
     tileHeight = window->style.tileHeight;
@@ -3595,11 +3598,20 @@ void buildWindow(Window *window)
     }
 }
 
-Actor *createWindowBaseParent(Window *window)
+Actor *createWindowBaseParent(Window *window, float startX, float startY)
 {
     Actor *baseParent;
+    float posX = startX;
+    float posY = startY;
 
-    baseParent = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", 0, 0, true);
+    // Magic values to indicate that the window should be centered
+    if (startX == -1 && startY == -1)
+    {
+        posX = view.width * 0.5f - window->mainPanel.width * 0.5f;
+        posY = view.height * 0.5f - window->mainPanel.height * 0.5f;
+    }
+
+    baseParent = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", view.x + posX, view.y + posY, true);
     baseParent->animpos = 0;
     baseParent->myWindow = window->index;
     baseParent->myPanel = -1;
