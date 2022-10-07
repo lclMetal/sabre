@@ -1620,6 +1620,9 @@ Font defTextFont =
 
 
 // ..\source\geui\05-geui-style.c
+#define GEUI_BUTTON_STRETCH 1
+#define GEUI_BUTTON_TEXT_ALIGN_LEFT 2
+
 typedef struct StyleStruct
 {
     char guiAnim[100];
@@ -1633,6 +1636,8 @@ typedef struct StyleStruct
 
     short padding;
     short focusWidth;
+    short buttonProperties;
+    float buttonPadding;
 
     Color titleBgColor;
     Color windowBgColor;
@@ -1652,12 +1657,6 @@ typedef struct StyleStruct
 Style defStyle;
 Style *setDimensions;
 
-Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
-                  short padding, short focusWidth, Color titleBgColor, Color windowBgColor,
-                  Color inputBgColor, Color titleColor, Color labelColor, Color textColor,
-                  Color buttonColor, Color buttonHilitColor, Color buttonPressedColor,
-                  Color focusColor);
-
 void getTileDimensions(Style *style)
 {
     Actor*a=CreateActor("a_gui", style->guiAnim, "(none)", "(none)", 0, 0, true);
@@ -1674,7 +1673,7 @@ void setTileDimensions()
 }
 
 Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
-                  short padding, short focusWidth, Color titleBgColor, Color windowBgColor,
+                  short padding, short focusWidth, short buttonProperties, float buttonPadding, Color titleBgColor, Color windowBgColor,
                   Color inputBgColor, Color titleColor, Color labelColor, Color textColor,
                   Color buttonColor, Color buttonHilitColor, Color buttonPressedColor,
                   Color focusColor)
@@ -1687,6 +1686,8 @@ Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Fon
     new.textFont = textFont;
     new.padding = padding;
     new.focusWidth = focusWidth;
+    new.buttonProperties = buttonProperties;
+    new.buttonPadding = buttonPadding;
     new.titleBgColor = titleBgColor;
     new.windowBgColor = windowBgColor;
     new.inputBgColor = inputBgColor;
@@ -2401,6 +2402,7 @@ WindowItem *addText(Window *window, Panel *panel, char tag[256], char *string, s
 
 WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string, void (*actionFunction)(Window *, WindowItem *))
 {
+    short buttonMinWidth;
     WindowItem *ptr = initNewItem(GEUI_Button, window, panel, tag);
     if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addButton"); return NULL; }
 
@@ -2412,7 +2414,10 @@ WindowItem *addButton(Window *window, Panel *panel, char tag[256], char *string,
     ptr->data.button.tiles = noIndices;
     ptr->data.button.actionFunction = actionFunction;
 
-    ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.tileWidth * 2;
+    ptr->layout.width = ptr->data.button.text.width + ptr->parent->style.tileWidth * ptr->parent->style.buttonPadding * 2;
+    buttonMinWidth = ptr->parent->style.tileWidth * 2;
+    if (ptr->layout.width < buttonMinWidth)
+        ptr->layout.width = buttonMinWidth;
     ptr->layout.height = ptr->parent->style.tileHeight;
 
     return addItemToWindow(ptr);
@@ -2900,14 +2905,25 @@ void buildButtonText(WindowItem *ptr)
 {
     long start = ptr->data.button.tiles.first;
     long end = ptr->data.button.tiles.last;
+    short tileWidth = ptr->parent->style.tileWidth;
 
     Text *buttonText = &ptr->data.button.text;
 
     colorClones("a_gui", start, end, ptr->parent->style.buttonColor);
     setTextZDepth(buttonText, DEFAULT_ITEM_ZDEPTH);
-    setTextAlignment(buttonText, ALIGN_CENTER);
-    setTextPosition(buttonText,
-        ceil((getTile(end)->x - getTile(start)->x) * 0.5) + getTile(start)->x, getTile(start)->y);
+
+    if (ptr->parent->style.buttonProperties & GEUI_BUTTON_TEXT_ALIGN_LEFT)
+    {
+        setTextAlignment(buttonText, ALIGN_LEFT);
+        setTextPosition(buttonText, getTile(start)->x - tileWidth / 2 + tileWidth * ptr->parent->style.buttonPadding, getTile(start)->y);
+    }
+    else
+    {
+        setTextAlignment(buttonText, ALIGN_CENTER);
+        setTextPosition(buttonText,
+            ceil((getTile(end)->x - getTile(start)->x) * 0.5) + getTile(start)->x, getTile(start)->y);
+    }
+
     refreshText(buttonText);
 }
 
@@ -2924,7 +2940,7 @@ void buildButton(WindowItem *ptr)
 
     if (ptr->type != GEUI_Button) { DEBUG_MSG_FROM("item is not a valid Button item", "buildButton"); return; }
 
-    buttonWidth = ptr->layout.width; //ptr->data.button.text.width + ptr->parent->style.padding * 2;
+    buttonWidth = ptr->layout.width;
     tilesHorizontal = ceil(buttonWidth / (float)tileWidth);
 
     for (i = 0; i < tilesHorizontal; i ++)
@@ -3203,6 +3219,13 @@ short getColWidth(Panel *panel, short col)
             width = item->layout.width;
     }
 
+    for (item = panel->iList; item != NULL; item = item->next)
+    {
+        if (item->type == GEUI_Button && panel->parent->style.buttonProperties & GEUI_BUTTON_STRETCH && item->layout.col == col)
+        {
+            item->layout.width = width;
+        }
+    }
     return width + panel->parent->style.padding * (col < panel->cols - 1);
 }
 
@@ -4193,6 +4216,8 @@ void initGEUI(KeyboardLayout kbLayout)
     defStyle.textFont           = &defTextFont;
     defStyle.padding            = 5;
     defStyle.focusWidth         = 2;
+    defStyle.buttonProperties   = 0;
+    defStyle.buttonPadding      = 1.0f;
     defStyle.titleBgColor       = DEFAULT_COLOR;
     defStyle.windowBgColor      = DEFAULT_COLOR;
     defStyle.inputBgColor       = DEFAULT_COLOR;
