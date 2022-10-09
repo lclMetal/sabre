@@ -1944,6 +1944,7 @@ typedef struct WindowStruct
     int pIndex;         // next available panel index
     char tag[256];      // window identifier tag
     bool isOpen;        // is window currently open or not
+    long fakeIndex;     // fake tile index
     Style style;        // window style
     double zDepth;      // window z depth
     char parentCName[256]; // clonename of the window parent actor
@@ -3484,6 +3485,7 @@ Window *createWindow(char tag[256], Style style)
     ptr->pIndex = 0;
     strcpy(ptr->tag, tag);
     ptr->isOpen = False;
+    ptr->fakeIndex = -1;
     ptr->style = style;
     ptr->zDepth = DEFAULT_WINDOW_ZDEPTH;
     strcpy(ptr->parentCName, "");
@@ -3705,6 +3707,9 @@ void closeWindow(Window *window)
 
     DestroyActor(window->parentCName);
     strcpy(window->parentCName, "(none)");
+
+    DestroyActor(getTile(window->fakeIndex)->clonename);
+    window->fakeIndex = -1;
 
     eraseGuiTiles(&window->tiles);
 
@@ -3929,6 +3934,8 @@ void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumbe
 
         actor->myProperties |= GEUI_CLICKED;
         FollowMouse(actor->clonename, BOTH_AXIS);
+
+        window->fakeIndex = fake->cloneindex;
     }
 
     bringWindowToFront(window);
@@ -3996,6 +4003,7 @@ void doMouseButtonUp(const char *actorName, enum mouseButtonsEnum mButtonNumber)
 
         // destroy the fake actor
         DestroyActor(getTile(actor->myFakeIndex)->clonename);
+        window->fakeIndex = -1;
     }
 
     //ChangeZDepth(window->parentCName, 0.5);
