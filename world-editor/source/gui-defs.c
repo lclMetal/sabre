@@ -1,10 +1,11 @@
 #define SWE_WINDOW_WORLD_CONTEXT_MENU "worldContextMenu"
 #define SWE_WINDOW_NEW_PROJECT_ALERT "newProjectAlert"
+#define SWE_WINDOW_PLACE_ENTITY "placeEntityWindow"
 
 void SWE_CreateWindows()
 {
-    Window  *win;
-    Panel   *pan;
+    Window  *window;
+    Panel   *panel;
 
     Style contextMenuStyle =
         createStyle("gui_sheet_small",
@@ -20,21 +21,25 @@ void SWE_CreateWindows()
             createRGB(210, 255, 255, 1.0), createRGB(150, 255, 255, 1.0), createRGB(128, 128, 128, 1.0));
 
     // Define world context menu
-    win = createWindow("worldContextMenu", contextMenuStyle);
-    getTileDimensions(&win->style);
-    pan = &win->mainPanel;
-    setPosition(addButton(win, pan, "addEntityBtn", "Add entity", NULL), 0, 0);
-    setPosition(addButton(win, pan, "addTriggerBtn", "Add trigger     ", NULL), 1, 0);
-    setPosition(addButton(win, pan, "closeBtn", "Close", close), 2, 0);
+    window = createWindow(SWE_WINDOW_WORLD_CONTEXT_MENU, contextMenuStyle);
+    getTileDimensions(&window->style);
+    panel = getWindowRootPanel(window);
+    setPosition(addButton(panel, "placeEntityBtn", "Place entity", createAction(NULL)), 0, 0);
+    setPosition(addButton(panel, "placeTriggerBtn", "Place trigger     ", createAction(NULL)), 1, 0);
+    setPosition(addButton(panel, "closeBtn", "Close", createCloseWindowAction(window->tag)), 2, 0);
 
-    // Define new project alert win
-    win = createWindow("newProjectAlert", sweStyle);
-    pan = &win->mainPanel;
-    setPosition(addText(win, pan, "title", "Create new project?", 0), 0, 0);
-    setPosition(addText(win, pan, "alertText",
+    // Define new project alert window
+    window = createWindow(SWE_WINDOW_NEW_PROJECT_ALERT, sweStyle);
+    panel = getWindowRootPanel(window);
+    setPosition(addText(panel, "title", "Create new project?", 0), 0, 0);
+    setPosition(addText(panel, "alertText",
         "Creating a new project will discard the current one. Continue?", 300), 1, 0);
-    setPosition(addPanel(win, pan, "buttonsPanel"), 2, 0);
-    pan = getItemByTag(win, "buttonsPanel")->data.panel;
-    setPosition(addButton(win, pan, "okBtn", "Ok", close), 0, 0);
-    setPosition(addButton(win, pan, "cancelBtn", "Cancel", close), 0, 1);
+    panel = getPanel(setPosition(addPanel(panel, "buttonsPanel"), 2, 0));
+    setPosition(addButton(panel, "okBtn", "Ok", createCloseWindowAction(window->tag)), 0, 0);
+    setPosition(addButton(panel, "cancelBtn", "Cancel", createCloseWindowAction(window->tag)), 0, 1);
+
+    // Define place entity windowdow
+    window = createWindow(SWE_WINDOW_PLACE_ENTITY, sweStyle);
+    panel = getWindowRootPanel(window);
+    setPosition(addText(panel, "title", "Place entity", 0), 0, 0);
 }
