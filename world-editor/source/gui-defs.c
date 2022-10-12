@@ -1,6 +1,7 @@
-#define SWE_WINDOW_WORLD_CONTEXT_MENU "worldContextMenu"
-#define SWE_WINDOW_NEW_PROJECT_ALERT "newProjectAlert"
-#define SWE_WINDOW_PLACE_ENTITY "placeEntityWindow"
+#define SWE_WINDOW_WORLD_CONTEXT_MENU   "worldContextMenu"
+#define SWE_WINDOW_NEW_PROJECT_ALERT    "newProjectAlert"
+#define SWE_WINDOW_PLACE_ENTITY         "placeEntityWindow"
+#define SWE_WINDOW_PLACE_TRIGGER        "placeTriggerWindow"
 
 void SWE_CreateWindows()
 {
@@ -24,22 +25,29 @@ void SWE_CreateWindows()
     window = createWindow(SWE_WINDOW_WORLD_CONTEXT_MENU, contextMenuStyle);
     getTileDimensions(&window->style);
     panel = getWindowRootPanel(window);
-    setPosition(addButton(panel, "placeEntityBtn", "Place entity", createAction(NULL)), 0, 0);
-    setPosition(addButton(panel, "placeTriggerBtn", "Place trigger     ", createAction(NULL)), 1, 0);
-    setPosition(addButton(panel, "closeBtn", "Close", createCloseWindowAction(window->tag)), 2, 0);
+    setPosition(addButton(panel, "placeEntityBtn", "Place entity", createOpenWindowAction(SWE_WINDOW_PLACE_ENTITY, GEUI_WPOS_MOUSE_TOP)), 0, 0);
+    setPosition(addButton(panel, "placeTriggerBtn", "Place trigger     ", createOpenWindowAction(SWE_WINDOW_PLACE_TRIGGER, GEUI_WPOS_MOUSE_TOP)), 1, 0);
+    // setPosition(addButton(panel, "closeBtn", "Close", createCloseWindowAction(window->tag)), 2, 0);
 
-    // Define new project alert window
+    // Define "new project" alert window
     window = createWindow(SWE_WINDOW_NEW_PROJECT_ALERT, sweStyle);
     panel = getWindowRootPanel(window);
-    setPosition(addText(panel, "title", "Create new project?", 0), 0, 0);
+    setPosition(addText(panel, "title", "\nCreate new project?", 0), 0, 0);
     setPosition(addText(panel, "alertText",
         "Creating a new project will discard the current one. Continue?", 300), 1, 0);
     panel = getPanel(setPosition(addPanel(panel, "buttonsPanel"), 2, 0));
     setPosition(addButton(panel, "okBtn", "Ok", createCloseWindowAction(window->tag)), 0, 0);
     setPosition(addButton(panel, "cancelBtn", "Cancel", createCloseWindowAction(window->tag)), 0, 1);
 
-    // Define place entity windowdow
+    // Define "place entity" window
     window = createWindow(SWE_WINDOW_PLACE_ENTITY, sweStyle);
     panel = getWindowRootPanel(window);
-    setPosition(addText(panel, "title", "Place entity", 0), 0, 0);
+    setPosition(addText(panel, "title", "\nPlace entity", 0), 0, 0);
+    setPosition(addButton(panel, "okBtn", "Ok", createCloseWindowAction(window->tag)), 1, 0);
+
+    // Define "place trigger" window
+    window = createWindow(SWE_WINDOW_PLACE_TRIGGER, sweStyle);
+    panel = getWindowRootPanel(window);
+    setPosition(addText(panel, "title", "\nPlace trigger", 0), 0, 0);
+    setPosition(addButton(panel, "okBtn", "Ok", createCloseWindowAction(window->tag)), 1, 0);
 }

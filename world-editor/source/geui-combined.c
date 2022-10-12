@@ -1907,16 +1907,18 @@ typedef enum ActionTypeEnum
     GEUI_ACTION_CLOSE_WINDOW
 }ActionType;
 
-typedef enum WindowPositionSettingEnum
+typedef enum WPosSettingEnum
 {
-    GEUI_WindowPosCoords,
-    GEUI_WindowPosMouse,
-    GEUI_WindowPosScreenCenter
-}WindowPositionSetting;
+    GEUI_WPosCoords,
+    GEUI_WPosMouseCenter,
+    GEUI_WPosMouseTopLeft,
+    GEUI_WPosMouseTop,
+    GEUI_WPosScreenCenter
+}WPosSetting;
 
 typedef struct WindowPositionStruct
 {
-    WindowPositionSetting type;
+    WPosSetting type;
     ScreenCoords pos;
 }WindowPosition;
 
@@ -2057,6 +2059,10 @@ struct GEUIControllerStruct
 
 
 // ..\source\geui\12-geui-screen-coords.c
+#define GEUI_MOUSE_AT_CENTER        0
+#define GEUI_MOUSE_AT_TOP_LEFT      1
+#define GEUI_MOUSE_AT_TOP_CENTER    2
+
 ScreenCoords createScreenCoords(float x, float y)
 {
     ScreenCoords coords;
@@ -2065,12 +2071,36 @@ ScreenCoords createScreenCoords(float x, float y)
     return coords;
 }
 
-ScreenCoords getWPosAtMouse(struct WindowStruct *window)
+ScreenCoords getWPosAtMouse(struct WindowStruct *window, unsigned char mode)
 {
-    if (!window)
-        return createScreenCoords(view.width * 0.5f, view.width * 0.5f);
+    ScreenCoords result;
+    ScreenCoords mouseAtCenterCoords;
+    ScreenCoords mouseCoords = createScreenCoords(xmouse, ymouse);
 
-    return createScreenCoords(xmouse - window->root.width * 0.5f, ymouse);
+    if (!window)
+        return mouseCoords;
+
+    mouseAtCenterCoords = createScreenCoords(xmouse - window->root.width * 0.5f,
+                                             ymouse - window->root.height * 0.5f);
+
+    switch (mode)
+    {
+        case GEUI_MOUSE_AT_CENTER:
+            result = mouseAtCenterCoords;
+            break;
+        case GEUI_MOUSE_AT_TOP_LEFT:
+            result = mouseCoords;
+            break;
+        case GEUI_MOUSE_AT_TOP_CENTER:
+            result = createScreenCoords(mouseAtCenterCoords.x, mouseCoords.y);
+            break;
+        default:
+            result = mouseCoords;
+            DEBUG_MSG_FROM("invalid value given for parameter 'mode'", "getWPosAtMouse");
+            break;
+    }
+
+    return result;
 }
 
 ScreenCoords getWPosAtScreenCenter(struct WindowStruct *window)
@@ -3596,9 +3626,6 @@ void destroyPanel(Panel *panel)
 // TODO: make functions return error codes instead of just exiting
 // without doing anything, which can be difficult to debug
 
-#define GEUI_XY_SCREEN_CENTER -1, -1
-#define GEUI_XY_MOUSE_POSITION xmouse, ymouse
-
 Window *createWindow(char tag[256], Style style);
 Window *getWindowByTag(char tag[256]);
 Window *getWindowByIndex(int index);
@@ -3710,30 +3737,40 @@ Window *getFirstOpenWindow()
 
 WindowPosition createWPos(float x, float y)
 {
-    WindowPosition posi;
-    posi.type = GEUI_WindowPosCoords;
-    posi.pos = createScreenCoords(x, y);
-    return posi;
+    WindowPosition pos;
+    pos.type = GEUI_WPosCoords;
+    pos.pos = createScreenCoords(x, y);
+    return pos;
 }
 
-#define GEUI_WPOS_MOUSE createWPosAtMouse()
+#define GEUI_WPOS_MOUSE_CENTER      createWPosAtMouse(GEUI_MOUSE_AT_CENTER)
+#define GEUI_WPOS_MOUSE_TOP_LEFT    createWPosAtMouse(GEUI_MOUSE_AT_TOP_LEFT)
+#define GEUI_WPOS_MOUSE_TOP         createWPosAtMouse(GEUI_MOUSE_AT_TOP_CENTER)
 
-WindowPosition createWPosAtMouse()
+WindowPosition createWPosAtMouse(unsigned char mode)
 {
-    WindowPosition posi;
-    posi.type = GEUI_WindowPosMouse;
-    posi.pos = createScreenCoords(0, 0);
-    return posi;
+    WindowPosition pos;
+
+    switch (mode)
+    {
+        case GEUI_MOUSE_AT_CENTER:      pos.type = GEUI_WPosMouseCenter;    break;
+        case GEUI_MOUSE_AT_TOP_LEFT:    pos.type = GEUI_WPosMouseTopLeft;   break;
+        case GEUI_MOUSE_AT_TOP_CENTER:  pos.type = GEUI_WPosMouseTop;       break;
+        default:                        pos.type = GEUI_WPosMouseTopLeft;   break;
+    }
+
+    pos.pos = createScreenCoords(0, 0);
+    return pos;
 }
 
 #define GEUI_WPOS_SCREEN_CENTER createWPosAtScreenCenter()
 
 WindowPosition createWPosAtScreenCenter()
 {
-    WindowPosition posi;
-    posi.type = GEUI_WindowPosScreenCenter;
-    posi.pos = createScreenCoords(0, 0);
-    return posi;
+    WindowPosition pos;
+    pos.type = GEUI_WPosScreenCenter;
+    pos.pos = createScreenCoords(0, 0);
+    return pos;
 }
 
 Window *openWindow(char tag[256], WindowPosition pos)
@@ -3810,9 +3847,11 @@ Actor *createWindowBaseParent(Window *window, WindowPosition pos)
 
     switch (pos.type)
     {
-        case GEUI_WindowPosCoords:       realPos = pos.pos;                         break;
-        case GEUI_WindowPosMouse:        realPos = getWPosAtMouse(window);          break;
-        case GEUI_WindowPosScreenCenter: realPos = getWPosAtScreenCenter(window);   break;
+        case GEUI_WPosCoords:       realPos = pos.pos;                                          break;
+        case GEUI_WPosMouseCenter:  realPos = getWPosAtMouse(window, GEUI_MOUSE_AT_CENTER);     break;
+        case GEUI_WPosMouseTopLeft: realPos = getWPosAtMouse(window, GEUI_MOUSE_AT_TOP_LEFT);   break;
+        case GEUI_WPosMouseTop:     realPos = getWPosAtMouse(window, GEUI_MOUSE_AT_TOP_CENTER); break;
+        case GEUI_WPosScreenCenter: realPos = getWPosAtScreenCenter(window);                    break;
     }
 
     baseParent = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", view.x + realPos.x, view.y + realPos.y, true);
