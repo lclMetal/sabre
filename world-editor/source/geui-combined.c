@@ -1837,7 +1837,7 @@ typedef enum InputTypeEnum
 {
     GEUI_TextInput,
     GEUI_IntInput,
-    GEUI_RealInput
+    GEUI_DecimalInput
 }InputType;
 
 typedef struct TextInputSettingsStruct
@@ -1852,34 +1852,34 @@ typedef struct IntInputSettingsStruct
     int defaultValue;
 }IntInputSettings;
 
-typedef struct RealInputSettingsStruct
+typedef struct DecimalInputSettingsStruct
 {
     float minVal;
     float maxVal;
     float defaultValue;
     short precisionDigits;
-}RealInputSettings;
+}DecimalInputSettings;
 
 typedef union InputSettingsDataUnion
 {
     TextInputSettings textInput;
     IntInputSettings intInput;
-    RealInputSettings realInput;
+    DecimalInputSettings decimalInput;
 }InputSettingsData;
 
 typedef union InputValueUnion
 {
     char *textValue;
     int intValue;
-    float realValue;
+    float decimalValue;
 }InputValue;
 
 typedef struct InputSettingsStruct
 {
     InputType type;
     InputSettingsData data;
-    void (*settingsFunction)(struct InputFieldStruct *);
-    void (*valueFunction)(struct InputFieldStruct *);
+    void (*applyConstraintsFunc)(struct InputFieldStruct *);
+    void (*readValueFunc)(struct InputFieldStruct *);
 }InputSettings;
 
 typedef enum KeyboardLayoutEnum
@@ -2059,10 +2059,6 @@ struct GEUIControllerStruct
 
 
 // ..\source\geui\12-geui-screen-coords.c
-#define GEUI_MOUSE_AT_CENTER        0
-#define GEUI_MOUSE_AT_TOP_LEFT      1
-#define GEUI_MOUSE_AT_TOP_CENTER    2
-
 ScreenCoords createScreenCoords(float x, float y)
 {
     ScreenCoords coords;
@@ -2071,7 +2067,7 @@ ScreenCoords createScreenCoords(float x, float y)
     return coords;
 }
 
-ScreenCoords getWPosAtMouse(struct WindowStruct *window, unsigned char mode)
+ScreenCoords getWPosAtMouse(struct WindowStruct *window, WPosSetting mode)
 {
     ScreenCoords result;
     ScreenCoords mouseAtCenterCoords;
@@ -2085,13 +2081,9 @@ ScreenCoords getWPosAtMouse(struct WindowStruct *window, unsigned char mode)
 
     switch (mode)
     {
-        case GEUI_MOUSE_AT_CENTER:
-            result = mouseAtCenterCoords;
-            break;
-        case GEUI_MOUSE_AT_TOP_LEFT:
-            result = mouseCoords;
-            break;
-        case GEUI_MOUSE_AT_TOP_CENTER:
+        case GEUI_WPosMouseCenter:  result = mouseAtCenterCoords;   break;
+        case GEUI_WPosMouseTopLeft: result = mouseCoords;           break;
+        case GEUI_WPosMouseTop:
             result = createScreenCoords(mouseAtCenterCoords.x, mouseCoords.y);
             break;
         default:
@@ -2242,7 +2234,7 @@ int greedyAtoi(const char *str)
     return val;
 }
 
-float greedyAtof(const char *str, int *readCount)
+float greedyAtof(const char *str)
 {
     int count = 0;
     float val = 0;
@@ -2254,9 +2246,6 @@ float greedyAtof(const char *str, int *readCount)
         count = sscanf(&str[offset], "%f%*s", &val, NULL);
         offset++;
     } while (!val && offset < len);
-
-    if (readCount)
-        *readCount = count;
 
     return val;
 }
@@ -2293,7 +2282,7 @@ char getLocalizedKeyboardChar(int key, KeyboardLayout kbLayout)
     return '\0';
 }
 
-void refreshValue(InputField *field)
+void refreshValueText(InputField *field)
 {
     char tempNumText[GEUI_NUM_STRING_LENGTH];
 
@@ -2304,9 +2293,9 @@ void refreshValue(InputField *field)
             sprintf(tempNumText, "%d", field->value.intValue);
             setTextText(&field->text, tempNumText);
         break;
-        case GEUI_RealInput:
-            sprintf(tempNumText, "%.*f", field->settings.data.realInput.precisionDigits, field->value.realValue);
-            field->value.realValue = greedyAtof(tempNumText, NULL);
+        case GEUI_DecimalInput:
+            sprintf(tempNumText, "%.*f", field->settings.data.decimalInput.precisionDigits, field->value.decimalValue);
+            field->value.decimalValue = greedyAtof(tempNumText);
             setTextText(&field->text, tempNumText);
         break;
     }
@@ -2314,7 +2303,7 @@ void refreshValue(InputField *field)
 
 void refreshInputValue(InputField *field)
 {
-    refreshValue(field);
+    refreshValueText(field);
     refreshText(&field->text);
     updateCaretPosition(&field->caret);
 }
@@ -2326,19 +2315,21 @@ void handleInputFieldInput(InputField *field, short key)
     char newChar = '\0';
     char rest[30] = "";
     char *keys = GetKeyState();
-    short shift = (keys[KEY_LSHIFT] || keys[KEY_RSHIFT]);
+    short isTextInput = (field->settings.type == GEUI_TextInput);
+    short shift = (keys[KEY_LSHIFT] || keys[KEY_RSHIFT]) && isTextInput;
     short ctrl  = (keys[KEY_LCTRL] || keys[KEY_RCTRL]);
     short alt   = (keys[KEY_LALT] || keys[KEY_RALT]);
 
     if (key == KEY_RETURN)
     {
-        field->settings.settingsFunction(field);
-        field->settings.valueFunction(field);
+        field->settings.readValueFunc(field);
+        field->settings.applyConstraintsFunc(field);
+        refreshInputValue(field);
     }
 
     if (!checkKeyValidity(key, field->settings.type))
     {
-        DEBUG_MSG("key not valid");
+        DEBUG_MSG_FROM("key not valid", "handleInputFieldInput");
         return;
     }
 
@@ -2367,7 +2358,7 @@ void handleInputFieldInput(InputField *field, short key)
             case KEY_PAD_MULTIPLY:  newChar = '*'; break;
             case KEY_PAD_MINUS:     newChar = '-'; break;
             case KEY_PAD_PLUS:      newChar = '+'; break;
-            case KEY_TAB:           newChar = '\t'; break;
+            // case KEY_TAB:           newChar = '\t'; break;
             case KEY_RETURN:        newChar = '\n'; break;
             case KEY_EQUALS:
             case KEY_SLASH:
@@ -2388,10 +2379,82 @@ void handleInputFieldInput(InputField *field, short key)
     switch (field->settings.type)
     {
         case GEUI_IntInput:
-        case GEUI_RealInput:
-            field->settings.valueFunction(field);
+        case GEUI_DecimalInput:
+            field->settings.readValueFunc(field);
         break;
     }
+}
+
+char *getTextInputValue(InputField *field)
+{
+    if (field->settings.type != GEUI_TextInput)
+    {
+        DEBUG_MSG_FROM("field is not a text input", "getTextInputValue");
+        return NULL;
+    }
+
+    return field->value.textValue;
+}
+
+char *readTextInput(WindowItem *item)
+{
+    if (item->type != GEUI_Input)
+    {
+        DEBUG_MSG_FROM("item is not an input field", "readTextInput");
+        return NULL;
+    }
+
+    return getTextInputValue(&item->data.input);
+}
+
+int getIntInputValue(InputField *field)
+{
+    if (field->settings.type != GEUI_IntInput)
+    {
+        DEBUG_MSG_FROM("field is not an int input", "getIntInputValue");
+        return 0;
+    }
+
+    field->settings.readValueFunc(field);
+    field->settings.applyConstraintsFunc(field);
+
+    return field->value.intValue;
+}
+
+int readIntInput(WindowItem *item)
+{
+    if (item->type != GEUI_Input)
+    {
+        DEBUG_MSG_FROM("item is not an input field", "readIntInput");
+        return 0;
+    }
+
+    return getIntInputValue(&item->data.input);
+}
+
+float getDecimalInputValue(InputField *field)
+{
+    if (field->settings.type != GEUI_DecimalInput)
+    {
+        DEBUG_MSG_FROM("field is not a decimal input", "getDecimalInputValue");
+        return 0;
+    }
+
+    field->settings.readValueFunc(field);
+    field->settings.applyConstraintsFunc(field);
+
+    return field->value.decimalValue;
+}
+
+float readDecimalInput(WindowItem *item)
+{
+    if (item->type != GEUI_Input)
+    {
+        DEBUG_MSG_FROM("item is not an input field", "readDecimalInput");
+        return 0;
+    }
+
+    return getDecimalInputValue(&item->data.input);
 }
 
 
@@ -2419,7 +2482,7 @@ WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256]);
 WindowItem *getItemByTag(Window *window, char tag[256]);
 WindowItem *getItemFromPanelByIndex(Panel *panel, int index);
 WindowItem *getItemByIndex(Window *window, int index);
-WindowItem *getNextFocusableItem(WindowItem *ptr);
+WindowItem *getNextFocusableItem(WindowItem *ptr, WindowItem *start, bool reverse);
 WindowItem *focusItem(WindowItem *ptr);
 void blurItem(WindowItem *ptr);
 void buildFocus(WindowItem *ptr);
@@ -2598,8 +2661,8 @@ InputSettings createTextInputSettings()
     InputSettings settings;
 
     settings.type = GEUI_TextInput;
-    (settings.settingsFunction = enforceTextInputSettings);
-    (settings.valueFunction = updateTextInputValue);
+    (settings.applyConstraintsFunc = enforceTextInputSettings);
+    (settings.readValueFunc = updateTextInputValue);
 
     settings.data.textInput.empty = 0;
 
@@ -2609,7 +2672,6 @@ InputSettings createTextInputSettings()
 void enforceIntInputSettings(InputField *input)
 {
     input->value.intValue = iLimit(input->value.intValue, input->settings.data.intInput.minVal, input->settings.data.intInput.maxVal);
-    refreshInputValue(input);
 }
 
 void updateIntInputValue(InputField *input)
@@ -2617,7 +2679,6 @@ void updateIntInputValue(InputField *input)
     if (greedyAtoi(input->text.pString) != 0)
     {
         input->value.intValue = greedyAtoi(input->text.pString);
-        refreshInputValue(input);
     }
 }
 
@@ -2626,8 +2687,8 @@ InputSettings createIntInputSettings(int minVal, int maxVal, int defaultValue)
     InputSettings settings;
 
     settings.type = GEUI_IntInput;
-    (settings.settingsFunction = enforceIntInputSettings);
-    (settings.valueFunction = updateIntInputValue);
+    (settings.applyConstraintsFunc = enforceIntInputSettings);
+    (settings.readValueFunc = updateIntInputValue);
 
     settings.data.intInput.minVal = minVal;
     settings.data.intInput.maxVal = maxVal;
@@ -2636,37 +2697,31 @@ InputSettings createIntInputSettings(int minVal, int maxVal, int defaultValue)
     return settings;
 }
 
-void enforceRealInputSettings(InputField *input)
+void enforceDecimalInputSettings(InputField *input)
 {
-    input->value.realValue = fLimit(input->value.realValue, input->settings.data.realInput.minVal, input->settings.data.realInput.maxVal);
-    refreshInputValue(input);
+    input->value.decimalValue = fLimit(input->value.decimalValue, input->settings.data.decimalInput.minVal, input->settings.data.decimalInput.maxVal);
 }
 
-void updateRealInputValue(InputField *input)
+void updateDecimalInputValue(InputField *input)
 {
-    int readCount = 0;
-
-    if (greedyAtof(input->text.pString, &readCount) != 0)
+    if (greedyAtof(input->text.pString) != 0)
     {
-        input->value.realValue = greedyAtof(input->text.pString, NULL);
-
-        if (readCount > 1)
-            refreshInputValue(input);
+        input->value.decimalValue = greedyAtof(input->text.pString);
     }
 }
 
-InputSettings createRealInputSettings(float minVal, float maxVal, float defaultValue, short precisionDigits)
+InputSettings createDecimalInputSettings(float minVal, float maxVal, float defaultValue, short precisionDigits)
 {
     InputSettings settings;
 
-    settings.type = GEUI_RealInput;
-    (settings.settingsFunction = enforceRealInputSettings);
-    (settings.valueFunction = updateRealInputValue);
+    settings.type = GEUI_DecimalInput;
+    (settings.applyConstraintsFunc = enforceDecimalInputSettings);
+    (settings.readValueFunc = updateDecimalInputValue);
 
-    settings.data.realInput.minVal = minVal;
-    settings.data.realInput.maxVal = maxVal;
-    settings.data.realInput.defaultValue = dfLimit(defaultValue, minVal, maxVal);
-    settings.data.realInput.precisionDigits = siLimit(precisionDigits, 0, 10);
+    settings.data.decimalInput.minVal = minVal;
+    settings.data.decimalInput.maxVal = maxVal;
+    settings.data.decimalInput.defaultValue = dfLimit(defaultValue, minVal, maxVal);
+    settings.data.decimalInput.precisionDigits = siLimit(precisionDigits, 0, 10);
 
     return settings;
 }
@@ -2687,10 +2742,10 @@ WindowItem *addInputField(Panel *panel, char tag[256], const char *string, Input
     {
         case GEUI_TextInput: ptr->data.input.value.textValue = ptr->data.input.text.pString; break;
         case GEUI_IntInput: ptr->data.input.value.intValue = settings.data.intInput.defaultValue; break;
-        case GEUI_RealInput: ptr->data.input.value.realValue = settings.data.realInput.defaultValue; break;
+        case GEUI_DecimalInput: ptr->data.input.value.decimalValue = settings.data.decimalInput.defaultValue; break;
     }
 
-    refreshValue(&ptr->data.input);
+    refreshValueText(&ptr->data.input);
 
     ptr->data.input.tiles = noIndices;
 
@@ -2842,49 +2897,66 @@ WindowItem *getItemByIndex(Window *window, int index)
     return NULL;
 }
 
-WindowItem *getNextFocusableItem(WindowItem *ptr)
+bool bothPointToSameItem(WindowItem *item1, WindowItem *item2)
+{
+    return (item1 && item2 && item1 == item2);
+}
+
+WindowItem *getNextFocusableItem(WindowItem *ptr, WindowItem *start, bool reverse)
 {
     Panel *panel = ptr->myPanel;
     Window *window = ptr->parent;
-    WindowItem *next = getItemFromPanelByIndex(panel, ptr->index + 1);
+    WindowItem *next = getItemFromPanelByIndex(panel, ptr->index + (reverse ? -1 : 1));
+
+    // The search looped around, there's no focusable items in this window
+    if (bothPointToSameItem(next, start))
+        return NULL;
 
     // If there was a next item in the same panel
     if (next)
     {
         if (next->focusable)
             return next;
-        return getNextFocusableItem(next);
+        return getNextFocusableItem(next, start, reverse);
     }
 
     // Otherwise get the next panel in this window
-    panel = getPanelByIndex(&window->root, panel->index + 1);
+    panel = getPanelByIndex(&window->root, panel->index + (reverse ? -1 : 1));
 
     // If there was a next panel in the same window
     if (panel)
     {
-        next = getItemFromPanelByIndex(panel, 0);
+        next = getItemFromPanelByIndex(panel, reverse ? panel->iIndex - 1 : 0);
+
+        // The search looped around, there's no focusable items in this window
+        if (bothPointToSameItem(next, start))
+            return NULL;
 
         // Panel had an item inside with index 0
         if (next)
         {
             if (next->focusable)
                 return next;
-            return getNextFocusableItem(next);
+            return getNextFocusableItem(next, start, reverse);
         }
     }
 
     // Otherwise use the main panel (always has index 0) of the window
-    panel = getPanelByIndex(&window->root, 0);
+    panel = getPanelByIndex(&window->root, reverse ? window->pIndex - 1 : 0);
 
     if (panel)
     {
-        next = getItemFromPanelByIndex(panel, 0);
+        next = getItemFromPanelByIndex(panel, reverse ? panel->iIndex - 1 : 0);
+
+        // The search looped around, there's no focusable items in this window
+        if (bothPointToSameItem(next, start))
+            return NULL;
 
         if (next)
         {
             if (next->focusable)
                 return next;
-            return getNextFocusableItem(next);
+            return getNextFocusableItem(next, start, reverse);
         }
     }
 
@@ -2930,8 +3002,9 @@ void blurItem(WindowItem *ptr)
         }
         else if (ptr->type == GEUI_Input)
         {
-            ptr->data.input.settings.settingsFunction(&ptr->data.input);
-            ptr->data.input.settings.valueFunction(&ptr->data.input);
+            ptr->data.input.settings.readValueFunc(&ptr->data.input);
+            ptr->data.input.settings.applyConstraintsFunc(&ptr->data.input);
+            refreshInputValue(&ptr->data.input);
             updateCaretPosition(&ptr->data.input.caret);
             hideCaret(&ptr->data.input.caret);
         }
@@ -3743,20 +3816,20 @@ WindowPosition createWPos(float x, float y)
     return pos;
 }
 
-#define GEUI_WPOS_MOUSE_CENTER      createWPosAtMouse(GEUI_MOUSE_AT_CENTER)
-#define GEUI_WPOS_MOUSE_TOP_LEFT    createWPosAtMouse(GEUI_MOUSE_AT_TOP_LEFT)
-#define GEUI_WPOS_MOUSE_TOP         createWPosAtMouse(GEUI_MOUSE_AT_TOP_CENTER)
+#define GEUI_WPOS_MOUSE_CENTER      createWPosAtMouse(GEUI_WPosMouseCenter)
+#define GEUI_WPOS_MOUSE_TOP_LEFT    createWPosAtMouse(GEUI_WPosMouseTopLeft)
+#define GEUI_WPOS_MOUSE_TOP         createWPosAtMouse(GEUI_WPosMouseTop)
 
-WindowPosition createWPosAtMouse(unsigned char mode)
+WindowPosition createWPosAtMouse(WPosSetting mode)
 {
     WindowPosition pos;
 
     switch (mode)
     {
-        case GEUI_MOUSE_AT_CENTER:      pos.type = GEUI_WPosMouseCenter;    break;
-        case GEUI_MOUSE_AT_TOP_LEFT:    pos.type = GEUI_WPosMouseTopLeft;   break;
-        case GEUI_MOUSE_AT_TOP_CENTER:  pos.type = GEUI_WPosMouseTop;       break;
-        default:                        pos.type = GEUI_WPosMouseTopLeft;   break;
+        case GEUI_WPosMouseCenter:
+        case GEUI_WPosMouseTopLeft:
+        case GEUI_WPosMouseTop:     pos.type = mode;                    break;
+        default:                    pos.type = GEUI_WPosMouseTopLeft;   break;
     }
 
     pos.pos = createScreenCoords(0, 0);
@@ -3847,11 +3920,12 @@ Actor *createWindowBaseParent(Window *window, WindowPosition pos)
 
     switch (pos.type)
     {
-        case GEUI_WPosCoords:       realPos = pos.pos;                                          break;
-        case GEUI_WPosMouseCenter:  realPos = getWPosAtMouse(window, GEUI_MOUSE_AT_CENTER);     break;
-        case GEUI_WPosMouseTopLeft: realPos = getWPosAtMouse(window, GEUI_MOUSE_AT_TOP_LEFT);   break;
-        case GEUI_WPosMouseTop:     realPos = getWPosAtMouse(window, GEUI_MOUSE_AT_TOP_CENTER); break;
-        case GEUI_WPosScreenCenter: realPos = getWPosAtScreenCenter(window);                    break;
+        case GEUI_WPosCoords:       realPos = pos.pos;                          break;
+        case GEUI_WPosMouseCenter:  // all mouse related positionings are handled based on the
+        case GEUI_WPosMouseTopLeft: // WindowPosition type, so the control is allowed to fall-through
+        case GEUI_WPosMouseTop:     realPos = getWPosAtMouse(window, pos.type); break;
+        case GEUI_WPosScreenCenter: realPos = getWPosAtScreenCenter(window);    break;
+        default: realPos = getWPosAtScreenCenter(window);                       break;
     }
 
     baseParent = CreateActor("a_gui", window->style.guiAnim, "(none)", "(none)", view.x + realPos.x, view.y + realPos.y, true);
@@ -3971,7 +4045,7 @@ void destroyWindow(Window *window)
 // without doing anything, which can be difficult to debug
 
 int isTopmostItemAtMouse(WindowItem *item);
-void focusNextItemInWindow();
+void focusNextItemInWindow(bool reverse);
 void doMouseEnter(const char *actorName);
 void doMouseLeave(const char *actorName);
 void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumber);
@@ -4013,14 +4087,14 @@ int isTopmostItemAtMouse(WindowItem *item)
     return 0;
 }
 
-void focusNextItemInWindow()
+void focusNextItemInWindow(bool reverse)
 {
     Window *window = getWindowByIndex(GEUIController.topIndex);
     WindowItem *nextFocus = NULL;
 
     if (GEUIController.focus && GEUIController.focus->parent->index == GEUIController.topIndex)
     {
-        nextFocus = getNextFocusableItem(GEUIController.focus);
+        nextFocus = getNextFocusableItem(GEUIController.focus, GEUIController.focus, reverse);
     }
     else
     {
@@ -4030,7 +4104,7 @@ void focusNextItemInWindow()
             nextFocus = getItemFromPanelByIndex(&window->root, 0);
             if (nextFocus && nextFocus->focusable == False)
             {
-                nextFocus = getNextFocusableItem(nextFocus);
+                nextFocus = getNextFocusableItem(nextFocus, nextFocus, reverse);
             }
         }
     }
@@ -4374,6 +4448,8 @@ void updateMouseButtonUp(enum mouseButtonsEnum mButtonNumber)
 
 void doKeyDown(WindowItem *item, int key)
 {
+    char *keys = GetKeyState();
+
     if (item)
     {
         switch (item->type)
@@ -4396,7 +4472,7 @@ void doKeyDown(WindowItem *item, int key)
     switch (key)
     {
         case KEY_TAB:
-            focusNextItemInWindow();
+            focusNextItemInWindow(keys[KEY_LSHIFT] || keys[KEY_RSHIFT]);
         break;
     }
 }
