@@ -3269,8 +3269,8 @@ void buildInputField(WindowItem *ptr)
 
     setTextZDepth(&ptr->data.input.text, DEFAULT_ITEM_ZDEPTH);
     setTextPosition(&ptr->data.input.text,
-        getTile(ptr->data.input.tiles.first)->x,
-        getTile(ptr->data.input.tiles.last)->y - ceil(ptr->data.input.text.pFont->baselineOffset * 0.5));
+        getTile(ptr->data.input.tiles.first)->x - ptr->parent->style.tileWidth / 4,
+        getTile(ptr->data.input.tiles.last)->y - ptr->data.input.text.pFont->baselineOffset / 2);
     refreshText(&ptr->data.input.text);
 
     buildCaret(ptr, &ptr->data.input.text, &ptr->data.input.caret);
