@@ -326,8 +326,8 @@ SABRE_Vector2 SABRE_WorldToScreen(SABRE_Vector2 pos)
     transformedPos.x = invDet * (SABRE_camera.dir.y * translatedPos.x - SABRE_camera.dir.x * translatedPos.y);
     transformedPos.y = invDet * (-SABRE_camera.plane.y * translatedPos.x + SABRE_camera.plane.x * translatedPos.y);
 
-    screenPos.x = (SABRE_screenWidth / 2.0f) * (1 + transformedPos.x / transformedPos.y);
-    screenPos.y = (SABRE_screenHeight / 2.0f) * (1 + 1.0f / transformedPos.y);//(1 + translatedPos.y / transformedPos.y);
+    screenPos.x = (SABRE_screenWidth / 2.0f) * (1 + transformedPos.x / (float)max(transformedPos.y, 0.001f));
+    screenPos.y = (SABRE_screenHeight / 2.0f) * (1 + 1.0f / (float)max(transformedPos.y, 0.001f));//(1 + translatedPos.y / transformedPos.y);
 
     return screenPos;
 }

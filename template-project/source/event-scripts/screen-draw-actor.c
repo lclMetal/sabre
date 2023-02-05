@@ -47,6 +47,8 @@ char levelEdgeHit = 0;
 
 SABRE_Vector2 p1, p2;
 
+float angles[4] = { PI, PI * 0.5f, PI * -0.5f, 0 };
+
 SABRE_List *iterator = NULL; // pointer to the entity to process
 
 // only the 1st clone (cloneindex 0) will execute this code, as the other ones are just going
@@ -55,6 +57,101 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
 {
     erase(0, 0, 0, 1);
     SABRE_InitializeFrame();
+    
+    {
+        int i, j;
+        SABRE_Vector2 groundPos;
+        float size;
+        float sizeMult = 4.0f;
+        int countt = 0;
+        int iStart = 1, iEnd = SABRE_level.height, iChange = 1;
+        int jStart = 1, jEnd = SABRE_level.width, jChange = 1;
+        
+        if (SABRE_camera.dir.x < 0)
+        {
+            iStart = iEnd;
+            iEnd = 1;
+            iChange = -1;
+        }
+        if (SABRE_camera.dir.y < 0)
+        {
+            jStart = jEnd;
+            jEnd = 1;
+            jChange = -1;
+        }
+        
+        for (i = iStart; (iChange == 1 && i < iEnd || iChange == -1 && i > iEnd); i += iChange)
+        {
+            if (i % 3 != 0) continue;
+
+            for (j = jStart; (jChange == 1 && j < jEnd || jChange == -1 && j > jEnd); j += jChange)
+            {                
+                int c = 0;
+                SABRE_Vector2 p;
+                float dir = degtorad(direction(0, 0, SABRE_camera.dir.x, SABRE_camera.dir.y));
+                float dir2 = 0;
+                
+                if (j % 3 != 0) continue;
+                
+                while (c < 4)
+                {
+                    dir2 = dir + angles[c];
+                    p = SABRE_CreateVector2(i + 0.25f + 0.25f * cos(dir2), j + 0.25f + 0.25f * sin(dir2));
+                    groundPos = SABRE_WorldToScreen(SABRE_CreateVector2(p.x, p.y));
+                    if (groundPos.y < SABRE_screenHeight * 0.5f) continue;
+                    size = distance(camera->pos.x, camera->pos.y, p.x, p.y);
+                    if (!size) continue;
+                    draw_from("groundTexture", groundPos.x, groundPos.y, sizeMult / size);
+                    countt;
+                    
+                    c++;
+                }
+                
+                
+                
+                
+
+                /*groundPos = SABRE_WorldToScreen(SABRE_CreateVector2(i, j));
+                if (groundPos.y < SABRE_screenHeight * 0.5f) continue;
+                size = distance(camera->pos.x, camera->pos.y, i, j);
+                if (!size) continue;
+                draw_from("groundTexture", groundPos.x, groundPos.y, sizeMult / size);
+                countt;
+                
+                groundPos = SABRE_WorldToScreen(SABRE_CreateVector2(i+0.5f, j));
+                if (groundPos.y < SABRE_screenHeight * 0.5f) continue;
+                size = distance(camera->pos.x, camera->pos.y, i+0.5f, j);
+                if (!size) continue;
+                draw_from("groundTexture", groundPos.x, groundPos.y, sizeMult / size);
+                countt++;
+                
+                groundPos = SABRE_WorldToScreen(SABRE_CreateVector2(i, j+0.5f));
+                if (groundPos.y < SABRE_screenHeight * 0.5f) continue;
+                size = distance(camera->pos.x, camera->pos.y, i, j+0.5f);
+                if (!size) continue;
+                draw_from("groundTexture", groundPos.x, groundPos.y, sizeMult / size);
+                countt++;
+                
+                groundPos = SABRE_WorldToScreen(SABRE_CreateVector2(i+0.5f, j+0.5f));
+                if (groundPos.y < SABRE_screenHeight * 0.5f) continue;
+                size = distance(camera->pos.x, camera->pos.y, i+0.5f, j+0.5f);
+                if (!size) continue;
+                draw_from("groundTexture", groundPos.x, groundPos.y, sizeMult / size);
+                countt++;*/
+            }
+        }
+        
+        /*{
+            char temppu[256];
+            sprintf(temppu, "floor tiles drawn in frame: %d", countt);
+            DEBUG_MSG(temppu);
+        }*/
+        
+        // rayMapY = SABRE_WrapIntValue(rayMapY, SABRE_level.height);
+        // rayMapX = SABRE_WrapIntValue(rayMapX, SABRE_level.width);
+        // newRayMapIndex = rayMapY * SABRE_level.width + rayMapX;
+    }
+
 
     invDet = 1.0f / (float)(camera->plane.x * camera->dir.y - camera->dir.x * camera->plane.y);
 
@@ -346,8 +443,9 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
     SABRE_RenderObjects();
 }
 
-setpen(0, 255, 0, 0, 3);
+/*setpen(0, 255, 0, 0, 3);
 p1 = SABRE_WorldToScreen(SABRE_CreateVector2(3.0f, 3.0f));
 p2 = SABRE_WorldToScreen(SABRE_CreateVector2(2.0f, 2.0f));
 moveto(p1.x, p1.y);
-lineto(p2.x, p2.y);
+lineto(p2.x, p2.y);*/
+
