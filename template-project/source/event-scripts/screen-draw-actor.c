@@ -47,7 +47,24 @@ char levelEdgeHit = 0;
 
 SABRE_Vector2 p1, p2;
 
-float angles[4] = { PI, PI * 0.5f, PI * -0.5f, 0 };
+
+
+
+int c = 0;
+SABRE_Vector2 p;
+float dir = degtorad(direction(0, 0, SABRE_camera.dir.x, SABRE_camera.dir.y));
+float dir2 = 0;
+float angles[4] = { PI, PI * 0.5f, PI * -0.5f, 0.0f };
+int i, j;
+int useOtherTexture;
+SABRE_Vector2 groundPos;
+float size;
+float sizeMult = 4.0f;
+int countt = 0;
+int iStart = 0, iEnd = SABRE_level.height, iChange = 1;
+int jStart = 0, jEnd = SABRE_level.width, jChange = 1;
+                
+
 
 SABRE_List *iterator = NULL; // pointer to the entity to process
 
@@ -59,64 +76,70 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
     SABRE_InitializeFrame();
     
     {
-        int i, j;
-        SABRE_Vector2 groundPos;
-        float size;
-        float sizeMult = 4.0f;
-        int countt = 0;
-        int iStart = 1, iEnd = SABRE_level.height, iChange = 1;
-        int jStart = 1, jEnd = SABRE_level.width, jChange = 1;
-        
-        if (SABRE_camera.dir.x < 0)
+        iStart = 0;
+        iEnd = SABRE_level.height;
+        iChange = 1;
+        jStart = 0;
+        jEnd = SABRE_level.width;
+        jChange = 1;
+        countt = 0;
+
+        // fix these value swap rules!
+        if (SABRE_camera.dir.x > 0)
         {
             iStart = iEnd;
-            iEnd = 1;
+            iEnd = 0;
             iChange = -1;
         }
-        if (SABRE_camera.dir.y < 0)
+        if (SABRE_camera.dir.y > 0)
         {
             jStart = jEnd;
-            jEnd = 1;
+            jEnd = 0;
             jChange = -1;
         }
         
-        for (i = iStart; (iChange == 1 && i < iEnd || iChange == -1 && i > iEnd); i += iChange)
+        for (i = iStart; (iChange == 1 && i <= iEnd || iChange == -1 && i >= iEnd); i += iChange)
         {
-            if (i % 3 != 0) continue;
+            // if (i % 3 != 0) continue;
 
-            for (j = jStart; (jChange == 1 && j < jEnd || jChange == -1 && j > jEnd); j += jChange)
-            {                
-                int c = 0;
-                SABRE_Vector2 p;
-                float dir = degtorad(direction(0, 0, SABRE_camera.dir.x, SABRE_camera.dir.y));
-                float dir2 = 0;
+            for (j = jStart; (jChange == 1 && j <= jEnd || jChange == -1 && j >= jEnd); j += jChange)
+            {   
+                useOtherTexture = 0;
+                // if (j % 3 == 0) useOtherTexture = 1;//continue;
+                if (i < SABRE_level.width && j < SABRE_level.height && SABRE_level.map[j * SABRE_level.width + i].texture > 0) continue;
+                if (i == 0 || j == 0 || i >= SABRE_level.width-1 || j >= SABRE_level.height-1) continue;
                 
-                if (j % 3 != 0) continue;
-                
+                c = 0;
                 while (c < 4)
                 {
+                    dir = degtorad(direction(0, 0, SABRE_camera.dir.x, SABRE_camera.dir.y));
+                    if ((int)round(radtodeg(dir)) == 0 || (int)round(radtodeg(dir)) == 90 || (int)round(radtodeg(dir)) == 270 || (int)round(radtodeg(dir)) == 180 || (int)round(radtodeg(dir)) == 360) dir += 0.1f;
                     dir2 = dir + angles[c];
-                    p = SABRE_CreateVector2(i + 0.25f + 0.25f * cos(dir2), j + 0.25f + 0.25f * sin(dir2));
+                    size = 0;
+                    p = SABRE_CreateVector2(i + 0.5f + 0.25f * SABRE_GetPositiveBiasedSign(-cos(dir2)), j + 0.5f + 0.25f * SABRE_GetPositiveBiasedSign(sin(dir2)));
                     groundPos = SABRE_WorldToScreen(SABRE_CreateVector2(p.x, p.y));
-                    if (groundPos.y < SABRE_screenHeight * 0.5f) continue;
+                    // cull offscreen pieces
+                    if (groundPos.y < SABRE_screenHeight * 0.5f || groundPos.y > SABRE_screenHeight + 100 || groundPos.x < -100 || groundPos.x > SABRE_screenWidth + 100){ c++; continue; }
                     size = distance(camera->pos.x, camera->pos.y, p.x, p.y);
-                    if (!size) continue;
-                    draw_from("groundTexture", groundPos.x, groundPos.y, sizeMult / size);
-                    countt;
-                    
+                    // convert to perpendicular distance
+                    size = cos(degtorad(direction(camera->pos.x, camera->pos.y, p.x, p.y) - direction(0, 0, camera->dir.x, camera->dir.y))) * size;
+                    if (!size) { c++; continue;}
+                    ChangeAnimation("groundTexture", useOtherTexture?"dissolved22c":"groundTestTexture", NO_CHANGE);
+                    SendActivationEvent("groundTexture");
+                    draw_from("groundTexture", groundPos.x,
+                    groundPos.y - camera->vPos * 8 * (groundPos.y - height * 0.5f) / height * 0.5f, sizeMult / size);
+                    // weird curved world effect when crouched:
+                    // groundPos.y - (camera->vPos * size - size * (SABRE_screenHeight / SABRE_heightUnit)), sizeMult / size);
+                    countt++;
                     c++;
                 }
-                
-                
-                
-                
 
                 /*groundPos = SABRE_WorldToScreen(SABRE_CreateVector2(i, j));
                 if (groundPos.y < SABRE_screenHeight * 0.5f) continue;
                 size = distance(camera->pos.x, camera->pos.y, i, j);
                 if (!size) continue;
                 draw_from("groundTexture", groundPos.x, groundPos.y, sizeMult / size);
-                countt;
+                countt++;
                 
                 groundPos = SABRE_WorldToScreen(SABRE_CreateVector2(i+0.5f, j));
                 if (groundPos.y < SABRE_screenHeight * 0.5f) continue;
@@ -140,6 +163,44 @@ if (!cloneindex && SABRE_gameState == SABRE_RUNNING)
                 countt++;*/
             }
         }
+        
+        
+        /*for (i = iStart; (iChange == 1 && i <= iEnd || iChange == -1 && i >= iEnd); i += iChange)
+        {
+            // if (i % 4 != 0) continue;
+
+            for (j = jStart; (jChange == 1 && j <= jEnd || jChange == -1 && j >= jEnd); j += jChange)
+            {   
+                useOtherTexture = 1;
+                // if (j % 3 == 0) useOtherTexture = 1;//continue;
+                // else continue;
+                
+                // if (i < SABRE_level.width && j < SABRE_level.height && SABRE_level.map[j * SABRE_level.width + i].texture > 0) continue;
+                if (i == 0 || j == 0 || i == SABRE_level.width-1 || j == SABRE_level.height-1) continue;
+                
+                c = 0;
+                while (c < 4)
+                {
+                    dir = degtorad(direction(0, 0, SABRE_camera.dir.x, SABRE_camera.dir.y));
+                    if ((int)round(radtodeg(dir)) == 0 || (int)round(radtodeg(dir)) == 90 || (int)round(radtodeg(dir)) == 270 || (int)round(radtodeg(dir)) == 180 || (int)round(radtodeg(dir)) == 360) dir += 0.1f;
+                    dir2 = dir + angles[c];
+                    size = 0;
+                    p = SABRE_CreateVector2(i + 0.5f + 0.25f * SABRE_GetPositiveBiasedSign(-cos(dir2)), j + 0.5f + 0.25f * SABRE_GetPositiveBiasedSign(sin(dir2)));
+                    groundPos = SABRE_WorldToScreen(SABRE_CreateVector2(p.x, p.y));
+                    if (groundPos.y < SABRE_screenHeight * 0.5f){ c++; continue; }
+                    size = distance(camera->pos.x, camera->pos.y, p.x, p.y);
+                    if (!size) { c++; continue;}
+                    ChangeAnimation("groundTexture", useOtherTexture?"groundTestTexture":"dissolved22c", NO_CHANGE);
+                    SendActivationEvent("groundTexture");
+                    draw_from("groundTexture", groundPos.x,
+                    groundPos.y - camera->vPos * 8 * (groundPos.y - height * 0.5f) / height * 0.5f, sizeMult / size);
+                    // weird curved world effect when crouched:
+                    // groundPos.y - (camera->vPos * size - size * (SABRE_screenHeight / SABRE_heightUnit)), sizeMult / size);
+                    countt++;
+                    c++;
+                }
+            }
+        }*/
         
         /*{
             char temppu[256];
