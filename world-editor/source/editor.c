@@ -1,4 +1,5 @@
-#define blockSize 20
+#define blockSize 20.0f
+#define thumbnailSize 64.0f
 #define R 0
 #define G 1
 #define B 2
@@ -20,10 +21,9 @@ Color gridColor;
 void setEditorBackgroundColor(int rValue, int gValue, int bValue);
 void setEditorGridColor(int rValue, int gValue, int bValue);
 void setGuiColor(int rValue, int gValue, int bValue);
+void setSecondaryGuiColor(int rValue, int gValue, int bValue);
 void setGuiTextColor(int rValue, int gValue, int bValue);
 void setPositionIndicatorColor(int rValue, int gValue, int bValue);
-void addTextureIndicatorColor(int rValue, int gValue, int bValue);
-void copyTextureIndicatorColor(int colorIndex);
 void setSpawnPointPosition(double spawnX, double spawnY);
 void drawGrid();
 void testScreenTheater(int mode);
@@ -88,6 +88,20 @@ void setGuiColor(int rValue, int gValue, int bValue)
     a->b = a2->b = a3->b = bValue;
 }
 
+//This function changes the color of the secondary GUI actors
+//rValue - the value for the red component of the color
+//gValue - the value for the green component of the color
+//bValue - the value for the blue component of the color
+void setSecondaryGuiColor(int rValue, int gValue, int bValue)
+{
+    Actor *a;
+    a = getclone("sidePanel");
+
+    a->r = rValue;
+    a->g = gValue;
+    a->b = bValue;
+}
+
 //This function changes the color of the GUI text actors
 //rValue - the value for the red component of the color
 //gValue - the value for the green component of the color
@@ -116,33 +130,6 @@ void setPositionIndicatorColor(int rValue, int gValue, int bValue)
     xInd->r = yInd->r = rValue;
     xInd->g = yInd->g = gValue;
     xInd->b = yInd->b = bValue;
-}
-
-//This function adds a new color for indicating a different texture
-//rValue - the value for the red component of the color
-//gValue - the value for the green component of the color
-//bValue - the value for the blue component of the color
-void addTextureIndicatorColor(int rValue, int gValue, int bValue)
-{
-    Actor *a = CreateActor("block", "block", "(none)", "(none)", -470, -310, true);
-    a->r = rValue;
-    a->g = gValue;
-    a->b = bValue;
-
-    textureNumber ++;
-}
-
-//This function copies the texture indicator color to the current actor by the color's index
-//colorIndex - index of the color to copy
-void copyTextureIndicatorColor(int colorIndex)
-{
-    Actor *a;
-
-    a = gc2("block", colorIndex - 1);
-
-    r = a->r;
-    g = a->g;
-    b = a->b;
 }
 
 //This function sets the spawning point position
@@ -385,7 +372,7 @@ void putBlock(int blockX, int blockY, int texture, int mode)
         if (blockOnGrid[X] >= 0 && blockOnGrid[X] <= width &&
             blockOnGrid[Y] >= 0 &&blockOnGrid[Y] <= height)
         {
-            draw_from(gc2("block", texture)->clonename, blockOnScreen[X], blockOnScreen[Y], zoom);
+            draw_from(gc2("txrThumbnail", texture + 1)->clonename, blockOnScreen[X], blockOnScreen[Y], blockSize/thumbnailSize*zoom);
         }
     }
     else if (mode == PREVIEW)
@@ -695,6 +682,7 @@ void renderChunks(int mode)
     int blockOnScreen[2];
     int viewPositionRenderChunk[2];
     int viewEndPositionRenderChunk[2];
+    int useTxr = 0;
     RenderChunk *ptr = renderChunkHead;
 
     coordsToRenderChunkCoords(viewX, viewY, viewPositionRenderChunk);
@@ -724,8 +712,10 @@ void renderChunks(int mode)
                     {
                         coordsFromWorld(ptr->x + j, ptr->y + i, blockOnGrid);
                         coordsToScreen(blockOnGrid[X], blockOnGrid[Y], blockOnScreen);
-                        currentTexture = ptr->chunkArray[i][j] - 1;
-                        draw_from(gc2("block", currentTexture)->clonename, blockOnScreen[X], blockOnScreen[Y], zoom);
+                        useTxr = ptr->chunkArray[i][j];
+
+                        if (useTxr >= ActorCount("txrThumbnail")) useTxr = 0;
+                        draw_from(gc2("txrThumbnail", useTxr)->clonename, blockOnScreen[X], blockOnScreen[Y], blockSize/thumbnailSize*zoom);
                     }
                 }
             }
