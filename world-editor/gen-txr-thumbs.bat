@@ -1,18 +1,17 @@
-:: main script based on scale.bat creator's example on Stack Overflow: https://stackoverflow.com/a/46571919
-:: loop iteration counting based on paxdiablo's example on Super User: https://stackoverflow.com/a/7522822
-:: file name zero-padding based on Chris's answer on Super User: https://superuser.com/a/1229632
+:: scale.bat created by Vasil Arnaudov, see "scale.bat-LICENSE.txt" for more information
+:: script based on user332474's  example on Stack Overflow: https://stackoverflow.com/a/2766240
 
 @echo off
-setlocal enabledelayedexpansion
-set "source_folder=.\textures"
-set "result_folder=.\data"
+setlocal
 
-set loopcount=0
+for /F "tokens=1,2" %%i in (textures.conf) do call :generateThumbnail %%i %%j
+goto :EOF
 
-for %%a in ("%source_folder%\*") do (
-    set /a loopcount+=1
-    set "n=0000!loopcount!"
-    set "padded=!n:~-4!"
-    call scale-script\scale.bat -source "%%~fa" -target "%result_folder%\_thumb-!padded!.png" -max-height 64 -max-width 64 -keep-ratio no -force yes
-)
+:generateThumbnail
+set VAR1=%1
+set VAR2=%2
+call scale-script\scale.bat -source "data\%VAR2%.png" -target "data\_thumb-%VAR1%.png" -max-height 64 -max-width 64 -keep-ratio no -force yes
+echo %VAR1% %VAR2%
+goto :EOF
+
 endlocal
