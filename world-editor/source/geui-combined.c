@@ -2114,6 +2114,28 @@ ScreenCoords getWPosAtScreenCenter(struct WindowStruct *window)
 }
 
 
+// ..\source\geui\13-geui-gui-tiles.c
+void updateGuiTileIndices(TileIndices *indices, long newIndex);
+void eraseGuiTiles(TileIndices *indices);
+void colorGuiTiles(TileIndices indices, Color color);
+
+void updateGuiTileIndices(TileIndices *indices, long newIndex)
+{
+    updateIndexBounds(&indices->first, &indices->last, newIndex);
+}
+
+void eraseGuiTiles(TileIndices *indices)
+{
+    destroyClones("a_gui", indices->first, indices->last);
+    *indices = noIndices;
+}
+
+void colorGuiTiles(TileIndices indices, Color color)
+{
+    colorClones("a_gui", indices.first, indices.last, color);
+}
+
+
 // ..\source\geui\14-geui-input-caret.c
 void setCaretBlinkRate(BlinkingCaret *caret, float blinkRate);
 
@@ -2188,7 +2210,7 @@ void updateCaretPosition(BlinkingCaret *caret)
 }
 
 
-// ..\source\geui\16-geui-input-field.c
+// ..\source\geui\15-geui-input-field.c
 #define GEUI_KEYBOARD_MAPPING_SIZE GEUI_KeyboardLayoutCount + 1
 #define GEUI_MAX_VALID_KEYS_LIMIT 26
 
@@ -2467,119 +2489,222 @@ float readDecimalInput(WindowItem *item)
 }
 
 
-// ..\source\geui\20-geui-window-item.c
-// TODO: make functions return error codes instead of just exiting
-// without doing anything, which can be difficult to debug
-
-// from geui-panel.c
-void closePanel(Panel *panel);
-void destroyPanel(Panel *panel);
-Panel *getPanelByIndex(Panel *panel, int index);
-
-void updateGuiTileIndices(TileIndices *indices, long newIndex);
-void eraseGuiTiles(TileIndices *indices);
-void colorGuiTiles(TileIndices indices, Color color);
-WindowItem *initNewItem(ItemType type, Panel *panel, char tag[256]);
-WindowItem *addItemToWindow(WindowItem *ptr);
-WindowItem *addText(Panel *panel, char tag[256], char *string, short maxWidth);
-WindowItem *addButton(Panel *panel, char tag[256], char *string, GUIAction action);
-WindowItem *addCheckbox(Panel *panel, char tag[256], bool state);
-WindowItem *addInputField(Panel *panel, char tag[256], const char *string, InputSettings settings, short maxWidth);
-WindowItem *addPanel(Panel *panel, char tag[256]);
-WindowItem *addEmbedder(Panel *panel, char tag[256], const char *actorName);
-WindowItem *setPosition(WindowItem *this, short row, short col);
-WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256]);
-WindowItem *getItemByTag(Window *window, char tag[256]);
-WindowItem *getItemFromPanelByIndex(Panel *panel, int index);
-WindowItem *getItemByIndex(Window *window, int index);
+// ..\source\geui\16-geui-input-focus.c
 WindowItem *getNextFocusableItem(WindowItem *ptr, WindowItem *start, bool reverse);
 WindowItem *focusItem(WindowItem *ptr);
+void focusNextItemInWindow(bool reverse);
 void blurItem(WindowItem *ptr);
 void buildFocus(WindowItem *ptr);
 void eraseFocus();
-void buildItems(Panel *panel);
-void buildItem(WindowItem *ptr);
-void buildText(WindowItem *ptr);
-void buildPanel(WindowItem *ptr);
-void buildButtonText(WindowItem *ptr);
-void buildButton(WindowItem *ptr);
-void buildCheckbox(WindowItem *ptr);
-Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret);
-void buildInputFieldBackground(WindowItem *ptr, TileIndices *tiles);
-void buildInputField(WindowItem *ptr);
-void buildEmbedder(WindowItem *ptr);
-void eraseWindowItem(WindowItem *ptr);
-void destroyWindowItem(WindowItem *ptr);
 
-void updateGuiTileIndices(TileIndices *indices, long newIndex)
+// from geui-window-item.c
+WindowItem *getItemFromPanelByIndex(Panel *panel, int index);
+bool bothPointToSameItem(WindowItem *item1, WindowItem *item2);
+
+// from geui-panel.c
+Panel *getPanelByIndex(Panel *panel, int index);
+
+// from geui-window.c
+Window *getWindowByIndex(int index);
+
+WindowItem *getNextFocusableItem(WindowItem *ptr, WindowItem *start, bool reverse)
 {
-    updateIndexBounds(&indices->first, &indices->last, newIndex);
+    Panel *panel = ptr->myPanel;
+    Window *window = ptr->parent;
+    WindowItem *next = getItemFromPanelByIndex(panel, ptr->index + (reverse ? -1 : 1));
+
+    // The search looped around, there's no focusable items in this window
+    if (bothPointToSameItem(next, start))
+        return NULL;
+
+    // If there was a next item in the same panel
+    if (next)
+    {
+        if (next->focusable)
+            return next;
+        return getNextFocusableItem(next, start, reverse);
+    }
+
+    // Otherwise get the next panel in this window
+    panel = getPanelByIndex(&window->root, panel->index + (reverse ? -1 : 1));
+
+    // If there was a next panel in the same window
+    if (panel)
+    {
+        next = getItemFromPanelByIndex(panel, reverse ? panel->iIndex - 1 : 0);
+
+        // The search looped around, there's no focusable items in this window
+        if (bothPointToSameItem(next, start))
+            return NULL;
+
+        // Panel had an item inside with index 0
+        if (next)
+        {
+            if (next->focusable)
+                return next;
+            return getNextFocusableItem(next, start, reverse);
+        }
+    }
+
+    // Otherwise use the main panel (always has index 0) of the window
+    panel = getPanelByIndex(&window->root, reverse ? window->pIndex - 1 : 0);
+
+    if (panel)
+    {
+        next = getItemFromPanelByIndex(panel, reverse ? panel->iIndex - 1 : 0);
+
+        // The search looped around, there's no focusable items in this window
+        if (bothPointToSameItem(next, start))
+            return NULL;
+
+        if (next)
+        {
+            if (next->focusable)
+                return next;
+            return getNextFocusableItem(next, start, reverse);
+        }
+    }
+
+    return NULL;
 }
 
-void eraseGuiTiles(TileIndices *indices)
+WindowItem *focusItem(WindowItem *ptr)
 {
-    destroyClones("a_gui", indices->first, indices->last);
-    *indices = noIndices;
+    if (ptr->focusable)
+    {
+        if (GEUIController.focus != ptr)
+        {
+            blurItem(GEUIController.focus);
+            GEUIController.focus = ptr;
+            buildFocus(ptr);
+
+            switch (ptr->type)
+            {
+                case GEUI_Input:
+                    showCaret(&ptr->data.input.caret);
+                    updateCaretPosition(&ptr->data.input.caret);
+                break;
+            }
+        }
+
+        return ptr;
+    }
+
+    return NULL;
 }
 
-void colorGuiTiles(TileIndices indices, Color color)
+void focusNextItemInWindow(bool reverse)
 {
-    colorClones("a_gui", indices.first, indices.last, color);
+    Window *window = getWindowByIndex(GEUIController.topIndex);
+    WindowItem *nextFocus = NULL;
+
+    if (GEUIController.focus && GEUIController.focus->parent->index == GEUIController.topIndex)
+    {
+        nextFocus = getNextFocusableItem(GEUIController.focus, GEUIController.focus, reverse);
+    }
+    else
+    {
+        window = getWindowByIndex(GEUIController.topIndex);
+        if (window && window->isOpen)
+        {
+            nextFocus = getItemFromPanelByIndex(&window->root, 0);
+            if (nextFocus && nextFocus->focusable == False)
+            {
+                nextFocus = getNextFocusableItem(nextFocus, nextFocus, reverse);
+            }
+        }
+    }
+
+    if (nextFocus)
+    {
+        focusItem(nextFocus);
+    }
 }
 
-WindowItem *initNewItem(ItemType type, Panel *panel, char tag[256])
+void blurItem(WindowItem *ptr)
 {
-    WindowItem *ptr = NULL;
+    if (GEUIController.focus != NULL && GEUIController.focus == ptr)
+    {
+        eraseFocus(ptr);
+        GEUIController.focus = NULL;
 
-    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "initNewItem"); return NULL; }
-
-    ptr = malloc(sizeof *ptr);
-
-    if (!ptr) { DEBUG_MSG_FROM("memory allocation failed", "initNewItem"); return NULL; }
-
-    ptr->type = type;
-    ptr->focusable = False;
-    ptr->index = panel->iIndex ++;
-    strcpy(ptr->tag, tag);
-    ptr->myPanel = panel;
-    ptr->parent = panel->parent;
-    ptr->layout.row = 0;
-    ptr->layout.col = 0;
-    ptr->layout.width = 0;
-    ptr->layout.height = 0;
-    ptr->layout.startx = 0;
-    ptr->layout.starty = 0;
-
-    return ptr;
+        if (ptr->type == GEUI_Button)
+        {
+            ptr->data.button.state = 0;
+            colorGuiTiles(ptr->data.button.tiles, ptr->parent->style.buttonColor);
+        }
+        else if (ptr->type == GEUI_Input)
+        {
+            ptr->data.input.settings.readValueFunc(&ptr->data.input);
+            ptr->data.input.settings.applyConstraintsFunc(&ptr->data.input);
+            refreshInputValue(&ptr->data.input);
+            updateCaretPosition(&ptr->data.input.caret);
+            hideCaret(&ptr->data.input.caret);
+        }
+    }
 }
 
-WindowItem *addItemToWindow(WindowItem *ptr)
+void buildFocus(WindowItem *ptr)
 {
-    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addItemToWindow"); return NULL; }
+    short i, j;
+    Actor *tile;
+    short tempAnimpos;
+    short focusWidth;
+    short focusHeight;
+    short focusLineWidth = ptr->parent->style.focusWidth;
+    short tilesHorizontal;
+    short tilesVertical;
+    short tileWidth = ptr->parent->style.tileWidth;
+    short tileHeight = ptr->parent->style.tileHeight;
 
-    ptr->next = ptr->myPanel->iList;
-    ptr->myPanel->iList = ptr;
+    focusWidth = ptr->layout.width + focusLineWidth * 2;
+    tilesHorizontal = ceil(focusWidth / (float)tileWidth);
+    focusHeight = max(ptr->layout.height, tileHeight) + focusLineWidth * 2;
+    tilesVertical = ceil(focusHeight / (float)tileHeight);
 
-    return ptr;
+    for (j = 0; j < tilesVertical; j++)
+    {
+        for (i = 0; i < tilesHorizontal; i++)
+        {
+            tempAnimpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j) + 15;
+
+            if (tempAnimpos == 19)
+                continue;
+
+            tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
+                               ptr->parent->parentCName, "(none)", 0, 0, true);
+            tile->x = ptr->layout.startx + tileWidth + i * tileWidth + (i == tilesHorizontal-1) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
+            tile->x += ptr->parent->style.padding - focusLineWidth;
+            tile->y = ptr->layout.starty + tileHeight + j * tileHeight + (j == tilesVertical - 1) * (focusHeight - tilesVertical * tileHeight)-tileHeight/2;
+            tile->y += ptr->parent->style.padding - focusLineWidth;
+            tile->animpos = tempAnimpos;
+
+            tile->myWindow = -1;
+            tile->myPanel = -1;
+            tile->myIndex = -1;
+            colorActor(tile, ptr->parent->style.focusColor);
+            ChangeZDepth(tile->clonename, DEFAULT_ITEM_ZDEPTH);
+            EventDisable(tile->clonename, EVENTCOLLISION);
+            EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
+            updateGuiTileIndices(&GEUIController.focusTiles, tile->cloneindex);
+        }
+    }
 }
 
-WindowItem *addText(Panel *panel, char tag[256], char *string, short maxWidth)
+void eraseFocus()
 {
-    WindowItem *ptr = initNewItem(GEUI_Text, panel, tag);
-    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addText"); return NULL; }
-
-    ptr->data.text = createText(string, panel->parent->style.textFont, "(none)", ABSOLUTE, 0, 0);
-    setTextColor(&ptr->data.text, panel->parent->style.textColor);
-    setTextZDepth(&ptr->data.text, DEFAULT_ITEM_ZDEPTH);
-
-    if (maxWidth > 0)
-        fitTextInWidth(&ptr->data.text, maxWidth);
-
-    ptr->layout.width = ptr->data.text.width;
-    ptr->layout.height = max(ptr->data.text.height + ptr->data.text.pFont->baselineOffset, ptr->parent->style.tileHeight);
-
-    return addItemToWindow(ptr);
+    eraseGuiTiles(&GEUIController.focusTiles);
 }
+
+
+// ..\source\geui\17-geui-gui-actions.c
+GUIAction createAction(void (*fpAction)(struct GUIActionStruct *));
+
+void guiActionOpenWindow(GUIAction *action);
+GUIAction createOpenWindowAction(char tag[256], WindowPosition pos);
+
+void guiActionCloseWindow(GUIAction *action);
+GUIAction createCloseWindowAction(char tag[256]);
 
 // from geui-window.c
 Window *openWindow(char tag[256], WindowPosition pos);
@@ -2629,6 +2754,375 @@ GUIAction createCloseWindowAction(char tag[256])
     return action;
 }
 
+
+// ..\source\geui\20-geui-window-item.c
+// TODO: make functions return error codes instead of just exiting
+// without doing anything, which can be difficult to debug
+
+// from geui-panel.c
+void closePanel(Panel *panel);
+void destroyPanel(Panel *panel);
+void updatePanelLayout(WindowItem *panelItem, Panel *panel);
+
+bool bothPointToSameItem(WindowItem *item1, WindowItem *item2);
+void eraseGuiTiles(TileIndices *indices);
+WindowItem *initNewItem(ItemType type, Panel *panel, char tag[256]);
+WindowItem *addItemToWindow(WindowItem *ptr);
+WindowItem *setPosition(WindowItem *this, short row, short col);
+WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256]);
+WindowItem *getItemByTag(Window *window, char tag[256]);
+WindowItem *getItemFromPanelByIndex(Panel *panel, int index);
+WindowItem *getItemByIndex(Window *window, int index);
+void updateItemLayout(WindowItem *ptr);
+void updateItemLayouts(Panel *panel);
+void buildItems(Panel *panel);
+void buildItem(WindowItem *ptr);
+void buildText(WindowItem *ptr);
+void buildPanel(WindowItem *ptr);
+void buildButtonText(WindowItem *ptr);
+void buildButton(WindowItem *ptr);
+void buildCheckbox(WindowItem *ptr);
+void buildInputField(WindowItem *ptr);
+void buildEmbedder(WindowItem *ptr);
+void eraseWindowItem(WindowItem *ptr);
+void destroyWindowItem(WindowItem *ptr);
+
+bool bothPointToSameItem(WindowItem *item1, WindowItem *item2)
+{
+    return (item1 && item2 && item1 == item2);
+}
+
+WindowItem *initNewItem(ItemType type, Panel *panel, char tag[256])
+{
+    WindowItem *ptr = NULL;
+
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "initNewItem"); return NULL; }
+
+    ptr = malloc(sizeof *ptr);
+
+    if (!ptr) { DEBUG_MSG_FROM("memory allocation failed", "initNewItem"); return NULL; }
+
+    ptr->type = type;
+    ptr->focusable = False;
+    ptr->index = panel->iIndex ++;
+    strcpy(ptr->tag, tag);
+    ptr->myPanel = panel;
+    ptr->parent = panel->parent;
+    ptr->layout.row = 0;
+    ptr->layout.col = 0;
+    ptr->layout.width = 0;
+    ptr->layout.height = 0;
+    ptr->layout.startx = 0;
+    ptr->layout.starty = 0;
+
+    return ptr;
+}
+
+WindowItem *addItemToWindow(WindowItem *ptr)
+{
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addItemToWindow"); return NULL; }
+
+    ptr->next = ptr->myPanel->iList;
+    ptr->myPanel->iList = ptr;
+
+    return ptr;
+}
+
+WindowItem *setPosition(WindowItem *this, short row, short col)
+{
+    if (!this) { DEBUG_MSG_FROM("item is NULL", "setPosition"); return NULL; }
+
+    this->layout.row = row;
+    this->layout.col = col;
+
+    return this;
+}
+
+Panel *getPanel(WindowItem *item)
+{
+    if (item && item->type == GEUI_Panel)
+    {
+        return item->data.panel;
+    }
+
+    return NULL;
+}
+
+WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256])
+{
+    WindowItem *ptr;
+    WindowItem *result = NULL;
+
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "getItemFromPanelByTag"); return NULL; }
+
+    ptr = panel->iList;
+
+    while (ptr)
+    {
+        if (!strcmp(ptr->tag, tag))
+            return ptr;
+
+        if (ptr->type == GEUI_Panel)
+        {
+            result = getItemFromPanelByTag(ptr->data.panel, tag);
+
+            if (result)
+                return result;
+        }
+
+        ptr = ptr->next;
+    }
+
+    return NULL;
+}
+
+WindowItem *getItemByTag(Window *window, char tag[256])
+{
+    WindowItem *ptr;
+
+    if (!window) { DEBUG_MSG_FROM("panel is NULL", "getItemByTag"); return NULL; }
+
+    ptr = getItemFromPanelByTag(&window->root, tag);
+
+    if (ptr)
+        return ptr;
+
+    return NULL;
+}
+
+WindowItem *getItemFromPanelByIndex(Panel *panel, int index)
+{
+    WindowItem *ptr;
+    WindowItem *result = NULL;
+
+    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "getItemFromPanelByIndex"); return NULL; }
+
+    ptr = panel->iList;
+
+    while (ptr)
+    {
+        if (ptr->index == index)
+            return ptr;
+
+        ptr = ptr->next;
+    }
+
+    return NULL;
+}
+
+WindowItem *getItemByIndex(Window *window, int index)
+{
+    WindowItem *ptr;
+
+    if (!window) { DEBUG_MSG_FROM("window is NULL", "getItemByIndex"); return NULL; }
+
+    ptr = getItemFromPanelByIndex(&window->root, index);
+
+    if (ptr)
+        return ptr;
+
+    return NULL;
+}
+
+void updateItemLayout(WindowItem *ptr)
+{
+    Actor *actor;
+    char temp[256];
+
+    switch (ptr->type)
+    {
+        case GEUI_Text:
+            updateTextDimensions(&ptr->data.text);
+            ptr->layout.width = ptr->data.text.width;
+            ptr->layout.height = max(ptr->data.text.height + ptr->data.text.pFont->baselineOffset, ptr->parent->style.tileHeight);
+        break;
+        case GEUI_Button:
+            DEBUG_MSG_FROM("Layout updating not implemented for item type: Button", "updateItemLayout");
+        break;
+        case GEUI_Checkbox:
+            DEBUG_MSG_FROM("Layout updating not implemented for item type: Checkbox", "updateItemLayout");
+        break;
+        case GEUI_Input:
+            DEBUG_MSG_FROM("Layout updating not implemented for item type: Input", "updateItemLayout");
+        break;
+        case GEUI_Panel:
+            updateItemLayouts(ptr->data.panel);
+        break;
+        case GEUI_Embedder:
+            actor = getclone(ptr->data.embedder.actorCName);
+
+            if (actorExists2(actor))
+            {
+                ptr->layout.width = actor->width;
+                ptr->layout.height = actor->height;
+            }
+            else
+            {
+                DEBUG_MSG_FROM("Actor doesn't exist, layout for Embedder item not updated", "updateItemLayout");
+            }
+        break;
+    }
+
+    sprintf(temp, "Updated layout for item: %s/%s", ptr->parent->tag, ptr->tag);
+    DEBUG_MSG_FROM(temp, "updateItemLayout");
+}
+
+void updateItemLayouts(Panel *panel)
+{
+    WindowItem *ptr;
+
+    ptr = panel->iList;
+
+    while (ptr)
+    {
+        updateItemLayout(ptr);
+        ptr = ptr->next;
+    }
+}
+
+void buildItems(Panel *panel)
+{
+    WindowItem *ptr;
+
+    ptr = panel->iList;
+
+    while (ptr)
+    {
+        buildItem(ptr);
+        ptr = ptr->next;
+    }
+}
+
+void buildItem(WindowItem *ptr)
+{
+    switch (ptr->type)
+    {
+        case GEUI_Text: buildText(ptr); break;
+        case GEUI_Button: buildButton(ptr); break;
+        case GEUI_Checkbox: buildCheckbox(ptr); break;
+        case GEUI_Input: buildInputField(ptr); break;
+        case GEUI_Panel: buildPanel(ptr); break;
+        case GEUI_Embedder: buildEmbedder(ptr); break;
+    }
+}
+
+void eraseWindowItem(WindowItem *ptr)
+{
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "eraseWindowItem"); return; }
+
+    if (GEUIController.focus == ptr)
+    {
+        eraseFocus();
+        GEUIController.focus = NULL;
+    }
+
+    switch (ptr->type)
+    {
+        case GEUI_Text:
+            eraseText(&ptr->data.text);
+            setTextParent(&ptr->data.text, "(none)", False);
+        break;
+        case GEUI_Button:
+            eraseText(&ptr->data.button.text);
+            eraseGuiTiles(&ptr->data.button.tiles);
+        break;
+        case GEUI_Checkbox:
+            DestroyActor(getTile(ptr->data.checkbox.tileIndex)->clonename);
+            ptr->data.checkbox.tileIndex = -1;
+        break;
+        case GEUI_Input:
+            eraseText(&ptr->data.input.text);
+            eraseCaret(&ptr->data.input.caret);
+            setTextParent(&ptr->data.input.text, "(none)", False);
+            eraseGuiTiles(&ptr->data.input.tiles);
+        break;
+        case GEUI_Panel:
+            closePanel(ptr->data.panel);
+        break;
+        case GEUI_Embedder:
+            VisibilityState(ptr->data.embedder.actorCName, DISABLE);
+        break;
+
+        default: break;
+    }
+}
+
+void destroyWindowItem(WindowItem *ptr)
+{
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "destroyWindowItem"); return; }
+
+    if (GEUIController.focus == ptr)
+        eraseFocus();
+
+    switch (ptr->type)
+    {
+        case GEUI_Text: destroyText(&ptr->data.text); break;
+        case GEUI_Button:
+            destroyText(&ptr->data.button.text);
+            eraseGuiTiles(&ptr->data.button.tiles);
+        break;
+        case GEUI_Checkbox:
+            DestroyActor(getTile(ptr->data.checkbox.tileIndex)->clonename);
+            ptr->data.checkbox.tileIndex = -1;
+        break;
+        case GEUI_Input:
+            destroyText(&ptr->data.input.text);
+            eraseCaret(&ptr->data.input.caret);
+            eraseGuiTiles(&ptr->data.input.tiles);
+        break;
+        case GEUI_Panel:
+            destroyPanel(ptr->data.panel);
+            free(ptr->data.panel);
+        break;
+        case GEUI_Embedder:
+            DestroyActor(ptr->data.embedder.actorCName);
+        break;
+
+        default: break;
+    }
+}
+
+
+// ..\source\geui\21-geui-item-text.c
+WindowItem *addText(Panel *panel, char tag[256], char *string, short maxWidth);
+void buildText(WindowItem *ptr);
+
+WindowItem *addText(Panel *panel, char tag[256], char *string, short maxWidth)
+{
+    WindowItem *ptr = initNewItem(GEUI_Text, panel, tag);
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addText"); return NULL; }
+
+    ptr->data.text = createText(string, panel->parent->style.textFont, "(none)", ABSOLUTE, 0, 0);
+    setTextColor(&ptr->data.text, panel->parent->style.textColor);
+    setTextZDepth(&ptr->data.text, DEFAULT_ITEM_ZDEPTH);
+
+    if (maxWidth > 0)
+        fitTextInWidth(&ptr->data.text, maxWidth);
+
+    ptr->layout.width = ptr->data.text.width;
+    ptr->layout.height = max(ptr->data.text.height + ptr->data.text.pFont->baselineOffset, ptr->parent->style.tileHeight);
+
+    return addItemToWindow(ptr);
+}
+
+void buildText(WindowItem *ptr)
+{
+    if (ptr->type != GEUI_Text) { DEBUG_MSG_FROM("item is not a valid Text item", "buildText"); return; }
+
+    setTextZDepth(&ptr->data.text, DEFAULT_ITEM_ZDEPTH);
+    // TODO: layout / positioning
+    setTextPosition(&ptr->data.text,
+        ptr->layout.startx + ptr->parent->style.padding,
+        ptr->layout.starty + ptr->parent->style.tileHeight * 0.5 + ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
+    refreshText(&ptr->data.text);
+}
+
+
+// ..\source\geui\22-geui-item-button.c
+WindowItem *addButton(Panel *panel, char tag[256], char *string, GUIAction action);
+void buildButtonText(WindowItem *ptr);
+void buildButton(WindowItem *ptr);
+
 WindowItem *addButton(Panel *panel, char tag[256], char *string, GUIAction action)
 {
     short buttonMinWidth;
@@ -2657,6 +3151,73 @@ WindowItem *addButton(Panel *panel, char tag[256], char *string, GUIAction actio
     return addItemToWindow(ptr);
 }
 
+void buildButtonText(WindowItem *ptr)
+{
+    long start = ptr->data.button.tiles.first;
+    long end = ptr->data.button.tiles.last;
+    short tileWidth = ptr->parent->style.tileWidth;
+
+    Text *buttonText = &ptr->data.button.text;
+
+    colorClones("a_gui", start, end, ptr->parent->style.buttonColor);
+    setTextZDepth(buttonText, DEFAULT_ITEM_ZDEPTH);
+
+    if (ptr->parent->style.buttonProperties & GEUI_BUTTON_TEXT_ALIGN_LEFT)
+    {
+        setTextAlignment(buttonText, ALIGN_LEFT);
+        setTextPosition(buttonText, getTile(start)->x - tileWidth / 2 + tileWidth * ptr->parent->style.buttonPadding, getTile(start)->y - ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
+    }
+    else
+    {
+        setTextAlignment(buttonText, ALIGN_CENTER);
+        setTextPosition(buttonText,
+            ceil((getTile(end)->x - getTile(start)->x) * 0.5) + getTile(start)->x, getTile(start)->y - ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
+    }
+
+    refreshText(buttonText);
+}
+
+void buildButton(WindowItem *ptr)
+{
+    short i;
+    Actor *a;
+    Text *buttonText;
+    long start, end;
+    short buttonWidth;
+    short tilesHorizontal;
+    short tileWidth = ptr->parent->style.tileWidth;
+    short tileHeight = ptr->parent->style.tileHeight;
+
+    if (ptr->type != GEUI_Button) { DEBUG_MSG_FROM("item is not a valid Button item", "buildButton"); return; }
+
+    buttonWidth = ptr->layout.width;
+    tilesHorizontal = ceil(buttonWidth / (float)tileWidth);
+
+    for (i = 0; i < tilesHorizontal; i ++)
+    {
+        a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
+        // TODO: layout / positioning
+        a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth)-tileWidth/2;// + (ptr->layout.col > 0); // TODO: make nicer
+        a->x += ptr->parent->style.padding;
+        a->y = ptr->layout.starty + tileHeight-tileWidth/2;// + (ptr->layout.row > 0);
+        a->y += ptr->parent->style.padding;
+        a->myWindow = ptr->parent->index;
+        a->myPanel  = ptr->myPanel->index;
+        a->myIndex  = ptr->index;
+        ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
+        a->animpos = 9 + (i > 0) + (i == tilesHorizontal - 1) + (i > 0 && i == tilesHorizontal - 2 && buttonWidth < tileWidth * 2.5);// TODO: make nicer
+
+        updateGuiTileIndices(&ptr->data.button.tiles, a->cloneindex);
+    }
+
+    buildButtonText(ptr);
+}
+
+
+// ..\source\geui\23-geui-item-checkbox.c
+WindowItem *addCheckbox(Panel *panel, char tag[256], bool state);
+void buildCheckbox(WindowItem *ptr);
+
 WindowItem *addCheckbox(Panel *panel, char tag[256], bool state)
 {
     WindowItem *ptr = initNewItem(GEUI_Checkbox, panel, tag);
@@ -2671,6 +3232,37 @@ WindowItem *addCheckbox(Panel *panel, char tag[256], bool state)
 
     return addItemToWindow(ptr);
 }
+
+void buildCheckbox(WindowItem *ptr)
+{
+    Actor *a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
+    a->x = ptr->layout.startx + ptr->parent->style.tileWidth / 2;
+    a->x += ptr->parent->style.padding;
+    a->y = ptr->layout.starty + ptr->parent->style.tileHeight / 2;
+    a->y += ptr->parent->style.padding;
+    ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
+    colorActor(a, ptr->parent->style.buttonColor);
+    a->animpos = 24 + (ptr->data.checkbox.state == True);
+    a->myWindow = ptr->parent->index;
+    a->myPanel  = ptr->myPanel->index;
+    a->myIndex  = ptr->index;
+    ptr->data.checkbox.tileIndex = a->cloneindex;
+}
+
+
+// ..\source\geui\24-geui-item-input.c
+void enforceTextInputSettings(InputField *input);
+void updateTextInputValue(InputField *input);
+InputSettings createTextInputSettings();
+void enforceIntInputSettings(InputField *input);
+void updateIntInputValue(InputField *input);
+InputSettings createIntInputSettings(int minVal, int maxVal, int defaultValue);
+void enforceDecimalInputSettings(InputField *input);
+void updateDecimalInputValue(InputField *input);
+InputSettings createDecimalInputSettings(float minVal, float maxVal, float defaultValue, short precisionDigits);
+WindowItem *addInputField(Panel *panel, char tag[256], const char *string, InputSettings settings, short maxWidth);
+void buildInputFieldBackground(WindowItem *ptr, TileIndices *tiles);
+void buildInputField(WindowItem *ptr);
 
 void enforceTextInputSettings(InputField *input)
 {
@@ -2781,437 +3373,6 @@ WindowItem *addInputField(Panel *panel, char tag[256], const char *string, Input
     return addItemToWindow(ptr);
 }
 
-WindowItem *addPanel(Panel *panel, char tag[256])
-{
-    WindowItem *ptr = initNewItem(GEUI_Panel, panel, tag);
-    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addPanel"); return NULL; }
-
-    ptr->data.panel = malloc(sizeof *ptr->data.panel);
-    if (!ptr->data.panel)
-    {
-        free(ptr);
-        DEBUG_MSG_FROM("memory allocation failed", "addPanel");
-        return NULL;
-    }
-
-    ptr->data.panel->index = panel->parent->pIndex++;
-    ptr->data.panel->iIndex = 0;
-    ptr->data.panel->rows = 0;
-    ptr->data.panel->cols = 0;
-    ptr->data.panel->width = 0;
-    ptr->data.panel->height = 0;
-    ptr->data.panel->parent = panel->parent;
-
-    return addItemToWindow(ptr);
-}
-
-WindowItem *addEmbedder(Panel *panel, char tag[256], const char *actorName)
-{
-    Actor *actor;
-    WindowItem *ptr = initNewItem(GEUI_Embedder, panel, tag);
-    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addEmbedder"); return NULL; }
-
-    if (!actorExists2(actor = getclone(actorName)))
-    {
-        DEBUG_MSG_FROM("actor doesn't exist", "addEmbedder");
-        free(ptr);
-        return NULL;
-    }
-
-    strcpy(ptr->data.embedder.actorCName, actor->clonename);
-    VisibilityState(ptr->data.embedder.actorCName, DISABLE);
-
-    ptr->layout.width = actor->width;
-    ptr->layout.height = actor->height;
-
-    return addItemToWindow(ptr);
-}
-
-WindowItem *setPosition(WindowItem *this, short row, short col)
-{
-    if (!this) { DEBUG_MSG_FROM("item is NULL", "setPosition"); return NULL; }
-
-    this->layout.row = row;
-    this->layout.col = col;
-
-    return this;
-}
-
-Panel *getPanel(WindowItem *item)
-{
-    if (item && item->type == GEUI_Panel)
-    {
-        return item->data.panel;
-    }
-
-    return NULL;
-}
-
-WindowItem *getItemFromPanelByTag(Panel *panel, char tag[256])
-{
-    WindowItem *ptr;
-    WindowItem *result = NULL;
-
-    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "getItemFromPanelByTag"); return NULL; }
-
-    ptr = panel->iList;
-
-    while (ptr)
-    {
-        if (!strcmp(ptr->tag, tag))
-            return ptr;
-
-        if (ptr->type == GEUI_Panel)
-        {
-            result = getItemFromPanelByTag(ptr->data.panel, tag);
-
-            if (result)
-                return result;
-        }
-
-        ptr = ptr->next;
-    }
-
-    return NULL;
-}
-
-WindowItem *getItemByTag(Window *window, char tag[256])
-{
-    WindowItem *ptr;
-
-    if (!window) { DEBUG_MSG_FROM("panel is NULL", "getItemByTag"); return NULL; }
-
-    ptr = getItemFromPanelByTag(&window->root, tag);
-
-    if (ptr)
-        return ptr;
-
-    return NULL;
-}
-
-WindowItem *getItemFromPanelByIndex(Panel *panel, int index)
-{
-    WindowItem *ptr;
-    WindowItem *result = NULL;
-
-    if (!panel) { DEBUG_MSG_FROM("panel is NULL", "getItemFromPanelByIndex"); return NULL; }
-
-    ptr = panel->iList;
-
-    while (ptr)
-    {
-        if (ptr->index == index)
-            return ptr;
-
-        ptr = ptr->next;
-    }
-
-    return NULL;
-}
-
-WindowItem *getItemByIndex(Window *window, int index)
-{
-    WindowItem *ptr;
-
-    if (!window) { DEBUG_MSG_FROM("window is NULL", "getItemByIndex"); return NULL; }
-
-    ptr = getItemFromPanelByIndex(&window->root, index);
-
-    if (ptr)
-        return ptr;
-
-    return NULL;
-}
-
-bool bothPointToSameItem(WindowItem *item1, WindowItem *item2)
-{
-    return (item1 && item2 && item1 == item2);
-}
-
-WindowItem *getNextFocusableItem(WindowItem *ptr, WindowItem *start, bool reverse)
-{
-    Panel *panel = ptr->myPanel;
-    Window *window = ptr->parent;
-    WindowItem *next = getItemFromPanelByIndex(panel, ptr->index + (reverse ? -1 : 1));
-
-    // The search looped around, there's no focusable items in this window
-    if (bothPointToSameItem(next, start))
-        return NULL;
-
-    // If there was a next item in the same panel
-    if (next)
-    {
-        if (next->focusable)
-            return next;
-        return getNextFocusableItem(next, start, reverse);
-    }
-
-    // Otherwise get the next panel in this window
-    panel = getPanelByIndex(&window->root, panel->index + (reverse ? -1 : 1));
-
-    // If there was a next panel in the same window
-    if (panel)
-    {
-        next = getItemFromPanelByIndex(panel, reverse ? panel->iIndex - 1 : 0);
-
-        // The search looped around, there's no focusable items in this window
-        if (bothPointToSameItem(next, start))
-            return NULL;
-
-        // Panel had an item inside with index 0
-        if (next)
-        {
-            if (next->focusable)
-                return next;
-            return getNextFocusableItem(next, start, reverse);
-        }
-    }
-
-    // Otherwise use the main panel (always has index 0) of the window
-    panel = getPanelByIndex(&window->root, reverse ? window->pIndex - 1 : 0);
-
-    if (panel)
-    {
-        next = getItemFromPanelByIndex(panel, reverse ? panel->iIndex - 1 : 0);
-
-        // The search looped around, there's no focusable items in this window
-        if (bothPointToSameItem(next, start))
-            return NULL;
-
-        if (next)
-        {
-            if (next->focusable)
-                return next;
-            return getNextFocusableItem(next, start, reverse);
-        }
-    }
-
-    return NULL;
-}
-
-WindowItem *focusItem(WindowItem *ptr)
-{
-    if (ptr->focusable)
-    {
-        if (GEUIController.focus != ptr)
-        {
-            blurItem(GEUIController.focus);
-            GEUIController.focus = ptr;
-            buildFocus(ptr);
-
-            switch (ptr->type)
-            {
-                case GEUI_Input:
-                    showCaret(&ptr->data.input.caret);
-                    updateCaretPosition(&ptr->data.input.caret);
-                break;
-            }
-        }
-
-        return ptr;
-    }
-
-    return NULL;
-}
-
-void blurItem(WindowItem *ptr)
-{
-    if (GEUIController.focus != NULL && GEUIController.focus == ptr)
-    {
-        eraseFocus(ptr);
-        GEUIController.focus = NULL;
-
-        if (ptr->type == GEUI_Button)
-        {
-            ptr->data.button.state = 0;
-            colorGuiTiles(ptr->data.button.tiles, ptr->parent->style.buttonColor);
-        }
-        else if (ptr->type == GEUI_Input)
-        {
-            ptr->data.input.settings.readValueFunc(&ptr->data.input);
-            ptr->data.input.settings.applyConstraintsFunc(&ptr->data.input);
-            refreshInputValue(&ptr->data.input);
-            updateCaretPosition(&ptr->data.input.caret);
-            hideCaret(&ptr->data.input.caret);
-        }
-    }
-}
-
-void buildFocus(WindowItem *ptr)
-{
-    short i, j;
-    Actor *tile;
-    short tempAnimpos;
-    short focusWidth;
-    short focusHeight;
-    short focusLineWidth = ptr->parent->style.focusWidth;
-    short tilesHorizontal;
-    short tilesVertical;
-    short tileWidth = ptr->parent->style.tileWidth;
-    short tileHeight = ptr->parent->style.tileHeight;
-
-    focusWidth = ptr->layout.width + focusLineWidth * 2;
-    tilesHorizontal = ceil(focusWidth / (float)tileWidth);
-    focusHeight = max(ptr->layout.height, tileHeight) + focusLineWidth * 2;
-    tilesVertical = ceil(focusHeight / (float)tileHeight);
-
-    for (j = 0; j < tilesVertical; j++)
-    {
-        for (i = 0; i < tilesHorizontal; i++)
-        {
-            tempAnimpos = calculateAnimpos(tilesHorizontal, tilesVertical, i, j) + 15;
-
-            if (tempAnimpos == 19)
-                continue;
-
-            tile = CreateActor("a_gui", ptr->parent->style.guiAnim,
-                               ptr->parent->parentCName, "(none)", 0, 0, true);
-            tile->x = ptr->layout.startx + tileWidth + i * tileWidth + (i == tilesHorizontal-1) * (focusWidth  - tilesHorizontal * tileWidth)-tileWidth/2;
-            tile->x += ptr->parent->style.padding - focusLineWidth;
-            tile->y = ptr->layout.starty + tileHeight + j * tileHeight + (j == tilesVertical - 1) * (focusHeight - tilesVertical * tileHeight)-tileHeight/2;
-            tile->y += ptr->parent->style.padding - focusLineWidth;
-            tile->animpos = tempAnimpos;
-
-            tile->myWindow = -1;
-            tile->myPanel = -1;
-            tile->myIndex = -1;
-            colorActor(tile, ptr->parent->style.focusColor);
-            ChangeZDepth(tile->clonename, DEFAULT_ITEM_ZDEPTH);
-            EventDisable(tile->clonename, EVENTCOLLISION);
-            EventDisable(tile->clonename, EVENTCOLLISIONFINISH);
-            updateGuiTileIndices(&GEUIController.focusTiles, tile->cloneindex);
-        }
-    }
-}
-
-void eraseFocus()
-{
-    eraseGuiTiles(&GEUIController.focusTiles);
-}
-
-void buildItems(Panel *panel)
-{
-    WindowItem *ptr;
-
-    ptr = panel->iList;
-
-    while (ptr)
-    {
-        buildItem(ptr);
-        ptr = ptr->next;
-    }
-}
-
-void buildItem(WindowItem *ptr)
-{
-    switch (ptr->type)
-    {
-        case GEUI_Text: buildText(ptr); break;
-        case GEUI_Button: buildButton(ptr); break;
-        case GEUI_Checkbox: buildCheckbox(ptr); break;
-        case GEUI_Input: buildInputField(ptr); break;
-        case GEUI_Panel: buildPanel(ptr); break;
-        case GEUI_Embedder: buildEmbedder(ptr); break;
-    }
-}
-
-void buildText(WindowItem *ptr)
-{
-    if (ptr->type != GEUI_Text) { DEBUG_MSG_FROM("item is not a valid Text item", "buildText"); return; }
-
-    setTextZDepth(&ptr->data.text, DEFAULT_ITEM_ZDEPTH);
-    // TODO: layout / positioning
-    setTextPosition(&ptr->data.text,
-        ptr->layout.startx + ptr->parent->style.padding,
-        ptr->layout.starty + ptr->parent->style.tileHeight * 0.5 + ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
-    refreshText(&ptr->data.text);
-}
-
-void buildPanel(WindowItem *ptr)
-{
-    if (ptr->type != GEUI_Panel) { DEBUG_MSG_FROM("item is not a valid Panel item", "buildPanel"); return; }
-
-    buildItems(ptr->data.panel);
-}
-
-void buildButtonText(WindowItem *ptr)
-{
-    long start = ptr->data.button.tiles.first;
-    long end = ptr->data.button.tiles.last;
-    short tileWidth = ptr->parent->style.tileWidth;
-
-    Text *buttonText = &ptr->data.button.text;
-
-    colorClones("a_gui", start, end, ptr->parent->style.buttonColor);
-    setTextZDepth(buttonText, DEFAULT_ITEM_ZDEPTH);
-
-    if (ptr->parent->style.buttonProperties & GEUI_BUTTON_TEXT_ALIGN_LEFT)
-    {
-        setTextAlignment(buttonText, ALIGN_LEFT);
-        setTextPosition(buttonText, getTile(start)->x - tileWidth / 2 + tileWidth * ptr->parent->style.buttonPadding, getTile(start)->y - ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
-    }
-    else
-    {
-        setTextAlignment(buttonText, ALIGN_CENTER);
-        setTextPosition(buttonText,
-            ceil((getTile(end)->x - getTile(start)->x) * 0.5) + getTile(start)->x, getTile(start)->y - ceil(ptr->data.button.text.pFont->baselineOffset * 0.5));
-    }
-
-    refreshText(buttonText);
-}
-
-void buildButton(WindowItem *ptr)
-{
-    short i;
-    Actor *a;
-    Text *buttonText;
-    long start, end;
-    short buttonWidth;
-    short tilesHorizontal;
-    short tileWidth = ptr->parent->style.tileWidth;
-    short tileHeight = ptr->parent->style.tileHeight;
-
-    if (ptr->type != GEUI_Button) { DEBUG_MSG_FROM("item is not a valid Button item", "buildButton"); return; }
-
-    buttonWidth = ptr->layout.width;
-    tilesHorizontal = ceil(buttonWidth / (float)tileWidth);
-
-    for (i = 0; i < tilesHorizontal; i ++)
-    {
-        a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
-        // TODO: layout / positioning
-        a->x = ptr->layout.startx + tileWidth + i * tileWidth + (i >= 2 && i >= tilesHorizontal - 2) * (buttonWidth - tilesHorizontal * tileWidth)-tileWidth/2;// + (ptr->layout.col > 0); // TODO: make nicer
-        a->x += ptr->parent->style.padding;
-        a->y = ptr->layout.starty + tileHeight-tileWidth/2;// + (ptr->layout.row > 0);
-        a->y += ptr->parent->style.padding;
-        a->myWindow = ptr->parent->index;
-        a->myPanel  = ptr->myPanel->index;
-        a->myIndex  = ptr->index;
-        ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
-        a->animpos = 9 + (i > 0) + (i == tilesHorizontal - 1) + (i > 0 && i == tilesHorizontal - 2 && buttonWidth < tileWidth * 2.5);// TODO: make nicer
-
-        updateGuiTileIndices(&ptr->data.button.tiles, a->cloneindex);
-    }
-
-    buildButtonText(ptr);
-}
-
-void buildCheckbox(WindowItem *ptr)
-{
-    Actor *a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
-    a->x = ptr->layout.startx + ptr->parent->style.tileWidth / 2;
-    a->x += ptr->parent->style.padding;
-    a->y = ptr->layout.starty + ptr->parent->style.tileHeight / 2;
-    a->y += ptr->parent->style.padding;
-    ChangeZDepth(a->clonename, DEFAULT_ITEM_ZDEPTH);
-    colorActor(a, ptr->parent->style.buttonColor);
-    a->animpos = 24 + (ptr->data.checkbox.state == True);
-    a->myWindow = ptr->parent->index;
-    a->myPanel  = ptr->myPanel->index;
-    a->myIndex  = ptr->index;
-    ptr->data.checkbox.tileIndex = a->cloneindex;
-}
-
 Actor *buildCaret(WindowItem *ptr, Text *pText, BlinkingCaret *caret)
 {
     Actor *a = CreateActor("a_gui", ptr->parent->style.guiAnim, ptr->parent->parentCName, "(none)", 0, 0, true);
@@ -3277,6 +3438,69 @@ void buildInputField(WindowItem *ptr)
     hideCaret(&ptr->data.input.caret);
 }
 
+
+// ..\source\geui\25-geui-item-panel.c
+WindowItem *addPanel(Panel *panel, char tag[256]);
+void buildPanel(WindowItem *ptr);
+
+WindowItem *addPanel(Panel *panel, char tag[256])
+{
+    WindowItem *ptr = initNewItem(GEUI_Panel, panel, tag);
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addPanel"); return NULL; }
+
+    ptr->data.panel = malloc(sizeof *ptr->data.panel);
+    if (!ptr->data.panel)
+    {
+        free(ptr);
+        DEBUG_MSG_FROM("memory allocation failed", "addPanel");
+        return NULL;
+    }
+
+    ptr->data.panel->index = panel->parent->pIndex++;
+    ptr->data.panel->iIndex = 0;
+    ptr->data.panel->rows = 0;
+    ptr->data.panel->cols = 0;
+    ptr->data.panel->width = 0;
+    ptr->data.panel->height = 0;
+    ptr->data.panel->parent = panel->parent;
+
+    return addItemToWindow(ptr);
+}
+
+void buildPanel(WindowItem *ptr)
+{
+    if (ptr->type != GEUI_Panel) { DEBUG_MSG_FROM("item is not a valid Panel item", "buildPanel"); return; }
+
+    buildItems(ptr->data.panel);
+}
+
+
+// ..\source\geui\26-geui-item-embedder.c
+WindowItem *addEmbedder(Panel *panel, char tag[256], const char *actorName);
+void buildEmbedder(WindowItem *ptr);
+
+WindowItem *addEmbedder(Panel *panel, char tag[256], const char *actorName)
+{
+    Actor *actor;
+    WindowItem *ptr = initNewItem(GEUI_Embedder, panel, tag);
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addEmbedder"); return NULL; }
+
+    if (!actorExists2(actor = getclone(actorName)))
+    {
+        DEBUG_MSG_FROM("actor doesn't exist", "addEmbedder");
+        free(ptr);
+        return NULL;
+    }
+
+    strcpy(ptr->data.embedder.actorCName, actor->clonename);
+    VisibilityState(ptr->data.embedder.actorCName, DISABLE);
+
+    ptr->layout.width = actor->width;
+    ptr->layout.height = actor->height;
+
+    return addItemToWindow(ptr);
+}
+
 void buildEmbedder(WindowItem *ptr)
 {
     Actor *actor;
@@ -3301,82 +3525,6 @@ void buildEmbedder(WindowItem *ptr)
                                 // (int)actor->y);
         // DEBUG_MSG_FROM(temp, "buildEmbedder");
     // }
-}
-
-void eraseWindowItem(WindowItem *ptr)
-{
-    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "eraseWindowItem"); return; }
-
-    if (GEUIController.focus == ptr)
-    {
-        eraseFocus();
-        GEUIController.focus = NULL;
-    }
-
-    switch (ptr->type)
-    {
-        case GEUI_Text:
-            eraseText(&ptr->data.text);
-            setTextParent(&ptr->data.text, "(none)", False);
-        break;
-        case GEUI_Button:
-            eraseText(&ptr->data.button.text);
-            eraseGuiTiles(&ptr->data.button.tiles);
-        break;
-        case GEUI_Checkbox:
-            DestroyActor(getTile(ptr->data.checkbox.tileIndex)->clonename);
-            ptr->data.checkbox.tileIndex = -1;
-        break;
-        case GEUI_Input:
-            eraseText(&ptr->data.input.text);
-            eraseCaret(&ptr->data.input.caret);
-            setTextParent(&ptr->data.input.text, "(none)", False);
-            eraseGuiTiles(&ptr->data.input.tiles);
-        break;
-        case GEUI_Panel:
-            closePanel(ptr->data.panel);
-        break;
-        case GEUI_Embedder:
-            VisibilityState(ptr->data.embedder.actorCName, DISABLE);
-        break;
-
-        default: break;
-    }
-}
-
-void destroyWindowItem(WindowItem *ptr)
-{
-    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "destroyWindowItem"); return; }
-
-    if (GEUIController.focus == ptr)
-        eraseFocus();
-
-    switch (ptr->type)
-    {
-        case GEUI_Text: destroyText(&ptr->data.text); break;
-        case GEUI_Button:
-            destroyText(&ptr->data.button.text);
-            eraseGuiTiles(&ptr->data.button.tiles);
-        break;
-        case GEUI_Checkbox:
-            DestroyActor(getTile(ptr->data.checkbox.tileIndex)->clonename);
-            ptr->data.checkbox.tileIndex = -1;
-        break;
-        case GEUI_Input:
-            destroyText(&ptr->data.input.text);
-            eraseCaret(&ptr->data.input.caret);
-            eraseGuiTiles(&ptr->data.input.tiles);
-        break;
-        case GEUI_Panel:
-            destroyPanel(ptr->data.panel);
-            free(ptr->data.panel);
-        break;
-        case GEUI_Embedder:
-            DestroyActor(ptr->data.embedder.actorCName);
-        break;
-
-        default: break;
-    }
 }
 
 
@@ -3482,7 +3630,6 @@ short getColWidth(Panel *panel, short col)
             item->layout.width = width;
         }
     }
-
     return width + panel->parent->style.padding * (col < panel->cols - 1);
 }
 
@@ -3864,6 +4011,7 @@ Window *openWindow(char tag[256], WindowPosition pos)
     if (!window) { DEBUG_MSG_FROM("window is NULL", "openWindow"); return NULL; }
     if (window->isOpen) { DEBUG_MSG_FROM("window is already open", "openWindow"); return window; }
 
+    updateItemLayouts(&window->root);
     updatePanelLayout(NULL, &window->root);
     buildWindow(window, pos);
     buildItems(&window->root);
@@ -4052,12 +4200,8 @@ void destroyWindow(Window *window)
 }
 
 
-// ..\source\geui\50-geui-input.c
-// TODO: make functions return error codes instead of just exiting
-// without doing anything, which can be difficult to debug
-
+// ..\source\geui\50-geui-mouse-input.c
 int isTopmostItemAtMouse(WindowItem *item);
-void focusNextItemInWindow(bool reverse);
 void doMouseEnter(const char *actorName);
 void doMouseLeave(const char *actorName);
 void doMouseButtonDown(const char *actorName, enum mouseButtonsEnum mButtonNumber);
@@ -4070,8 +4214,6 @@ int isMouseButtonDown(enum mouseButtonsEnum mButtonNumber);
 int isMouseButtonUp(enum mouseButtonsEnum mButtonNumber);
 int updateMouseButtonDown(enum mouseButtonsEnum mButtonNumber);
 void updateMouseButtonUp(enum mouseButtonsEnum mButtonNumber);
-void doKeyDown(WindowItem *item, int key);
-void doKeyUp(WindowItem *item, int key);
 
 int isTopmostItemAtMouse(WindowItem *item)
 {
@@ -4097,34 +4239,6 @@ int isTopmostItemAtMouse(WindowItem *item)
     }
 
     return 0;
-}
-
-void focusNextItemInWindow(bool reverse)
-{
-    Window *window = getWindowByIndex(GEUIController.topIndex);
-    WindowItem *nextFocus = NULL;
-
-    if (GEUIController.focus && GEUIController.focus->parent->index == GEUIController.topIndex)
-    {
-        nextFocus = getNextFocusableItem(GEUIController.focus, GEUIController.focus, reverse);
-    }
-    else
-    {
-        window = getWindowByIndex(GEUIController.topIndex);
-        if (window && window->isOpen)
-        {
-            nextFocus = getItemFromPanelByIndex(&window->root, 0);
-            if (nextFocus && nextFocus->focusable == False)
-            {
-                nextFocus = getNextFocusableItem(nextFocus, nextFocus, reverse);
-            }
-        }
-    }
-
-    if (nextFocus)
-    {
-        focusItem(nextFocus);
-    }
 }
 
 void doMouseEnter(const char *actorName)
@@ -4471,6 +4585,12 @@ void updateMouseButtonUp(enum mouseButtonsEnum mButtonNumber)
         GEUIController.mButtonActorCount[mButtonNumber] = 0;
     }
 }
+
+
+
+// ..\source\geui\51-geui-keyboard-input.c
+void doKeyDown(WindowItem *item, int key);
+void doKeyUp(WindowItem *item, int key);
 
 void doKeyDown(WindowItem *item, int key)
 {
