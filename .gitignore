@@ -12,6 +12,9 @@ debug.log
 # Test level file
 level.c
 
+# Texture thumbnail configuration file
+textures.conf
+
 # Local only files (ideas, concepts, etc.)
 /local
 
