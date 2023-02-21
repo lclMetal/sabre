@@ -3,6 +3,7 @@
 #define SWE_WINDOW_PLACE_ENTITY         "placeEntityWindow"
 #define SWE_WINDOW_CREATE_ENTITY_TYPE   "createEntityTypeWindow"
 #define SWE_WINDOW_PLACE_TRIGGER        "placeTriggerWindow"
+#define SWE_WINDOW_TXR_CONFIG           "configureTexture"
 
 void SWE_CreateWindows()
 {
@@ -72,4 +73,19 @@ void SWE_CreateWindows()
     panel = getWindowRootPanel(window);
     setPosition(addText(panel, "title", "\nPlace trigger", 0), 0, 0);
     setPosition(addButton(panel, "okBtn", "Ok", createCloseWindowAction(window->tag)), 1, 0);
+
+    // Define "texture config" window
+    window = createWindow(SWE_WINDOW_TXR_CONFIG, sweStyle);
+    panel = getWindowRootPanel(window);
+    setPosition(addText(panel, "title", "\nTexture config:", 0), 0, 0);
+    // panel = getPanel(setPosition(addPanel(panel, "propertiesPanel"), 1, 0));
+    // setPosition(addText(panel, "labelName", "Name", 200), 0, 0);
+    // setPosition(addText(panel, "valueName", "Name", 200), 0, 1);
+    setPosition(addText(panel, "labelAttributes", "Attributes", 200), 1, 0);
+    panel = getPanel(setPosition(addPanel(getWindowRootPanel(window), "attributesPanel"), 2, 0));
+    setPosition(addCheckbox(panel, "chkAttribIsWindow", False), 0, 0);
+    setPosition(addText(panel, "labelAttribIsWindow", "Is window", 200), 0, 1);
+    panel = getPanel(setPosition(addPanel(getWindowRootPanel(window), "buttonsPanel"), 3, 0));
+    setPosition(addButton(panel, "doneBtn", "Done", createCloseWindowAction(window->tag)), 0, 0);
+    setPosition(addButton(panel, "cancelBtn", "Cancel", createCloseWindowAction(window->tag)), 0, 1);
 }
