@@ -3117,6 +3117,19 @@ void buildText(WindowItem *ptr)
     refreshText(&ptr->data.text);
 }
 
+// This function allows editing the text of a text type
+// window item. Notice that using the function currently
+// erases the existing text if the window is open and
+// does not re-render the text automatically. At this
+// point it's advisable to only use the function to change
+// the text content _before_ the window is opened.
+void setTextContent(WindowItem *ptr, char *string)
+{
+    if (ptr->type != GEUI_Text) { DEBUG_MSG_FROM("item is not a valid Text item", "setTextContent"); return; }
+
+    setTextText(&ptr->data.text, string);
+}
+
 
 // ..\source\geui\22-geui-item-button.c
 WindowItem *addButton(Panel *panel, char tag[256], char *string, GUIAction action);
@@ -3247,6 +3260,29 @@ void buildCheckbox(WindowItem *ptr)
     a->myPanel  = ptr->myPanel->index;
     a->myIndex  = ptr->index;
     ptr->data.checkbox.tileIndex = a->cloneindex;
+}
+
+void setCheckboxState(WindowItem *ptr, bool state)
+{
+    Actor *tile;
+
+    if (ptr->type != GEUI_Checkbox) { DEBUG_MSG_FROM("item is not a valid Checkbox item", "setCheckboxState"); return; }
+
+    ptr->data.checkbox.state = state;
+
+    tile = getTile(ptr->data.checkbox.tileIndex);
+
+    if (actorExists2(tile))
+    {
+        tile->animpos = 24 + (state == True);
+    }
+}
+
+bool getCheckboxState(WindowItem *ptr, bool defaultValue)
+{
+    if (ptr->type != GEUI_Checkbox) { DEBUG_MSG_FROM("item is not a valid Checkbox item", "getCheckboxState"); return defaultValue; }
+
+    return ptr->data.checkbox.state;
 }
 
 
