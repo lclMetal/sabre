@@ -1022,6 +1022,7 @@ enum SABRE_GameStatesEnum
     SABRE_UNINITIALIZED = 0,
     SABRE_TEXTURES_ADDED,
     SABRE_SPRITES_ADDED,
+    SABRE_INITIALIZED,
     SABRE_RUNNING,
     SABRE_FINISHED
 }SABRE_gameState = SABRE_UNINITIALIZED;
@@ -1239,8 +1240,6 @@ void SABRE_DisableActors()
     SABRE_DisableActor("SABRE_PlayerController");
     SABRE_DisableActor("SABRE_ProjectileHandler");
     SABRE_DisableActor("SABRE_TriggerHandler");
-    SABRE_DisableActor("SABRE_TextureActor");
-    SABRE_DisableActor("SABRE_SpriteActor");
     SABRE_DisableActor("SABRE_Ceiling");
     SABRE_DisableActor("SABRE_Floor");
 }
@@ -1251,8 +1250,6 @@ void SABRE_EnableActors()
     SABRE_EnableActor("SABRE_PlayerController");
     SABRE_EnableActor("SABRE_ProjectileHandler");
     SABRE_EnableActor("SABRE_TriggerHandler");
-    SABRE_EnableActor("SABRE_TextureActor");
-    SABRE_EnableActor("SABRE_SpriteActor");
     SABRE_EnableActor("SABRE_Ceiling");
     SABRE_EnableActor("SABRE_Floor");
 }
@@ -1266,17 +1263,20 @@ void SABRE_SetEntities();
 // from texture.c
 int SABRE_ValidateTextureIndex(int index);
 
-void SABRE_Quit();
+void SABRE_Cleanup();
 
 #define SABRE_STRINGIFY(X) #X
 #define SABRE_EXPAND_STRINGIFY(X) SABRE_STRINGIFY(X)
 #define SABRE_PROCESS_STEP_LABEL(NAME, STAGE, STAGES) "[" NAME " (" SABRE_STRINGIFY(STAGE) "/" SABRE_EXPAND_STRINGIFY(STAGES) ")] "
 
-#define SABRE_INIT_STAGES 6
+#define SABRE_INIT_STAGES 5
 #define SABRE_INIT_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("init", STAGE, SABRE_INIT_STAGES)
 
-#define SABRE_QUIT_STAGES 7
-#define SABRE_QUIT_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("quit", STAGE, SABRE_QUIT_STAGES)
+#define SABRE_CLEANUP_STAGES 7
+#define SABRE_CLEANUP_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("cleanup", STAGE, SABRE_CLEANUP_STAGES)
+
+#define SABRE_START_STAGES 2
+#define SABRE_START_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("start", STAGE, SABRE_START_STAGES)
 
 void SABRE_ValidateGraphicsSettings()
 {
@@ -1288,49 +1288,139 @@ void SABRE_ValidateGraphicsSettings()
     }
 }
 
-void SABRE_Start()
+void SABRE_BuildTextureStore()
 {
-    SABRE_EnableActors();
-
-    DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(1) "Signal textureActor to start adding textures.", "SABRE_Start");
-    SendActivationEvent("SABRE_TextureActor");
-    if (SABRE_gameState == SABRE_TEXTURES_ADDED)
+    if (SABRE_gameState < SABRE_TEXTURES_ADDED)
     {
-        DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Texture addition successful.", "SABRE_Start");
-        DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(3) "Signal spriteActor to start adding sprites.", "SABRE_Start");
+        SendActivationEvent("SABRE_TextureActor");
+    }
+}
+
+void SABRE_BuildSpriteStore()
+{
+    if (SABRE_gameState < SABRE_SPRITES_ADDED)
+    {
         SendActivationEvent("SABRE_SpriteActor");
-        if (SABRE_gameState == SABRE_SPRITES_ADDED)
+    }
+}
+
+void SABRE_Initialize()
+{
+    int nextStep = 1;
+
+    while (nextStep)
+    {
+        switch (SABRE_gameState)
         {
-            DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Sprite addition successful.", "SABRE_Start");
+            case SABRE_UNINITIALIZED:
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(1) "Signal textureActor to start adding textures.", "SABRE_Initialize");
+                SABRE_BuildTextureStore();
+                if (SABRE_gameState != SABRE_TEXTURES_ADDED)
+                {
+                    DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Error! Texture addition failed.", "SABRE_Initialize");
+                    SABRE_Cleanup();
+                    nextStep = 0;
+                }
+                break;
 
-            if (SABRE_ValidateCurrentLevel() == 0)
-                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(5) "Level validation done, no errors.", "SABRE_Start");
-            else
-                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(5) "Warning! At least one missing texture was detected.", "SABRE_Start");
+            case SABRE_TEXTURES_ADDED:
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Texture addition successful.", "SABRE_Initialize");
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(3) "Signal spriteActor to start adding sprites.", "SABRE_Initialize");
+                SABRE_BuildSpriteStore();
+                if (SABRE_gameState != SABRE_SPRITES_ADDED)
+                {
+                    DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Error! Sprite addition failed.", "SABRE_Initialize");
+                    SABRE_Cleanup();
+                    nextStep = 0;
+                }
+                break;
 
-            SABRE_ValidateGraphicsSettings();
+            case SABRE_SPRITES_ADDED:
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Sprite addition successful.", "SABRE_Initialize");
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(5) "SABRE initialization complete.", "SABRE_Initialize");
+                SABRE_gameState = SABRE_INITIALIZED;
+                break;
 
-            CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
-            CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + SABRE_Screen.height * 0.5 - 270, true);
-            CreateActor("SABRE_Floor", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + SABRE_Screen.height * 0.5 + 270, true);
-            SABRE_SetCeilingColor(SABRE_defaultCeiling);
-            SABRE_SetFloorColor(SABRE_defaultFloor);
-            SABRE_gameState = SABRE_RUNNING;
-            DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(6) "SABRE initialization complete.", "SABRE_Start");
+            case SABRE_INITIALIZED:
+                nextStep = 0;
+                break;
 
-            SABRE_SetEntities(); // Set the test entities
+            default:
+                nextStep = 0;
+                break;
         }
-        else
-        {
-            DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Error! Sprite addition failed.", "SABRE_Start");
-            SABRE_Quit();
-        }
+    }
+}
+
+void SABRE_CreateScreen()
+{
+    if (SABRE_gameState == SABRE_INITIALIZED)
+    {
+        CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
+        CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + SABRE_Screen.height * 0.5 - 270, true);
+        CreateActor("SABRE_Floor", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + SABRE_Screen.height * 0.5 + 270, true);
+        SABRE_SetCeilingColor(SABRE_defaultCeiling);
+        SABRE_SetFloorColor(SABRE_defaultFloor);
     }
     else
     {
-        DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Error! Texture addition failed.", "SABRE_Start");
-        SABRE_Quit();
+        DEBUG_MSG_FROM("SABRE has not been initialized, will not create screen.", "SABRE_CreateScreen");
     }
+}
+
+void SABRE_DestroyScreen()
+{
+    DestroyActor("SABRE_Screen");
+    DestroyActor("SABRE_Ceiling");
+    DestroyActor("SABRE_Floor");
+}
+
+void SABRE_Start()
+{
+    if (SABRE_gameState == SABRE_INITIALIZED)
+    {
+        if (SABRE_ValidateCurrentLevel() == 0)
+        {
+            DEBUG_MSG_FROM(SABRE_START_STEP_LABEL(1) "Level validation done, no errors.", "SABRE_Start");
+        }
+        else
+        {
+            DEBUG_MSG_FROM(SABRE_START_STEP_LABEL(1) "Warning! At least one missing texture was detected.", "SABRE_Start");
+        }
+
+        SABRE_ValidateGraphicsSettings();
+        SABRE_CreateScreen();
+        SABRE_EnableActors();
+        SABRE_gameState = SABRE_RUNNING;
+        DEBUG_MSG_FROM(SABRE_START_STEP_LABEL(2) "SABRE started.", "SABRE_Start");
+
+        SABRE_SetEntities(); // Set the test entities
+    }
+    else
+    {
+        DEBUG_MSG_FROM("SABRE has not been initialized, can't start.", "SABRE_Start");
+    }
+}
+
+void SABRE_Stop()
+{
+    if (SABRE_gameState == SABRE_RUNNING)
+    {
+        SABRE_gameState = SABRE_INITIALIZED;
+        SABRE_DisableActors();
+        SABRE_DestroyScreen();
+        DEBUG_MSG_FROM("SABRE stopped.", "SABRE_Stop");
+    }
+    else
+    {
+        DEBUG_MSG_FROM("SABRE is not running, no-op.", "SABRE_Stop");
+    }
+}
+
+void SABRE_InitializeAndStart()
+{
+    SABRE_Initialize();
+    SABRE_Start();
 }
 
 int SABRE_FreeLevel();              // from level.c
@@ -1340,32 +1430,34 @@ void SABRE_FreeRenderObjectList();  // from render.c
 void SABRE_FreeEntityList();        // from entity.c
 void SABRE_FreeProjectileList();    // from projectile.c
 
-void SABRE_Quit()
+void SABRE_Cleanup()
 {
+    SABRE_Stop();
+
     if (SABRE_gameState != SABRE_FINISHED)
     {
         SABRE_DisableActors();
 
         SABRE_FreeLevel();
-        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(1) "Freed level data memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(1) "Freed level data memory.", "SABRE_Cleanup");
 
         SABRE_FreeTextureStore();
-        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(2) "Freed texture store memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(2) "Freed texture store memory.", "SABRE_Cleanup");
 
         SABRE_FreeSpriteStore();
-        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(3) "Freed sprite store memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(3) "Freed sprite store memory.", "SABRE_Cleanup");
 
         SABRE_FreeProjectileList();
-        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(4) "Freed projectile list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(4) "Freed projectile list memory.", "SABRE_Cleanup");
 
         SABRE_FreeEntityList();
-        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(5) "Freed entity list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(5) "Freed entity list memory.", "SABRE_Cleanup");
 
         SABRE_FreeRenderObjectList();
-        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(6) "Freed render object list memory.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(6) "Freed render object list memory.", "SABRE_Cleanup");
 
         SABRE_gameState = SABRE_FINISHED;
-        DEBUG_MSG_FROM(SABRE_QUIT_STEP_LABEL(7) "SABRE cleanup complete.", "SABRE_Quit");
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(7) "SABRE cleanup complete.", "SABRE_Cleanup");
     }
 }
 
