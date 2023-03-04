@@ -81,7 +81,7 @@ void setGuiColor(int rValue, int gValue, int bValue)
     Actor *a, *a2, *a3;
     a = getclone("bar");
     a2 = getclone("barTop");
-    a3 = getclone("screenWindow");
+    a3 = getclone("screenWindowColored");
 
     a->r = a2->r = a3->r = rValue;
     a->g = a2->g = a3->g = gValue;
