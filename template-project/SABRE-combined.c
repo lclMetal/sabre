@@ -2243,6 +2243,12 @@ SABRE_Animation SABRE_CreateAnimation(float frameRate, unsigned int sprite)
 {
     SABRE_Animation anim;
 
+    if (sprite >= SABRE_spriteStore.count)
+    {
+        DEBUG_MSG_FROM("Trying to create an animation with an invalid sprite index.", "SABRE_CreateAnimation");
+        anim.frameRate = anim.nframes = anim.sprite = 0;
+    }
+
     anim.frameRate = frameRate;
     anim.nframes = SABRE_sprites != NULL ? SABRE_sprites[sprite].nframes : 1;
     anim.sprite = sprite;
