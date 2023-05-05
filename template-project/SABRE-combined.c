@@ -1364,6 +1364,15 @@ int SABRE_AddSprite(const char spriteName[256]);
 void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite);
 void SABRE_FreeSpriteStore();
 
+int SABRE_ValidateSpriteIndex(int index)
+{
+    // 0 is reserved for the "sprite missing" sprite
+    if (index > 0 && index < SABRE_spriteStore.count)
+        return index;
+
+    return 0;
+}
+
 int SABRE_AutoAddSprites()
 {
     int i = 1; // Start from 1, don't add project management label as a texture
@@ -1387,7 +1396,7 @@ int SABRE_AutoAddSprites()
 #if DEBUG
 {
     char temp[256];
-    sprintf(temp, "Added sprite: [%d \"%s\" %d]", i - 1, animName, SABRE_sprites[SABRE_spriteStore.count-1].nframes);
+    sprintf(temp, "Added sprite: [%d \"%s\" %d]", i - 2, animName, SABRE_sprites[SABRE_spriteStore.count-1].nframes);
     DEBUG_MSG_FROM(temp, "SABRE_AutoAddSprites");
 }
 #endif
@@ -1438,9 +1447,9 @@ void SABRE_FreeTextureStore();
 
 int SABRE_ValidateTextureIndex(int index)
 {
+    // 0 is reserved for the "texture missing" texture
     if (index > 0 && index < SABRE_textureStore.count)
-        return index; // offset by one because the first texture index
-                      // is reserved for the "texture missing" texture
+        return index;
 
     return 0;
 }
@@ -2242,16 +2251,18 @@ void SABRE_LeaveEventTrigger(SABRE_EventTrigger *event)
 SABRE_Animation SABRE_CreateAnimation(float frameRate, unsigned int sprite)
 {
     SABRE_Animation anim;
+    unsigned int spriteNum = SABRE_ValidateSpriteIndex(sprite + 1); // offset by one because of the "missing sprite" sprite
 
-    if (sprite >= SABRE_spriteStore.count)
+    if (spriteNum == 0)
     {
-        DEBUG_MSG_FROM("Trying to create an animation with an invalid sprite index.", "SABRE_CreateAnimation");
-        anim.frameRate = anim.nframes = anim.sprite = 0;
+        char temp[256];
+        sprintf(temp, "Invalid sprite index: %d", sprite);
+        DEBUG_MSG_FROM(temp, "SABRE_CreateAnimation");
     }
 
     anim.frameRate = frameRate;
-    anim.nframes = SABRE_sprites != NULL ? SABRE_sprites[sprite].nframes : 1;
-    anim.sprite = sprite;
+    anim.nframes = SABRE_sprites != NULL ? SABRE_sprites[spriteNum].nframes : 1;
+    anim.sprite = spriteNum;
 
     return anim;
 }

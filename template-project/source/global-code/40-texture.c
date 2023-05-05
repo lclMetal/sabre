@@ -11,9 +11,9 @@ void SABRE_FreeTextureStore();
 
 int SABRE_ValidateTextureIndex(int index)
 {
+    // 0 is reserved for the "texture missing" texture
     if (index > 0 && index < SABRE_textureStore.count)
-        return index; // offset by one because the first texture index
-                      // is reserved for the "texture missing" texture
+        return index;
 
     return 0;
 }

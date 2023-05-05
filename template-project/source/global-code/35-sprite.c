@@ -4,6 +4,15 @@ int SABRE_AddSprite(const char spriteName[256]);
 void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite);
 void SABRE_FreeSpriteStore();
 
+int SABRE_ValidateSpriteIndex(int index)
+{
+    // 0 is reserved for the "sprite missing" sprite
+    if (index > 0 && index < SABRE_spriteStore.count)
+        return index;
+
+    return 0;
+}
+
 int SABRE_AutoAddSprites()
 {
     int i = 1; // Start from 1, don't add project management label as a texture
@@ -27,7 +36,7 @@ int SABRE_AutoAddSprites()
 #if DEBUG
 {
     char temp[256];
-    sprintf(temp, "Added sprite: [%d \"%s\" %d]", i - 1, animName, SABRE_sprites[SABRE_spriteStore.count-1].nframes);
+    sprintf(temp, "Added sprite: [%d \"%s\" %d]", i - 2, animName, SABRE_sprites[SABRE_spriteStore.count-1].nframes);
     DEBUG_MSG_FROM(temp, "SABRE_AutoAddSprites");
 }
 #endif

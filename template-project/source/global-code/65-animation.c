@@ -1,16 +1,18 @@
 SABRE_Animation SABRE_CreateAnimation(float frameRate, unsigned int sprite)
 {
     SABRE_Animation anim;
+    unsigned int spriteNum = SABRE_ValidateSpriteIndex(sprite + 1); // offset by one because of the "missing sprite" sprite
 
-    if (sprite >= SABRE_spriteStore.count)
+    if (spriteNum == 0)
     {
-        DEBUG_MSG_FROM("Trying to create an animation with an invalid sprite index.", "SABRE_CreateAnimation");
-        anim.frameRate = anim.nframes = anim.sprite = 0;
+        char temp[256];
+        sprintf(temp, "Invalid sprite index: %d", sprite);
+        DEBUG_MSG_FROM(temp, "SABRE_CreateAnimation");
     }
 
     anim.frameRate = frameRate;
-    anim.nframes = SABRE_sprites != NULL ? SABRE_sprites[sprite].nframes : 1;
-    anim.sprite = sprite;
+    anim.nframes = SABRE_sprites != NULL ? SABRE_sprites[spriteNum].nframes : 1;
+    anim.sprite = spriteNum;
 
     return anim;
 }
