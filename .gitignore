@@ -15,6 +15,9 @@ level.c
 # Texture thumbnail configuration file
 textures.conf
 
+# Level project files
+*.swp
+
 # Local only files (ideas, concepts, etc.)
 /local
 
