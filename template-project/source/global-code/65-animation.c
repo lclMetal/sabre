@@ -1,26 +1,3 @@
-#ifndef SABRE_ANIMATION_DEFINED
-typedef struct SABRE_AnimationStruct
-{
-    float frameRate;
-    unsigned int nframes;
-    unsigned int sprite;
-}SABRE_Animation;
-#define SABRE_ANIMATION_DEFINED
-#endif
-
-#ifndef SABRE_ANIMATOR_DEFINED
-typedef struct SABRE_AnimatorStruct
-{
-    char state;
-    unsigned int animpos;
-    float accumulatedAnimpos;
-    SABRE_Animation anim;
-}SABRE_Animator;
-#define SABRE_ANIMATOR_DEFINED
-#endif
-
-#define SABRE_ANIMATOR_LITERAL(FPS, NFRAMES, SPRITE) { 0, 0, 0.0f, { FPS, NFRAMES, SPRITE } }
-
 SABRE_Animation SABRE_CreateAnimation(float frameRate, unsigned int sprite)
 {
     SABRE_Animation anim;

@@ -1,23 +1,3 @@
-#define SABRE_TEXTURE_ACTOR "SABRE_TextureActor"
-
-typedef struct SABRE_TextureStruct
-{
-    int width;
-    int height;
-    short slices;
-    char isWindow;
-    char name[256];
-}SABRE_Texture;
-
-#define SABRE_DATA_STORE_AS_TEXTURE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (SABRE_Texture *))
-#define SABRE_TEXTURE_POINTER_CAST(POINTER) ((SABRE_Texture *)POINTER)
-
-// Actual texture data store
-SABRE_DataStore SABRE_textureStore;
-// A shortcut pointer to access the data from the store
-// without having to cast pointers all the time
-SABRE_Texture *SABRE_textures = NULL;
-
 int SABRE_ValidateTextureIndex(int index);
 int SABRE_IsWindowTexture(int index);
 

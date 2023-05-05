@@ -884,11 +884,65 @@ int SABRE_GetAnimationDataValue(const char actorName[256], const char animName[2
 }
 
 
-// ..\source\global-code\30-data-store.c
+// ..\source\global-code\23-sabre-header.c
 #define SABRE_DATA_STORE_DOUBLING_LIMIT 128
 #define SABRE_DATA_STORE_GROW_AMOUNT 64 // SABRE_DATA_STORE_DOUBLING_LIMIT / 2
 
 #define SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, DATA_TYPE) (DATA_TYPE(DATA_STORE).elems)
+
+#define SABRE_SPRITE_ACTOR "SABRE_SpriteActor"
+#define SABRE_TEXTURE_ACTOR "SABRE_TextureActor"
+#define SABRE_PROJECTILE_HANDLER_ACTOR "SABRE_ProjectileHandler"
+#define SABRE_CEILING_ACTOR "SABRE_Ceiling"
+#define SABRE_FLOOR_ACTOR "SABRE_Floor"
+
+#define SABRE_DATA_STORE_AS_SPRITE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (SABRE_Sprite *))
+#define SABRE_SPRITE_POINTER_CAST(POINTER) ((SABRE_Sprite *)POINTER)
+#define SABRE_DATA_STORE_AS_TEXTURE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (SABRE_Texture *))
+#define SABRE_TEXTURE_POINTER_CAST(POINTER) ((SABRE_Texture *)POINTER)
+
+#define SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH 5
+
+#define SABRE_EDGE_MODE_NO_RENDER 0
+#define SABRE_EDGE_MODE_TEXTURE 1
+#define SABRE_EDGE_MODE_WRAP 2
+
+#define SABRE_EVENT_PERMANENT_CHANGE      0
+#define SABRE_EVENT_PRESENCE_TOGGLE       1
+#define SABRE_EVENT_PRESENCE_TOGGLE_ONCE  2
+#define SABRE_EVENT_SIGNAL                3
+#define SABRE_EVENT_SIGNAL_ONCE           4
+
+#define SABRE_EVENT_FLAG_ACTIVE 1
+#define SABRE_EVENT_FLAG_LOCKED 2
+
+#define SABRE_TRIGGER_HANDLER "SABRE_TriggerHandler"
+
+#define SABRE_EVENT_ACTIVATE(EVENT) do { EVENT->state |= SABRE_EVENT_FLAG_ACTIVE;   \
+                                         SABRE_updatedTrigger = EVENT;              \
+                                         SendActivationEvent(SABRE_TRIGGER_HANDLER); } while (0)
+#define SABRE_EVENT_DEACTIVATE(EVENT) do { EVENT->state &= (~SABRE_EVENT_FLAG_ACTIVE);  \
+                                           SABRE_updatedTrigger = EVENT;                \
+                                           SendActivationEvent(SABRE_TRIGGER_HANDLER); } while (0)
+
+#define SABRE_EVENT_LOCK(EVENT) do { EVENT->state |= SABRE_EVENT_FLAG_LOCKED; } while (0)
+#define SABRE_EVENT_UNLOCK(EVENT) do { EVENT->state &= (~SABRE_EVENT_FLAG_LOCKED); } while (0)
+
+#define SABRE_EVENT_ACTIVE(EVENT) (EVENT->state & SABRE_EVENT_FLAG_ACTIVE)
+#define SABRE_EVENT_NOT_ACTIVE(EVENT) (EVENT->state & SABRE_EVENT_FLAG_ACTIVE) == 0
+
+#define SABRE_EVENT_LOCKED(EVENT) (EVENT->state & SABRE_EVENT_FLAG_LOCKED)
+#define SABRE_EVENT_NOT_LOCKED(EVENT) (EVENT->state & SABRE_EVENT_FLAG_LOCKED) == 0
+
+#define SABRE_ANIMATOR_LITERAL(FPS, NFRAMES, SPRITE) { 0, 0, 0.0f, { FPS, NFRAMES, SPRITE } }
+
+#define SABRE_PROJECTILE_HIT_WALL 1
+#define SABRE_PROJECTILE_HIT_ENTITY 2
+#define SABRE_PROJECTILE_HIT_FLOOR 3
+
+// Not really anything like infinity, merely a very high value,
+// but the word infinity is shorter than "very high value" :D
+#define SABRE_INFINITY 1e30
 
 typedef struct SABRE_DataStoreStruct
 {
@@ -899,6 +953,242 @@ typedef struct SABRE_DataStoreStruct
     void (*addFunc)(struct SABRE_DataStoreStruct*, void*);
 }SABRE_DataStore;
 
+typedef struct SABRE_AnimationStruct
+{
+    float frameRate;
+    unsigned int nframes;
+    unsigned int sprite;
+}SABRE_Animation;
+
+typedef struct SABRE_AnimatorStruct
+{
+    char state;
+    unsigned int animpos;
+    float accumulatedAnimpos;
+    SABRE_Animation anim;
+}SABRE_Animator;
+
+typedef struct SABRE_EntityStruct
+{
+    float radius;
+    SABRE_Vector3 pos;
+    unsigned char attributes;
+    SABRE_Animator animator;
+    char name[256];
+}SABRE_Entity;
+
+typedef struct SABRE_ProjectileStruct
+{
+    float speed;
+    float dropFactor;
+    SABRE_Vector3 dir;
+    SABRE_Entity *entity;
+}SABRE_Projectile;
+
+typedef union SABRE_ListTypesUnion
+{
+    struct SABRE_EntityStruct entity;
+    struct SABRE_ProjectileStruct projectile;
+}SABRE_ListTypes;
+
+typedef struct SABRE_ListStruct
+{
+    struct SABRE_ListStruct *next;
+    struct SABRE_ListStruct *prev;
+    SABRE_ListTypes data;
+}SABRE_List;
+
+typedef struct SABRE_SpriteStruct
+{
+    unsigned int width;
+    unsigned int height;
+    unsigned int halfWidth;
+    unsigned int halfHeight;
+    unsigned int nframes;
+    char name[256];
+}SABRE_Sprite;
+
+typedef struct SABRE_TextureStruct
+{
+    int width;
+    int height;
+    short slices;
+    char isWindow;
+    char name[256];
+}SABRE_Texture;
+
+typedef struct SABRE_SliceStruct
+{
+    short anim;
+    short slice;
+}SABRE_Slice;
+
+typedef struct SABRE_RenderObjectStruct
+{
+    float sortValue;
+    enum SABRE_RenderObjectTypeEnum objectType;
+
+    float scale;
+    int width;
+    int height;
+    float verticalOffset;
+    int horizontalPosition;
+    int horizontalScalingCompensation;
+    SABRE_Slice slice;
+
+    struct SABRE_RenderObjectStruct *prev;
+    struct SABRE_RenderObjectStruct *next;
+}SABRE_RenderObject;
+
+typedef struct SABRE_LevelTileStruct
+{
+    unsigned texture;
+    unsigned long properties;
+    struct SABRE_RenderObjectStruct *renderObject[SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH + 1];
+}SABRE_LevelTile;
+
+typedef struct SABRE_LevelStruct
+{
+    char validated;
+
+    unsigned width;
+    unsigned height;
+    SABRE_LevelTile *map;
+}SABRE_Level;
+
+typedef struct SABRE_CameraStruct
+{
+    SABRE_Vector2 prevPos;
+    SABRE_Vector2 pos;
+    SABRE_Vector2 prevDir;
+    SABRE_Vector2 dir;
+    SABRE_Vector2 plane;
+    float vPos;
+}SABRE_Camera;
+
+typedef enum SABRE_EventNameEnum
+{
+    LVL1_CASH_MACHINE_EVENT = 0,
+    LVL1_WINDOW_EVENT
+}SABRE_EventName;
+
+typedef struct SABRE_EventTriggerStruct
+{
+    unsigned char type;
+    SABRE_EventName event;
+    SABRE_Vector2 p1;
+    SABRE_Vector2 p2;
+    float facingDir;
+    float facingFov;
+    unsigned char state;
+}SABRE_EventTrigger;
+
+typedef struct SABRE_ProjectileHitDataStruct
+{
+    float dist;
+    unsigned char hitType;
+    SABRE_Projectile *projectile;
+    SABRE_Vector3 hitPosition;
+    SABRE_Entity *entityHit;
+}SABRE_ProjectileHitData;
+
+typedef struct SABRE_KeyboardStateStruct
+{
+    char pressedForward,     releasedForward,     forward,     prevForward;
+    char pressedBackward,    releasedBackward,    backward,    prevBackward;
+    char pressedTurnLeft,    releasedTurnLeft,    turnLeft,    prevTurnLeft;
+    char pressedTurnRight,   releasedTurnRight,   turnRight,   prevTurnRight;
+    char pressedStrafeLeft,  releasedStrafeLeft,  strafeLeft,  prevStrafeLeft;
+    char pressedStrafeRight, releasedStrafeRight, strafeRight, prevStrafeRight;
+    char pressedCrouch,      releasedCrouch,      crouch,      prevCrouch;
+    char pressedInteract,    releasedInteract,    interact,    prevInteract;
+}SABRE_KeyboardState;
+
+enum SABRE_EntityAttributeFlags
+{
+    SABRE_ENTITY_HIDDEN         = 1,
+    SABRE_ENTITY_NO_COLLISION   = 2
+};
+
+// Actual sprite data store
+SABRE_DataStore SABRE_spriteStore;
+// A shortcut pointer to access the data from the store
+// without having to cast pointers all the time
+SABRE_Sprite *SABRE_sprites = NULL;
+
+// Actual texture data store
+SABRE_DataStore SABRE_textureStore;
+// A shortcut pointer to access the data from the store
+// without having to cast pointers all the time
+SABRE_Texture *SABRE_textures = NULL;
+
+SABRE_Slice SABRE_slice;
+
+enum SABRE_RenderObjectTypeEnum
+{
+    SABRE_TEXTURE_RO,
+    SABRE_SPRITE_RO
+};
+
+SABRE_Level SABRE_level;
+SABRE_Camera SABRE_camera;
+
+struct SABRE_GraphicsSettingsStruct
+{
+    unsigned char windowRenderDepth;    // how many windows can be rendered in a line, 0 means no limit
+    unsigned char levelEdgeWrapDepth;   // how many times the raycast is allowed to wrap around the level in level edge mode 2
+    unsigned char levelEdgeMode;        // how the level edges should be handled, 0: don't render, 1: render with specified texture
+    int levelEdgeTextureIndex;          // the texture to use for level edge mode 1
+}SABRE_graphicsSettings = { 0, 2, SABRE_EDGE_MODE_TEXTURE, 3 };
+
+
+SABRE_List *SABRE_entities = NULL;
+SABRE_List *SABRE_projectiles = NULL;
+
+SABRE_ProjectileHitData SABRE_projectileHitData;
+
+enum SABRE_GameStatesEnum
+{
+    SABRE_UNINITIALIZED = 0,
+    SABRE_TEXTURES_ADDED,
+    SABRE_SPRITES_ADDED,
+    SABRE_INITIALIZED,
+    SABRE_RUNNING,
+    SABRE_FINISHED
+}SABRE_gameState = SABRE_UNINITIALIZED;
+
+struct SABRE_KeybindStruct
+{
+    short forward, backward;
+    short turnLeft, turnRight;
+    short strafeLeft, strafeRight;
+    short crouch;
+    short interact;
+}SABRE_binds =
+{
+    KEY_w, KEY_s, // forward, backward
+    KEY_a, KEY_d, // turn left, right
+    KEY_q, KEY_e, // strafe left, right
+    KEY_LCTRL,    // crouch
+    KEY_r         // interact
+};
+
+SABRE_KeyboardState SABRE_keys;
+
+struct SABRE_PlayerStruct
+{
+    float moveSpeed;
+    float turnSpeed;
+    float crouchSpeed;
+    float crouchHeightChange;
+    float radius;
+}SABRE_player = { 0.05f, 0.05f, 5.0f, 60.0f, 0.2f };
+
+SABRE_Color SABRE_defaultCeiling = { 215.0, 54.0, 91.0, 106, 158, 231, 1.0 };
+SABRE_Color SABRE_defaultFloor   = {  86.0, 76.0, 62.0, 106, 158,  38, 1.0 };
+
+
+// ..\source\global-code\25-data-store.c
 void SABRE_SetDataStoreAddFunc(SABRE_DataStore *dataStore, void (*addDataFunc)(SABRE_DataStore*, void*));
 int SABRE_InitDataStore(SABRE_DataStore *dataStore, size_t elemSize);
 int SABRE_GrowDataStore(SABRE_DataStore *dataStore);
@@ -994,64 +1284,7 @@ void SABRE_FreeDataStore(SABRE_DataStore *dataStore)
 }
 
 
-// ..\source\global-code\32-list.c
-#ifndef SABRE_ANIMATION_DEFINED
-typedef struct SABRE_AnimationStruct
-{
-    float frameRate;
-    unsigned int nframes;
-    unsigned int sprite;
-}SABRE_Animation;
-#define SABRE_ANIMATION_DEFINED
-#endif
-
-#ifndef SABRE_ANIMATOR_DEFINED
-typedef struct SABRE_AnimatorStruct
-{
-    char state;
-    unsigned int animpos;
-    float accumulatedAnimpos;
-    SABRE_Animation anim;
-}SABRE_Animator;
-#define SABRE_ANIMATOR_DEFINED
-#endif
-
-#ifndef SABRE_ENTITY_DEFINED
-typedef struct SABRE_EntityStruct
-{
-    float radius;
-    SABRE_Vector3 pos;
-    unsigned char attributes;
-    SABRE_Animator animator;
-    char name[256];
-}SABRE_Entity;
-#define SABRE_ENTITY_DEFINED
-#endif
-
-#ifndef SABRE_PROJECTILE_DEFINED
-typedef struct SABRE_ProjectileStruct
-{
-    float speed;
-    float dropFactor;
-    SABRE_Vector3 dir;
-    SABRE_Entity *entity;
-}SABRE_Projectile;
-#define SABRE_PROJECTILE_DEFINED
-#endif
-
-typedef union SABRE_ListTypesUnion
-{
-    struct SABRE_EntityStruct entity;
-    struct SABRE_ProjectileStruct projectile;
-}SABRE_ListTypes;
-
-typedef struct SABRE_ListStruct
-{
-    struct SABRE_ListStruct *next;
-    struct SABRE_ListStruct *prev;
-    SABRE_ListTypes data;
-}SABRE_List;
-
+// ..\source\global-code\30-list.c
 SABRE_List *SABRE_AddToList(SABRE_List **list, SABRE_ListTypes elem);
 void SABRE_FreeList(SABRE_List *list);
 
@@ -1124,772 +1357,437 @@ void SABRE_FreeList(SABRE_List *list)
 }
 
 
-// ..\source\global-code\35-engine.c
-#define SABRE_CEILING_ACTOR "SABRE_Ceiling"
-#define SABRE_FLOOR_ACTOR "SABRE_Floor"
+// ..\source\global-code\35-sprite.c
+int SABRE_AutoAddSprites();
+int SABRE_AddSprite(const char spriteName[256]);
 
-typedef struct SABRE_SliceStruct
+void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite);
+void SABRE_FreeSpriteStore();
+
+int SABRE_AutoAddSprites()
 {
-    short anim;
-    short slice;
-}SABRE_Slice;
+    int i = 1; // Start from 1, don't add project management label as a texture
+    int err = 0;
+    char animName[256];
 
-#ifndef SABRE_RENDER_OBJECT_DEFINED
-enum SABRE_RenderObjectTypeEnum
-{
-    SABRE_TEXTURE_RO,
-    SABRE_SPRITE_RO
-};
+    strcpy(animName, getAnimName(i));
+    SABRE_SetDataStoreAddFunc(&SABRE_spriteStore, SABRE_AddSpriteToDataStore);
+    SABRE_spriteStore.elemSize = sizeof(SABRE_Sprite);
+    SABRE_PrepareDataStore(&SABRE_spriteStore);
 
-typedef struct SABRE_RenderObjectStruct
-{
-    float sortValue;
-    enum SABRE_RenderObjectTypeEnum objectType;
+    // Set the shortcut pointer to allow easier access to sprite data
+    SABRE_sprites = SABRE_DATA_STORE_AS_SPRITE_ARRAY(SABRE_spriteStore);
 
-    float scale;
-    int width;
-    int height;
-    float verticalOffset;
-    int horizontalPosition;
-    int horizontalScalingCompensation;
-    SABRE_Slice slice;
-
-    struct SABRE_RenderObjectStruct *prev;
-    struct SABRE_RenderObjectStruct *next;
-}SABRE_RenderObject;
-#define SABRE_RENDER_OBJECT_DEFINED
-#endif
-
-#ifndef SABRE_LEVEL_DEFINED
-#define SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH 5
-typedef struct SABRE_LevelTileStruct
-{
-    unsigned texture;
-    unsigned long properties;
-    struct SABRE_RenderObjectStruct *renderObject[SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH + 1];
-}SABRE_LevelTile;
-
-typedef struct SABRE_LevelStruct
-{
-    char validated;
-
-    unsigned width;
-    unsigned height;
-    SABRE_LevelTile *map;
-}SABRE_Level;
-#define SABRE_LEVEL_DEFINED
-#endif
-
-enum SABRE_GameStatesEnum
-{
-    SABRE_UNINITIALIZED = 0,
-    SABRE_TEXTURES_ADDED,
-    SABRE_SPRITES_ADDED,
-    SABRE_INITIALIZED,
-    SABRE_RUNNING,
-    SABRE_FINISHED
-}SABRE_gameState = SABRE_UNINITIALIZED;
-
-typedef struct SABRE_CameraStruct
-{
-    SABRE_Vector2 prevPos;
-    SABRE_Vector2 pos;
-    SABRE_Vector2 prevDir;
-    SABRE_Vector2 dir;
-    SABRE_Vector2 plane;
-    float vPos;
-}SABRE_Camera;
-
-const float SABRE_heightUnit = 480.0f;
-const float SABRE_halfHeightUnit = SABRE_heightUnit * 0.5f;
-float SABRE_screenWidth = 640.0f, SABRE_screenHeight = 480.0f;
-
-SABRE_Camera SABRE_camera;
-
-struct SABRE_KeybindStruct
-{
-    short forward, backward;
-    short turnLeft, turnRight;
-    short strafeLeft, strafeRight;
-    short crouch;
-    short interact;
-}SABRE_binds =
-{
-    KEY_w, KEY_s, // forward, backward
-    KEY_a, KEY_d, // turn left, right
-    KEY_q, KEY_e, // strafe left, right
-    KEY_LCTRL,    // crouch
-    KEY_r         // interact
-};
-
-typedef struct SABRE_KeyboardStateStruct
-{
-    char pressedForward,     releasedForward,     forward,     prevForward;
-    char pressedBackward,    releasedBackward,    backward,    prevBackward;
-    char pressedTurnLeft,    releasedTurnLeft,    turnLeft,    prevTurnLeft;
-    char pressedTurnRight,   releasedTurnRight,   turnRight,   prevTurnRight;
-    char pressedStrafeLeft,  releasedStrafeLeft,  strafeLeft,  prevStrafeLeft;
-    char pressedStrafeRight, releasedStrafeRight, strafeRight, prevStrafeRight;
-    char pressedCrouch,      releasedCrouch,      crouch,      prevCrouch;
-    char pressedInteract,    releasedInteract,    interact,    prevInteract;
-}SABRE_KeyboardState;
-
-SABRE_KeyboardState SABRE_keys;
-
-struct SABRE_PlayerStruct
-{
-    float moveSpeed;
-    float turnSpeed;
-    float crouchSpeed;
-    float crouchHeightChange;
-    float radius;
-}SABRE_player = { 0.05f, 0.05f, 5.0f, 60.0f, 0.2f };
-
-#define SABRE_EDGE_MODE_NO_RENDER 0
-#define SABRE_EDGE_MODE_TEXTURE 1
-#define SABRE_EDGE_MODE_WRAP 2
-
-struct SABRE_GraphicsSettingsStruct
-{
-    unsigned char windowRenderDepth;    // how many windows can be rendered in a line, 0 means no limit
-    unsigned char levelEdgeWrapDepth;   // how many times the raycast is allowed to wrap around the level in level edge mode 2
-    unsigned char levelEdgeMode;        // how the level edges should be handled, 0: don't render, 1: render with specified texture
-    int levelEdgeTextureIndex;          // the texture to use for level edge mode 1
-}SABRE_graphicsSettings = { 0, 2, SABRE_EDGE_MODE_TEXTURE, 3 };
-
-SABRE_Slice SABRE_slice;
-SABRE_Color SABRE_defaultCeiling = { 215.0, 54.0, 91.0, 106, 158, 231, 1.0 };
-SABRE_Color SABRE_defaultFloor   = {  86.0, 76.0, 62.0, 106, 158,  38, 1.0 };
-
-// x = player
-// 000     abc
-// 0x0  => d e
-// 000     fgh
-
-#define SABRE_COLLISION_MASK_SIZE 7
-#define SABRE_TOP_L      0x80 // a
-#define SABRE_TOP_L_MASK 0xD0 // a && b && d
-#define SABRE_TOP        0x40 // b
-#define SABRE_TOP_MASK   0x40 // b
-#define SABRE_TOP_R      0x20 // c
-#define SABRE_TOP_R_MASK 0x68 // c && b && e
-#define SABRE_LEFT       0x10 // d
-#define SABRE_LEFT_MASK  0x10 // d
-#define SABRE_RIGHT      0x08 // e
-#define SABRE_RIGHT_MASK 0x08 // e
-#define SABRE_LOW_L      0x04 // f
-#define SABRE_LOW_L_MASK 0x16 // f && d && g
-#define SABRE_LOW        0x02 // g
-#define SABRE_LOW_MASK   0x02 // g
-#define SABRE_LOW_R      0x01 // h
-#define SABRE_LOW_R_MASK 0x0B // h && e && g
-
-void SABRE_SetCeilingColor(SABRE_Color color)
-{
-    SABRE_ColorActorByName(SABRE_CEILING_ACTOR, color);
-}
-
-void SABRE_SetFloorColor(SABRE_Color color)
-{
-    SABRE_ColorActorByName(SABRE_FLOOR_ACTOR, color);
-}
-
-int SABRE_GetSurroundingWalls(float *px, float *py, SABRE_Level *level)
-{
-    int i, j, edge = 0, rows = 3, cols = 3, mid = 0, collisions = 0;
-
-    for (j = 0; j < rows; j++)
+    while (strcmp(animName, "") != 0)
     {
-        for (i = 0; i < cols; i++)
-        {
-            edge = 0;
+        err = SABRE_AddSprite(animName);
 
-            if (j == 1 && i == 1) mid = 1;
-            else
-            {
-                int row = (int)*py - 1 + j;
-                int col = (int)*px - 1 + i;
-
-                if (SABRE_graphicsSettings.levelEdgeMode < 2)
-                {
-                    if (row < 1 || row > level->height - 2) edge = 1;
-                    if (col < 1 || col > level->width - 2) edge = 1;
-                }
-                else
-                {
-                    row = SABRE_WrapIntValue(row, level->height);
-                    col = SABRE_WrapIntValue(col, level->width);
-                }
-
-                collisions += (level->map[row * level->width + col].texture > 0 || edge) << SABRE_COLLISION_MASK_SIZE - (j * cols + i - mid);
-            }
-        }
-    }
-
-    return collisions;
-}
-
-void SABRE_KeepDistance(float *x1, float *y1, float x2, float y2, float dist)
-{
-    float len = distance(*x1, *y1, x2, y2);
-    float ang = degtorad(direction(x2, y2, *x1, *y1));
-
-    if (len < dist)
-    {
-        // multiply the results by 1.001 to make the above condition evaluate
-        // to false if the player hasn't moved since their position was last
-        // modified by this function
-        *x1 = x2 + cos(ang) * dist * 1.001f;
-        *y1 = y2 + -sin(ang) * dist * 1.001f;
-    }
-}
-
-void SABRE_UpdateKeyboardState()
-{
-    char *keys = GetKeyState();
-
-    SABRE_keys.prevForward      = SABRE_keys.forward;
-    SABRE_keys.prevBackward     = SABRE_keys.backward;
-    SABRE_keys.prevTurnLeft     = SABRE_keys.turnLeft;
-    SABRE_keys.prevTurnRight    = SABRE_keys.turnRight;
-    SABRE_keys.prevStrafeLeft   = SABRE_keys.strafeLeft;
-    SABRE_keys.prevStrafeRight  = SABRE_keys.strafeRight;
-    SABRE_keys.prevCrouch       = SABRE_keys.crouch;
-    SABRE_keys.prevInteract     = SABRE_keys.interact;
-
-    SABRE_keys.forward          = keys[SABRE_binds.forward];
-    SABRE_keys.backward         = keys[SABRE_binds.backward];
-    SABRE_keys.turnLeft         = keys[SABRE_binds.turnLeft];
-    SABRE_keys.turnRight        = keys[SABRE_binds.turnRight];
-    SABRE_keys.strafeLeft       = keys[SABRE_binds.strafeLeft];
-    SABRE_keys.strafeRight      = keys[SABRE_binds.strafeRight];
-    SABRE_keys.crouch           = keys[SABRE_binds.crouch];
-    SABRE_keys.interact         = keys[SABRE_binds.interact];
-
-    SABRE_keys.pressedForward       = !SABRE_keys.prevForward       && SABRE_keys.forward;
-    SABRE_keys.pressedBackward      = !SABRE_keys.prevBackward      && SABRE_keys.backward;
-    SABRE_keys.pressedTurnLeft      = !SABRE_keys.prevTurnLeft      && SABRE_keys.turnLeft;
-    SABRE_keys.pressedTurnRight     = !SABRE_keys.prevTurnRight     && SABRE_keys.turnRight;
-    SABRE_keys.pressedStrafeLeft    = !SABRE_keys.prevStrafeLeft    && SABRE_keys.strafeLeft;
-    SABRE_keys.pressedStrafeRight   = !SABRE_keys.prevStrafeRight   && SABRE_keys.strafeRight;
-    SABRE_keys.pressedCrouch        = !SABRE_keys.prevCrouch        && SABRE_keys.crouch;
-    SABRE_keys.pressedInteract      = !SABRE_keys.prevInteract      && SABRE_keys.interact;
-
-    SABRE_keys.releasedForward      = SABRE_keys.prevForward        && !SABRE_keys.forward;
-    SABRE_keys.releasedBackward     = SABRE_keys.prevBackward       && !SABRE_keys.backward;
-    SABRE_keys.releasedTurnLeft     = SABRE_keys.prevTurnLeft       && !SABRE_keys.turnLeft;
-    SABRE_keys.releasedTurnRight    = SABRE_keys.prevTurnRight      && !SABRE_keys.turnRight;
-    SABRE_keys.releasedStrafeLeft   = SABRE_keys.prevStrafeLeft     && !SABRE_keys.strafeLeft;
-    SABRE_keys.releasedStrafeRight  = SABRE_keys.prevStrafeRight    && !SABRE_keys.strafeRight;
-    SABRE_keys.releasedCrouch       = SABRE_keys.prevCrouch         && !SABRE_keys.crouch;
-    SABRE_keys.releasedInteract     = SABRE_keys.prevInteract       && !SABRE_keys.interact;
-}
-
-void SABRE_DisableActor(const char *actorName)
-{
-    VisibilityState(actorName, DISABLE);
-    EventDisable(actorName, EVENTALL);
-}
-
-void SABRE_EnableActor(const char *actorName)
-{
-    VisibilityState(actorName, ENABLE);
-    EventEnable(actorName, EVENTALL);
-}
-
-void SABRE_DisableActors()
-{
-    SABRE_DisableActor("SABRE_Screen");
-    SABRE_DisableActor("SABRE_PlayerController");
-    SABRE_DisableActor("SABRE_ProjectileHandler");
-    SABRE_DisableActor("SABRE_TriggerHandler");
-    SABRE_DisableActor("SABRE_Ceiling");
-    SABRE_DisableActor("SABRE_Floor");
-}
-
-void SABRE_EnableActors()
-{
-    SABRE_EnableActor("SABRE_Screen");
-    SABRE_EnableActor("SABRE_PlayerController");
-    SABRE_EnableActor("SABRE_ProjectileHandler");
-    SABRE_EnableActor("SABRE_TriggerHandler");
-    SABRE_EnableActor("SABRE_Ceiling");
-    SABRE_EnableActor("SABRE_Floor");
-}
-
-// from level.c
-int SABRE_ValidateCurrentLevel();
-
-// from entity.c
-void SABRE_SetEntities();
-
-// from texture.c
-int SABRE_ValidateTextureIndex(int index);
-
-void SABRE_Cleanup();
-
-#define SABRE_STRINGIFY(X) #X
-#define SABRE_EXPAND_STRINGIFY(X) SABRE_STRINGIFY(X)
-#define SABRE_PROCESS_STEP_LABEL(NAME, STAGE, STAGES) "[" NAME " (" SABRE_STRINGIFY(STAGE) "/" SABRE_EXPAND_STRINGIFY(STAGES) ")] "
-
-#define SABRE_INIT_STAGES 5
-#define SABRE_INIT_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("init", STAGE, SABRE_INIT_STAGES)
-
-#define SABRE_CLEANUP_STAGES 7
-#define SABRE_CLEANUP_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("cleanup", STAGE, SABRE_CLEANUP_STAGES)
-
-#define SABRE_START_STAGES 2
-#define SABRE_START_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("start", STAGE, SABRE_START_STAGES)
-
-void SABRE_ValidateGraphicsSettings()
-{
-    SABRE_graphicsSettings.levelEdgeWrapDepth = SABRE_LimitIntValue(SABRE_graphicsSettings.levelEdgeWrapDepth, 0, SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH);
-    SABRE_graphicsSettings.levelEdgeTextureIndex += 2;
-    if (SABRE_ValidateTextureIndex(SABRE_graphicsSettings.levelEdgeTextureIndex - 1) == 0)
-    {
-        SABRE_graphicsSettings.levelEdgeTextureIndex = 1; // texture index 1 indicates a missing texture
-    }
-}
-
-void SABRE_BuildTextureStore()
-{
-    if (SABRE_gameState < SABRE_TEXTURES_ADDED)
-    {
-        SendActivationEvent("SABRE_TextureActor");
-    }
-}
-
-void SABRE_BuildSpriteStore()
-{
-    if (SABRE_gameState < SABRE_SPRITES_ADDED)
-    {
-        SendActivationEvent("SABRE_SpriteActor");
-    }
-}
-
-void SABRE_Initialize()
-{
-    int nextStep = 1;
-
-    while (nextStep)
-    {
-        switch (SABRE_gameState)
-        {
-            case SABRE_UNINITIALIZED:
-                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(1) "Signal textureActor to start adding textures.", "SABRE_Initialize");
-                SABRE_BuildTextureStore();
-                if (SABRE_gameState != SABRE_TEXTURES_ADDED)
-                {
-                    DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Error! Texture addition failed.", "SABRE_Initialize");
-                    SABRE_Cleanup();
-                    nextStep = 0;
-                }
-                break;
-
-            case SABRE_TEXTURES_ADDED:
-                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Texture addition successful.", "SABRE_Initialize");
-                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(3) "Signal spriteActor to start adding sprites.", "SABRE_Initialize");
-                SABRE_BuildSpriteStore();
-                if (SABRE_gameState != SABRE_SPRITES_ADDED)
-                {
-                    DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Error! Sprite addition failed.", "SABRE_Initialize");
-                    SABRE_Cleanup();
-                    nextStep = 0;
-                }
-                break;
-
-            case SABRE_SPRITES_ADDED:
-                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Sprite addition successful.", "SABRE_Initialize");
-                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(5) "SABRE initialization complete.", "SABRE_Initialize");
-                SABRE_gameState = SABRE_INITIALIZED;
-                break;
-
-            case SABRE_INITIALIZED:
-                nextStep = 0;
-                break;
-
-            default:
-                nextStep = 0;
-                break;
-        }
-    }
-}
-
-void SABRE_CreateScreen()
-{
-    if (SABRE_gameState == SABRE_INITIALIZED)
-    {
-        CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
-        CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + SABRE_Screen.height * 0.5 - 270, true);
-        CreateActor("SABRE_Floor", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + SABRE_Screen.height * 0.5 + 270, true);
-        SABRE_SetCeilingColor(SABRE_defaultCeiling);
-        SABRE_SetFloorColor(SABRE_defaultFloor);
-    }
-    else
-    {
-        DEBUG_MSG_FROM("SABRE has not been initialized, will not create screen.", "SABRE_CreateScreen");
-    }
-}
-
-void SABRE_DestroyScreen()
-{
-    DestroyActor("SABRE_Screen");
-    DestroyActor("SABRE_Ceiling");
-    DestroyActor("SABRE_Floor");
-}
-
-void SABRE_Start()
-{
-    if (SABRE_gameState == SABRE_INITIALIZED)
-    {
-        if (SABRE_ValidateCurrentLevel() == 0)
-        {
-            DEBUG_MSG_FROM(SABRE_START_STEP_LABEL(1) "Level validation done, no errors.", "SABRE_Start");
-        }
-        else
-        {
-            DEBUG_MSG_FROM(SABRE_START_STEP_LABEL(1) "Warning! At least one missing texture was detected.", "SABRE_Start");
-        }
-
-        SABRE_ValidateGraphicsSettings();
-        SABRE_CreateScreen();
-        SABRE_EnableActors();
-        SABRE_gameState = SABRE_RUNNING;
-        DEBUG_MSG_FROM(SABRE_START_STEP_LABEL(2) "SABRE started.", "SABRE_Start");
-
-        SABRE_SetEntities(); // Set the test entities
-    }
-    else
-    {
-        DEBUG_MSG_FROM("SABRE has not been initialized, can't start.", "SABRE_Start");
-    }
-}
-
-void SABRE_Stop()
-{
-    if (SABRE_gameState == SABRE_RUNNING)
-    {
-        SABRE_gameState = SABRE_INITIALIZED;
-        SABRE_DisableActors();
-        SABRE_DestroyScreen();
-        DEBUG_MSG_FROM("SABRE stopped.", "SABRE_Stop");
-    }
-    else
-    {
-        DEBUG_MSG_FROM("SABRE is not running, no-op.", "SABRE_Stop");
-    }
-}
-
-void SABRE_InitializeAndStart()
-{
-    SABRE_Initialize();
-    SABRE_Start();
-}
-
-int SABRE_FreeLevel();              // from level.c
-void SABRE_FreeTextureStore();      // from texture.c
-void SABRE_FreeSpriteStore();       // from sprite.c
-void SABRE_FreeRenderObjectList();  // from render.c
-void SABRE_FreeEntityList();        // from entity.c
-void SABRE_FreeProjectileList();    // from projectile.c
-
-void SABRE_Cleanup()
-{
-    SABRE_Stop();
-
-    if (SABRE_gameState != SABRE_FINISHED)
-    {
-        SABRE_DisableActors();
-
-        SABRE_FreeLevel();
-        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(1) "Freed level data memory.", "SABRE_Cleanup");
-
-        SABRE_FreeTextureStore();
-        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(2) "Freed texture store memory.", "SABRE_Cleanup");
-
-        SABRE_FreeSpriteStore();
-        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(3) "Freed sprite store memory.", "SABRE_Cleanup");
-
-        SABRE_FreeProjectileList();
-        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(4) "Freed projectile list memory.", "SABRE_Cleanup");
-
-        SABRE_FreeEntityList();
-        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(5) "Freed entity list memory.", "SABRE_Cleanup");
-
-        SABRE_FreeRenderObjectList();
-        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(6) "Freed render object list memory.", "SABRE_Cleanup");
-
-        SABRE_gameState = SABRE_FINISHED;
-        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(7) "SABRE cleanup complete.", "SABRE_Cleanup");
-    }
-}
-
-
-// ..\source\global-code\37-event.c
-#define SABRE_EVENT_PERMANENT_CHANGE      0
-#define SABRE_EVENT_PRESENCE_TOGGLE       1
-#define SABRE_EVENT_PRESENCE_TOGGLE_ONCE  2
-#define SABRE_EVENT_SIGNAL                3
-#define SABRE_EVENT_SIGNAL_ONCE           4
-
-#define SABRE_EVENT_FLAG_ACTIVE 1
-#define SABRE_EVENT_FLAG_LOCKED 2
-
-#define SABRE_TRIGGER_HANDLER "SABRE_TriggerHandler"
-
-#define SABRE_EVENT_ACTIVATE(EVENT) do { EVENT->state |= SABRE_EVENT_FLAG_ACTIVE;   \
-                                         SABRE_updatedTrigger = EVENT;              \
-                                         SendActivationEvent(SABRE_TRIGGER_HANDLER); } while (0)
-#define SABRE_EVENT_DEACTIVATE(EVENT) do { EVENT->state &= (~SABRE_EVENT_FLAG_ACTIVE);  \
-                                           SABRE_updatedTrigger = EVENT;                \
-                                           SendActivationEvent(SABRE_TRIGGER_HANDLER); } while (0)
-
-#define SABRE_EVENT_LOCK(EVENT) do { EVENT->state |= SABRE_EVENT_FLAG_LOCKED; } while (0)
-#define SABRE_EVENT_UNLOCK(EVENT) do { EVENT->state &= (~SABRE_EVENT_FLAG_LOCKED); } while (0)
-
-#define SABRE_EVENT_ACTIVE(EVENT) (EVENT->state & SABRE_EVENT_FLAG_ACTIVE)
-#define SABRE_EVENT_NOT_ACTIVE(EVENT) (EVENT->state & SABRE_EVENT_FLAG_ACTIVE) == 0
-
-#define SABRE_EVENT_LOCKED(EVENT) (EVENT->state & SABRE_EVENT_FLAG_LOCKED)
-#define SABRE_EVENT_NOT_LOCKED(EVENT) (EVENT->state & SABRE_EVENT_FLAG_LOCKED) == 0
-
-typedef enum SABRE_EventNameEnum
-{
-    LVL1_CASH_MACHINE_EVENT = 0,
-    LVL1_WINDOW_EVENT
-}SABRE_EventName;
-
-typedef struct SABRE_EventTriggerStruct
-{
-    unsigned char type;
-    SABRE_EventName event;
-    SABRE_Vector2 p1;
-    SABRE_Vector2 p2;
-    float facingDir;
-    float facingFov;
-    unsigned char state;
-}SABRE_EventTrigger;
-
-SABRE_EventTrigger event1 =
-{
-    SABRE_EVENT_PRESENCE_TOGGLE,
-    LVL1_CASH_MACHINE_EVENT,
-    { 1, 8 },
-    { 2, 9 },
-    0.0f, 45.0f,
-    0
-};
-
-SABRE_EventTrigger event2 =
-{
-    SABRE_EVENT_PRESENCE_TOGGLE,
-    LVL1_WINDOW_EVENT,
-    { 0, 5 },
-    { 2.6, 6 },
-    0.0f, -30.0f
-};
-
-SABRE_EventTrigger *SABRE_updatedTrigger = NULL;
-
-void UpdateEvents();
-void SABRE_UpdateEvent(SABRE_EventTrigger *event);
-void SABRE_EnterEventTrigger(SABRE_EventTrigger *event);
-void SABRE_StayInEventTrigger(SABRE_EventTrigger *event);
-void SABRE_LeaveEventTrigger(SABRE_EventTrigger *event);
+        if (err) return err;
 
 #if DEBUG
-void SABRE_ResetEvent(SABRE_EventTrigger *event);
-void SABRE_CycleEventType(SABRE_EventTrigger *event);
-#endif
-
-void SABRE_UpdateEvent(SABRE_EventTrigger *event)
 {
-    SABRE_Vector2 camPos = SABRE_camera.pos;
-    SABRE_Vector2 prevPos = SABRE_camera.prevPos;
-
-    float deltaTo180 = 180.0f - event->facingDir;
-    float normalizedDir = SABRE_NormalizeAngleTo360(direction(0, 0, SABRE_camera.dir.x, SABRE_camera.dir.y) + deltaTo180);
-    float normalizedPrevDir = SABRE_NormalizeAngleTo360(direction(0, 0, SABRE_camera.prevDir.x, SABRE_camera.prevDir.y) + deltaTo180);
-
-    short isFacingRightDirection = (event->facingFov < 0 || (abs(normalizedDir - 180.0f) <= event->facingFov / 2.0f));
-    short wasFacingRightDirection = (event->facingFov < 0 || (abs(normalizedPrevDir - 180.0f) <= event->facingFov / 2.0f));
-
-    short isInsideTrigger = (camPos.x >= event->p1.x &&
-                                camPos.x <= event->p2.x &&
-                                camPos.y >= event->p1.y &&
-                                camPos.y <= event->p2.y);
-    short wasInsideTrigger = (prevPos.x >= event->p1.x &&
-                                prevPos.x <= event->p2.x &&
-                                prevPos.y >= event->p1.y &&
-                                prevPos.y <= event->p2.y);
-
-    if (isFacingRightDirection && isInsideTrigger && (!wasFacingRightDirection && isFacingRightDirection || !wasInsideTrigger && isInsideTrigger))
-    {
-        SABRE_EnterEventTrigger(event);
-    }
-    else if ((!isFacingRightDirection || !isInsideTrigger) && (wasFacingRightDirection && wasInsideTrigger))
-    {
-        SABRE_LeaveEventTrigger(event);
-    }
-    else if (wasFacingRightDirection && isFacingRightDirection && wasInsideTrigger && isInsideTrigger)
-    {
-        SABRE_StayInEventTrigger(event);
-    }
-}
-
-void SABRE_UpdateEvents()
-{
-    // TODO: Function that updates the events associated with the tile the player is standing in.
-    SABRE_UpdateEvent(&event1);
-    SABRE_UpdateEvent(&event2);
-}
-
-#if DEBUG
-void SABRE_ResetEvent(SABRE_EventTrigger *event)
-{
-    event->state = 0;
-}
-
-void SABRE_CycleEventType(SABRE_EventTrigger *event)
-{
-    event->type++;
-    if (event->type > 4) event->type = 0;
+    char temp[256];
+    sprintf(temp, "Added sprite: [%d \"%s\" %d]", i - 1, animName, SABRE_sprites[SABRE_spriteStore.count-1].nframes);
+    DEBUG_MSG_FROM(temp, "SABRE_AutoAddSprites");
 }
 #endif
 
-void SABRE_EnterEventTrigger(SABRE_EventTrigger *event)
-{
-    switch (event->type)
-    {
-        case SABRE_EVENT_PERMANENT_CHANGE:
-            if (SABRE_EVENT_NOT_ACTIVE(event))
-            {
-                SABRE_EVENT_ACTIVATE(event);
-            }
-            break;
-        case SABRE_EVENT_PRESENCE_TOGGLE:
-            SABRE_EVENT_ACTIVATE(event);
-            break;
-        case SABRE_EVENT_PRESENCE_TOGGLE_ONCE:
-            if (SABRE_EVENT_NOT_LOCKED(event))
-            {
-                SABRE_EVENT_ACTIVATE(event);
-                SABRE_EVENT_LOCK(event);
-            }
-            break;
-        case SABRE_EVENT_SIGNAL:
-            if (SABRE_EVENT_NOT_LOCKED(event))
-            {
-                SABRE_EVENT_ACTIVATE(event);
-                SABRE_EVENT_LOCK(event);
-            }
-            else
-            {
-                SABRE_EVENT_DEACTIVATE(event);
-            }
-            break;
-        case SABRE_EVENT_SIGNAL_ONCE:
-            if (SABRE_EVENT_NOT_LOCKED(event))
-            {
-                SABRE_EVENT_ACTIVATE(event);
-                SABRE_EVENT_LOCK(event);
-            }
-            else
-            {
-                SABRE_EVENT_DEACTIVATE(event);
-            }
-            break;
+        strcpy(animName, getAnimName(++i));
     }
+
+    return 0;
 }
 
-void SABRE_StayInEventTrigger(SABRE_EventTrigger *event)
+int SABRE_AddSprite(const char spriteName[256])
 {
-    switch (event->type)
-    {
-        case SABRE_EVENT_SIGNAL:
-        case SABRE_EVENT_SIGNAL_ONCE:
-            SABRE_EnterEventTrigger(event);
-            break;
-        default:
-            break;
-    }
+    SABRE_Sprite newSprite;
+
+    strcpy(newSprite.name, spriteName);
+    newSprite.width = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_WIDTH);
+    newSprite.height = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_HEIGHT);
+    newSprite.halfWidth = newSprite.width * 0.5f;
+    newSprite.halfHeight = newSprite.height * 0.5f;
+    newSprite.nframes = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_NFRAMES);
+
+    return SABRE_AddToDataStore(&SABRE_spriteStore, &newSprite);
 }
 
-void SABRE_LeaveEventTrigger(SABRE_EventTrigger *event)
+void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite)
 {
-    switch (event->type)
-    {
-        case SABRE_EVENT_PRESENCE_TOGGLE:
-            SABRE_EVENT_DEACTIVATE(event);
-            break;
-        case SABRE_EVENT_PRESENCE_TOGGLE_ONCE:
-            SABRE_EVENT_DEACTIVATE(event);
-            break;
-        case SABRE_EVENT_SIGNAL:
-            if (SABRE_EVENT_LOCKED(event))
-            {
-                SABRE_EVENT_UNLOCK(event);
-            }
-            break;
-        case SABRE_EVENT_SIGNAL_ONCE:
-            if (SABRE_EVENT_LOCKED(event))
-            {
-                SABRE_EVENT_DEACTIVATE(event);
-            }
-            break;
-    }
+    SABRE_sprites[dataStore->count] = *SABRE_SPRITE_POINTER_CAST(sprite);
+}
+
+void SABRE_FreeSpriteStore()
+{
+    SABRE_FreeDataStore(&SABRE_spriteStore);
+    SABRE_sprites = NULL;
 }
 
 
-// ..\source\global-code\38-level.c
-const unsigned long SABRE_NORMAL    = 0;
-const unsigned long SABRE_IS_WINDOW = (1 << 0);
-
-#ifndef SABRE_RENDER_OBJECT_DEFINED
-typedef struct SABRE_RenderObjectStruct
-{
-    float sortValue;
-    enum SABRE_RenderObjectTypeEnum objectType;
-
-    float scale;
-    int width;
-    int height;
-    float verticalOffset;
-    int horizontalPosition;
-    int horizontalScalingCompensation;
-    SABRE_Slice slice;
-
-    struct SABRE_RenderObjectStruct *prev;
-    struct SABRE_RenderObjectStruct *next;
-}SABRE_RenderObject;
-#define SABRE_RENDER_OBJECT_DEFINED
-#endif
-
-#ifndef SABRE_LEVEL_DEFINED
-#define SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH 5
-typedef struct SABRE_LevelTileStruct
-{
-    unsigned texture;
-    unsigned long properties;
-    struct SABRE_RenderObjectStruct *renderObject[SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH + 1];
-}SABRE_LevelTile;
-
-typedef struct SABRE_LevelStruct
-{
-    char validated;
-
-    unsigned width;
-    unsigned height;
-    SABRE_LevelTile *map;
-}SABRE_Level;
-#define SABRE_LEVEL_DEFINED
-#endif
-
-// from texture.c
+// ..\source\global-code\40-texture.c
 int SABRE_ValidateTextureIndex(int index);
 int SABRE_IsWindowTexture(int index);
 
-SABRE_Level SABRE_level;
+int SABRE_AutoAddTextures();
+int SABRE_AddTexture(const char textureName[256]);
+int SABRE_CalculateTextureWidth(SABRE_Texture *texture);
+int SABRE_CalculateTextureHeight(SABRE_Texture *texture);
+
+void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture);
+void SABRE_FreeTextureStore();
+
+int SABRE_ValidateTextureIndex(int index)
+{
+    if (index > 0 && index < SABRE_textureStore.count)
+        return index; // offset by one because the first texture index
+                      // is reserved for the "texture missing" texture
+
+    return 0;
+}
+
+int SABRE_IsWindowTexture(int index)
+{
+    return SABRE_textures[index].isWindow;
+}
+
+// only works for non-animated textures
+int SABRE_AutoAddTextures()
+{
+    int i = 1; // Start from 1, don't add project management label as a texture
+    int err = 0;
+    char animName[256];
+
+    strcpy(animName, getAnimName(i));
+    SABRE_SetDataStoreAddFunc(&SABRE_textureStore, SABRE_AddTextureToDataStore);
+    SABRE_textureStore.elemSize = sizeof(SABRE_Texture);
+    SABRE_PrepareDataStore(&SABRE_textureStore);
+
+    // Set the shortcut pointer to allow easier access to texture data
+    SABRE_textures = SABRE_DATA_STORE_AS_TEXTURE_ARRAY(SABRE_textureStore);
+
+    while (strcmp(animName, "") != 0)
+    {
+        err = SABRE_AddTexture(animName);
+
+        if (err) return err;
+
+#if DEBUG
+{
+    char temp[256];
+    sprintf(temp, "Added texture: [%d \"%s\"]", i - 2, animName);
+    DEBUG_MSG_FROM(temp, "SABRE_AutoAddTextures");
+}
+#endif
+
+        strcpy(animName, getAnimName(++i));
+    }
+
+    return 0;
+}
+
+int SABRE_AddTexture(const char textureName[256])
+{
+    SABRE_Texture newTexture;
+
+    strcpy(newTexture.name, textureName);
+    newTexture.width = SABRE_CalculateTextureWidth(&newTexture);
+    newTexture.height = SABRE_CalculateTextureHeight(&newTexture);
+    newTexture.isWindow = SABRE_StringEndsWith(newTexture.name, "-window");
+
+    return SABRE_AddToDataStore(&SABRE_textureStore, &newTexture);
+}
+
+int SABRE_CalculateTextureWidth(SABRE_Texture *texture)
+{
+    // TODO: make a check for if the animation actually exists, use getAnimIndex(), if -1, doesn't exist
+    ChangeAnimation(SABRE_TEXTURE_ACTOR, texture->name, STOPPED);
+    return getclone(SABRE_TEXTURE_ACTOR)->nframes;
+}
+
+int SABRE_CalculateTextureHeight(SABRE_Texture *texture)
+{
+    return SABRE_GetAnimationDataValue(SABRE_TEXTURE_ACTOR, texture->name, SABRE_ANIM_HEIGHT);
+}
+
+void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture)
+{
+    SABRE_textures[dataStore->count] = *SABRE_TEXTURE_POINTER_CAST(texture);
+}
+
+void SABRE_FreeTextureStore()
+{
+    SABRE_FreeDataStore(&SABRE_textureStore);
+    SABRE_textures = NULL;
+}
+
+
+// ..\source\global-code\45-render-object.c
+struct SABRE_RenderObjectListManagerStruct
+{
+    SABRE_RenderObject *head;
+    SABRE_RenderObject *curr;
+    SABRE_RenderObject *reusableCache;
+}SABRE_ROListManager;
+
+#if DEBUG
+int allocations = 0;
+int traversals = 0;
+int singleSliceTraversals = 0;
+int maxTraversals = 0;
+size_t allocatedMemory = 0;
+#endif
+
+void SABRE_FreeRenderObjectList()
+{
+    SABRE_RenderObject *iterator = NULL;
+    SABRE_RenderObject *next = NULL;
+
+    for (iterator = SABRE_ROListManager.head; iterator != NULL; iterator = next)
+    {
+        next = iterator->next;
+        free(iterator);
+
+#if DEBUG
+        allocations--;
+        allocatedMemory -= sizeof *iterator;
+#endif
+    }
+
+    SABRE_ROListManager.head = NULL;
+    SABRE_ROListManager.curr = NULL;
+    SABRE_ROListManager.reusableCache = NULL;
+}
+
+SABRE_RenderObject *SABRE_GetLastROInList(SABRE_RenderObject *list)
+{
+    SABRE_RenderObject *iterator = NULL;
+
+    for (iterator = list; iterator != NULL; iterator = iterator->next)
+    {
+        if (!iterator->next)
+        {
+            return iterator;
+        }
+    }
+
+    return NULL;
+}
+
+SABRE_RenderObject *SABRE_ConcatenateROList(SABRE_RenderObject *dest, SABRE_RenderObject *src)
+{
+    SABRE_RenderObject *tail = SABRE_GetLastROInList(dest);
+    SABRE_RenderObject *result = NULL;
+
+    if (tail)
+    {
+        tail->next = src;
+        result = dest;
+    }
+    else
+    {
+        result = src;
+    }
+
+    return result;
+}
+
+int SABRE_InsertRO(SABRE_RenderObject *object)
+{
+    SABRE_RenderObject *iterator = NULL;
+    SABRE_RenderObject *prev = NULL;
+    SABRE_RenderObject *next = NULL;
+
+    if (!object)
+    {
+        return 1;
+    }
+
+    if (!SABRE_ROListManager.head || !SABRE_ROListManager.curr)
+    {
+        SABRE_ROListManager.head = object;
+        SABRE_ROListManager.curr = object;
+        return 0;
+    }
+
+    iterator = SABRE_ROListManager.curr;
+
+#if DEBUG
+    singleSliceTraversals = 0;
+#endif
+
+    if (object->sortValue <= iterator->sortValue)
+    {
+        while (iterator && object->sortValue <= iterator->sortValue)
+        {
+            prev = iterator;
+            iterator = iterator->next;
+#if DEBUG
+            traversals++;
+            singleSliceTraversals++;
+#endif
+        }
+
+        if (iterator)
+        {
+            object->prev = iterator->prev;
+            object->next = iterator;
+            if (iterator->prev)
+            {
+                iterator->prev->next = object;
+            }
+            iterator->prev = object;
+
+        }
+        else
+        {
+            object->prev = prev;
+            object->next = NULL;
+            prev->next = object;
+        }
+        SABRE_ROListManager.curr = object;
+    }
+    else
+    {
+        while (iterator && object->sortValue > iterator->sortValue)
+        {
+            next = iterator;
+            iterator = iterator->prev;
+#if DEBUG
+            traversals++;
+            singleSliceTraversals++;
+#endif
+        }
+
+        if (iterator)
+        {
+            object->prev = iterator;
+            object->next = iterator->next;
+            if (iterator->next)
+            {
+                iterator->next->prev = object;
+            }
+            iterator->next = object;
+        }
+        else
+        {
+            object->prev = NULL;
+            object->next = next;
+            next->prev = object;
+            SABRE_ROListManager.head = object;
+        }
+        SABRE_ROListManager.curr = object;
+    }
+
+#if DEBUG
+    if (singleSliceTraversals > maxTraversals) maxTraversals = singleSliceTraversals;
+#endif
+
+    return 0;
+}
+
+SABRE_RenderObject *SABRE_GetNextUnusedRO()
+{
+    if (SABRE_ROListManager.reusableCache)
+    {
+        SABRE_RenderObject *new = SABRE_ROListManager.reusableCache;
+        SABRE_ROListManager.reusableCache = SABRE_ROListManager.reusableCache->next;
+        return new;
+    }
+    else
+    {
+        SABRE_RenderObject *new = malloc(sizeof *new);
+
+        if (!new)
+        {
+            DEBUG_MSG_FROM("Memory allocation failed!", "SABRE_GetNextUnusedRO");
+            return NULL;
+        }
+
+#if DEBUG
+    allocations++;
+    allocatedMemory += sizeof *new;
+#endif
+
+        return new;
+    }
+}
+
+SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int width, int height, int horizontalPosition, int compensation, SABRE_Slice slice)
+{
+    int err = 0;
+    SABRE_RenderObject *new = SABRE_GetNextUnusedRO();
+
+    if (!new)
+    {
+        return NULL;
+    }
+
+    new->sortValue = sortValue;
+    new->objectType = SABRE_TEXTURE_RO;
+    new->scale = scale;
+    new->width = width;
+    new->height = height;
+    new->verticalOffset = 0;
+    new->horizontalPosition = horizontalPosition;
+    new->horizontalScalingCompensation = compensation;
+    new->slice = slice;
+    new->prev = NULL;
+    new->next = NULL;
+
+    err = SABRE_InsertRO(new);
+
+    return new;
+}
+
+SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizontalPosition, float verticalOffset, SABRE_Slice slice)
+{
+    int err = 0;
+    SABRE_RenderObject *new = SABRE_GetNextUnusedRO();
+
+    if (!new)
+    {
+        return NULL;
+    }
+
+    new->sortValue = sortValue;
+    new->objectType = SABRE_SPRITE_RO;
+    new->scale = scale;
+    new->width = 0;
+    new->height = 0;
+    new->verticalOffset = verticalOffset;
+    new->horizontalPosition = horizontalPosition;
+    new->horizontalScalingCompensation = 0;
+    new->slice = slice;
+    new->prev = NULL;
+    new->next = NULL;
+
+    err = SABRE_InsertRO(new);
+
+    return new;
+}
+
+void SABRE_PrintROList()
+{
+    int counter = 0;
+    char temp[256];
+    struct SABRE_RenderObjectStruct *iterator = NULL;
+
+    sprintf(temp, "head: %f, curr: %f", SABRE_ROListManager.head->sortValue, SABRE_ROListManager.curr->sortValue);
+    DEBUG_MSG(temp);
+
+    for (iterator = SABRE_ROListManager.head; iterator != NULL; iterator = iterator->next)
+    {
+        sprintf(temp, "frame: %3d render object %3d: [sortValue: %f, scale: %f, hpos: %d, compensation: %d, slice: [anim: %d, slice: %d]]",
+            frame, counter++, iterator->sortValue, iterator->scale, iterator->horizontalPosition, iterator->horizontalScalingCompensation,
+            iterator->slice.anim, iterator->slice.slice);
+        DEBUG_MSG(temp);
+    }
+}
+
+
+// ..\source\global-code\50-level.c
+const unsigned long SABRE_NORMAL    = 0;
+const unsigned long SABRE_IS_WINDOW = (1 << 0);
 
 int SABRE_FreeLevel();
 int SABRE_PrintLevel(SABRE_Level *level);
@@ -2099,235 +1997,248 @@ int SABRE_SetLevelDataFrom2DIntArray(SABRE_Level *level, unsigned width, unsigne
 }
 
 
-// ..\source\global-code\40-texture.c
-#define SABRE_TEXTURE_ACTOR "SABRE_TextureActor"
+// ..\source\global-code\55-renderer.c
+const float SABRE_heightUnit = 480.0f;
+const float SABRE_halfHeightUnit = SABRE_heightUnit * 0.5f;
+float SABRE_screenWidth = 640.0f, SABRE_screenHeight = 480.0f;
 
-typedef struct SABRE_TextureStruct
+void SABRE_InitializeFrame()
 {
-    int width;
-    int height;
-    short slices;
-    char isWindow;
-    char name[256];
-}SABRE_Texture;
+    int i, j, k;
+    size_t index = 0;
 
-#define SABRE_DATA_STORE_AS_TEXTURE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (SABRE_Texture *))
-#define SABRE_TEXTURE_POINTER_CAST(POINTER) ((SABRE_Texture *)POINTER)
-
-// Actual texture data store
-SABRE_DataStore SABRE_textureStore;
-// A shortcut pointer to access the data from the store
-// without having to cast pointers all the time
-SABRE_Texture *SABRE_textures = NULL;
-
-int SABRE_ValidateTextureIndex(int index);
-int SABRE_IsWindowTexture(int index);
-
-int SABRE_AutoAddTextures();
-int SABRE_AddTexture(const char textureName[256]);
-int SABRE_CalculateTextureWidth(SABRE_Texture *texture);
-int SABRE_CalculateTextureHeight(SABRE_Texture *texture);
-
-void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture);
-void SABRE_FreeTextureStore();
-
-int SABRE_ValidateTextureIndex(int index)
-{
-    if (index > 0 && index < SABRE_textureStore.count)
-        return index; // offset by one because the first texture index
-                      // is reserved for the "texture missing" texture
-
-    return 0;
-}
-
-int SABRE_IsWindowTexture(int index)
-{
-    return SABRE_textures[index].isWindow;
-}
-
-// only works for non-animated textures
-int SABRE_AutoAddTextures()
-{
-    int i = 1; // Start from 1, don't add project management label as a texture
-    int err = 0;
-    char animName[256];
-
-    strcpy(animName, getAnimName(i));
-    SABRE_SetDataStoreAddFunc(&SABRE_textureStore, SABRE_AddTextureToDataStore);
-    SABRE_textureStore.elemSize = sizeof(SABRE_Texture);
-    SABRE_PrepareDataStore(&SABRE_textureStore);
-
-    // Set the shortcut pointer to allow easier access to texture data
-    SABRE_textures = SABRE_DATA_STORE_AS_TEXTURE_ARRAY(SABRE_textureStore);
-
-    while (strcmp(animName, "") != 0)
+    for (j = 0; j < SABRE_level.height; j++)
     {
-        err = SABRE_AddTexture(animName);
+        for (i = 0; i < SABRE_level.width; i++)
+        {
+            index = j * SABRE_level.width + i;
 
-        if (err) return err;
-
-#if DEBUG
-{
-    char temp[256];
-    sprintf(temp, "Added texture: [%d \"%s\"]", i - 2, animName);
-    DEBUG_MSG_FROM(temp, "SABRE_AutoAddTextures");
-}
-#endif
-
-        strcpy(animName, getAnimName(++i));
+            for (k = 0; k <= SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH; k++)
+            {
+                SABRE_level.map[index].renderObject[k] = NULL;
+            }
+        }
     }
 
-    return 0;
+#if DEBUG
+    traversals = 0;
+    maxTraversals = 0;
+#endif
+
+    SABRE_ROListManager.reusableCache = SABRE_ConcatenateROList(SABRE_ROListManager.reusableCache, SABRE_ROListManager.head);
+    SABRE_ROListManager.head = NULL;
+    SABRE_ROListManager.curr = NULL;
 }
 
-int SABRE_AddTexture(const char textureName[256])
+void SABRE_RenderObjects()
 {
-    SABRE_Texture newTexture;
+    int horizontalPosition = 0;
+    float verticalPosition = height * 0.5f;
+    SABRE_RenderObject *iterator = NULL;
+    float verticalResolutionFactor = SABRE_screenHeight / SABRE_heightUnit;
+    const float horizontalCompensationThreshold = 0.0315f; // threshold for growing the compensation
 
-    strcpy(newTexture.name, textureName);
-    newTexture.width = SABRE_CalculateTextureWidth(&newTexture);
-    newTexture.height = SABRE_CalculateTextureHeight(&newTexture);
-    newTexture.isWindow = SABRE_StringEndsWith(newTexture.name, "-window");
+    textureDrawCalls = 0;
+    spriteDrawCalls = 0;
 
-    return SABRE_AddToDataStore(&SABRE_textureStore, &newTexture);
-}
-
-int SABRE_CalculateTextureWidth(SABRE_Texture *texture)
-{
-    // TODO: make a check for if the animation actually exists, use getAnimIndex(), if -1, doesn't exist
-    ChangeAnimation(SABRE_TEXTURE_ACTOR, texture->name, STOPPED);
-    return getclone(SABRE_TEXTURE_ACTOR)->nframes;
-}
-
-int SABRE_CalculateTextureHeight(SABRE_Texture *texture)
-{
-    return SABRE_GetAnimationDataValue(SABRE_TEXTURE_ACTOR, texture->name, SABRE_ANIM_HEIGHT);
-}
-
-void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture)
-{
-    SABRE_textures[dataStore->count] = *SABRE_TEXTURE_POINTER_CAST(texture);
-}
-
-void SABRE_FreeTextureStore()
-{
-    SABRE_FreeDataStore(&SABRE_textureStore);
-    SABRE_textures = NULL;
-}
-
-
-// ..\source\global-code\50-sprite.c
-#define SABRE_SPRITE_ACTOR "SABRE_SpriteActor"
-
-typedef struct SABRE_SpriteStruct
-{
-    unsigned int width;
-    unsigned int height;
-    unsigned int halfWidth;
-    unsigned int halfHeight;
-    unsigned int nframes;
-    char name[256];
-}SABRE_Sprite;
-
-#define SABRE_DATA_STORE_AS_SPRITE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (SABRE_Sprite *))
-#define SABRE_SPRITE_POINTER_CAST(POINTER) ((SABRE_Sprite *)POINTER)
-
-// Actual sprite data store
-SABRE_DataStore SABRE_spriteStore;
-// A shortcut pointer to access the data from the store
-// without having to cast pointers all the time
-SABRE_Sprite *SABRE_sprites = NULL;
-
-int SABRE_AutoAddSprites();
-int SABRE_AddSprite(const char spriteName[256]);
-
-void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite);
-void SABRE_FreeSpriteStore();
-
-int SABRE_AutoAddSprites()
-{
-    int i = 1; // Start from 1, don't add project management label as a texture
-    int err = 0;
-    char animName[256];
-
-    strcpy(animName, getAnimName(i));
-    SABRE_SetDataStoreAddFunc(&SABRE_spriteStore, SABRE_AddSpriteToDataStore);
-    SABRE_spriteStore.elemSize = sizeof(SABRE_Sprite);
-    SABRE_PrepareDataStore(&SABRE_spriteStore);
-
-    // Set the shortcut pointer to allow easier access to sprite data
-    SABRE_sprites = SABRE_DATA_STORE_AS_SPRITE_ARRAY(SABRE_spriteStore);
-
-    while (strcmp(animName, "") != 0)
+    for (iterator = SABRE_ROListManager.head; iterator != NULL; iterator = iterator->next)
     {
-        err = SABRE_AddSprite(animName);
+        if (iterator->objectType == SABRE_TEXTURE_RO)
+        {
+            SABRE_slice.anim = iterator->slice.anim;
+            SABRE_slice.slice = iterator->slice.slice;
+            SendActivationEvent(SABRE_TEXTURE_ACTOR);
+            draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition - SABRE_camera.vPos * (iterator->height / SABRE_halfHeightUnit),
+                iterator->scale);
+            textureDrawCalls++;
+        }
+        else if (iterator->objectType == SABRE_SPRITE_RO)
+        {
+            SABRE_slice.anim = iterator->slice.anim;
+            SABRE_slice.slice = iterator->slice.slice;
+            SendActivationEvent(SABRE_SPRITE_ACTOR);
+            draw_from(SABRE_SPRITE_ACTOR, iterator->horizontalPosition,
+                verticalPosition + ((SABRE_halfHeightUnit - (float)SABRE_sprites[SABRE_slice.anim - 1].halfHeight - SABRE_camera.vPos * 2) - (iterator->verticalOffset * SABRE_heightUnit)) * iterator->scale * verticalResolutionFactor,
+                iterator->scale * verticalResolutionFactor);
+            spriteDrawCalls++;
+        }
+    }
+}
 
-        if (err) return err;
+
+// ..\source\global-code\60-event.c
+SABRE_EventTrigger event1 =
+{
+    SABRE_EVENT_PRESENCE_TOGGLE,
+    LVL1_CASH_MACHINE_EVENT,
+    { 1, 8 },
+    { 2, 9 },
+    0.0f, 45.0f,
+    0
+};
+
+SABRE_EventTrigger event2 =
+{
+    SABRE_EVENT_PRESENCE_TOGGLE,
+    LVL1_WINDOW_EVENT,
+    { 0, 5 },
+    { 2.6, 6 },
+    0.0f, -30.0f
+};
+
+SABRE_EventTrigger *SABRE_updatedTrigger = NULL;
+
+void UpdateEvents();
+void SABRE_UpdateEvent(SABRE_EventTrigger *event);
+void SABRE_EnterEventTrigger(SABRE_EventTrigger *event);
+void SABRE_StayInEventTrigger(SABRE_EventTrigger *event);
+void SABRE_LeaveEventTrigger(SABRE_EventTrigger *event);
 
 #if DEBUG
-{
-    char temp[256];
-    sprintf(temp, "Added sprite: [%d \"%s\" %d]", i - 1, animName, SABRE_sprites[SABRE_spriteStore.count-1].nframes);
-    DEBUG_MSG_FROM(temp, "SABRE_AutoAddSprites");
-}
+void SABRE_ResetEvent(SABRE_EventTrigger *event);
+void SABRE_CycleEventType(SABRE_EventTrigger *event);
 #endif
 
-        strcpy(animName, getAnimName(++i));
+void SABRE_UpdateEvent(SABRE_EventTrigger *event)
+{
+    SABRE_Vector2 camPos = SABRE_camera.pos;
+    SABRE_Vector2 prevPos = SABRE_camera.prevPos;
+
+    float deltaTo180 = 180.0f - event->facingDir;
+    float normalizedDir = SABRE_NormalizeAngleTo360(direction(0, 0, SABRE_camera.dir.x, SABRE_camera.dir.y) + deltaTo180);
+    float normalizedPrevDir = SABRE_NormalizeAngleTo360(direction(0, 0, SABRE_camera.prevDir.x, SABRE_camera.prevDir.y) + deltaTo180);
+
+    short isFacingRightDirection = (event->facingFov < 0 || (abs(normalizedDir - 180.0f) <= event->facingFov / 2.0f));
+    short wasFacingRightDirection = (event->facingFov < 0 || (abs(normalizedPrevDir - 180.0f) <= event->facingFov / 2.0f));
+
+    short isInsideTrigger = (camPos.x >= event->p1.x &&
+                                camPos.x <= event->p2.x &&
+                                camPos.y >= event->p1.y &&
+                                camPos.y <= event->p2.y);
+    short wasInsideTrigger = (prevPos.x >= event->p1.x &&
+                                prevPos.x <= event->p2.x &&
+                                prevPos.y >= event->p1.y &&
+                                prevPos.y <= event->p2.y);
+
+    if (isFacingRightDirection && isInsideTrigger && (!wasFacingRightDirection && isFacingRightDirection || !wasInsideTrigger && isInsideTrigger))
+    {
+        SABRE_EnterEventTrigger(event);
     }
-
-    return 0;
+    else if ((!isFacingRightDirection || !isInsideTrigger) && (wasFacingRightDirection && wasInsideTrigger))
+    {
+        SABRE_LeaveEventTrigger(event);
+    }
+    else if (wasFacingRightDirection && isFacingRightDirection && wasInsideTrigger && isInsideTrigger)
+    {
+        SABRE_StayInEventTrigger(event);
+    }
 }
 
-int SABRE_AddSprite(const char spriteName[256])
+void SABRE_UpdateEvents()
 {
-    SABRE_Sprite newSprite;
-
-    strcpy(newSprite.name, spriteName);
-    newSprite.width = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_WIDTH);
-    newSprite.height = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_HEIGHT);
-    newSprite.halfWidth = newSprite.width * 0.5f;
-    newSprite.halfHeight = newSprite.height * 0.5f;
-    newSprite.nframes = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_NFRAMES);
-
-    return SABRE_AddToDataStore(&SABRE_spriteStore, &newSprite);
+    // TODO: Function that updates the events associated with the tile the player is standing in.
+    SABRE_UpdateEvent(&event1);
+    SABRE_UpdateEvent(&event2);
 }
 
-void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite)
+#if DEBUG
+void SABRE_ResetEvent(SABRE_EventTrigger *event)
 {
-    SABRE_sprites[dataStore->count] = *SABRE_SPRITE_POINTER_CAST(sprite);
+    event->state = 0;
 }
 
-void SABRE_FreeSpriteStore()
+void SABRE_CycleEventType(SABRE_EventTrigger *event)
 {
-    SABRE_FreeDataStore(&SABRE_spriteStore);
-    SABRE_sprites = NULL;
+    event->type++;
+    if (event->type > 4) event->type = 0;
 }
-
-
-// ..\source\global-code\52-animation.c
-#ifndef SABRE_ANIMATION_DEFINED
-typedef struct SABRE_AnimationStruct
-{
-    float frameRate;
-    unsigned int nframes;
-    unsigned int sprite;
-}SABRE_Animation;
-#define SABRE_ANIMATION_DEFINED
 #endif
 
-#ifndef SABRE_ANIMATOR_DEFINED
-typedef struct SABRE_AnimatorStruct
+void SABRE_EnterEventTrigger(SABRE_EventTrigger *event)
 {
-    char state;
-    unsigned int animpos;
-    float accumulatedAnimpos;
-    SABRE_Animation anim;
-}SABRE_Animator;
-#define SABRE_ANIMATOR_DEFINED
-#endif
+    switch (event->type)
+    {
+        case SABRE_EVENT_PERMANENT_CHANGE:
+            if (SABRE_EVENT_NOT_ACTIVE(event))
+            {
+                SABRE_EVENT_ACTIVATE(event);
+            }
+            break;
+        case SABRE_EVENT_PRESENCE_TOGGLE:
+            SABRE_EVENT_ACTIVATE(event);
+            break;
+        case SABRE_EVENT_PRESENCE_TOGGLE_ONCE:
+            if (SABRE_EVENT_NOT_LOCKED(event))
+            {
+                SABRE_EVENT_ACTIVATE(event);
+                SABRE_EVENT_LOCK(event);
+            }
+            break;
+        case SABRE_EVENT_SIGNAL:
+            if (SABRE_EVENT_NOT_LOCKED(event))
+            {
+                SABRE_EVENT_ACTIVATE(event);
+                SABRE_EVENT_LOCK(event);
+            }
+            else
+            {
+                SABRE_EVENT_DEACTIVATE(event);
+            }
+            break;
+        case SABRE_EVENT_SIGNAL_ONCE:
+            if (SABRE_EVENT_NOT_LOCKED(event))
+            {
+                SABRE_EVENT_ACTIVATE(event);
+                SABRE_EVENT_LOCK(event);
+            }
+            else
+            {
+                SABRE_EVENT_DEACTIVATE(event);
+            }
+            break;
+    }
+}
 
-#define SABRE_ANIMATOR_LITERAL(FPS, NFRAMES, SPRITE) { 0, 0, 0.0f, { FPS, NFRAMES, SPRITE } }
+void SABRE_StayInEventTrigger(SABRE_EventTrigger *event)
+{
+    switch (event->type)
+    {
+        case SABRE_EVENT_SIGNAL:
+        case SABRE_EVENT_SIGNAL_ONCE:
+            SABRE_EnterEventTrigger(event);
+            break;
+        default:
+            break;
+    }
+}
 
+void SABRE_LeaveEventTrigger(SABRE_EventTrigger *event)
+{
+    switch (event->type)
+    {
+        case SABRE_EVENT_PRESENCE_TOGGLE:
+            SABRE_EVENT_DEACTIVATE(event);
+            break;
+        case SABRE_EVENT_PRESENCE_TOGGLE_ONCE:
+            SABRE_EVENT_DEACTIVATE(event);
+            break;
+        case SABRE_EVENT_SIGNAL:
+            if (SABRE_EVENT_LOCKED(event))
+            {
+                SABRE_EVENT_UNLOCK(event);
+            }
+            break;
+        case SABRE_EVENT_SIGNAL_ONCE:
+            if (SABRE_EVENT_LOCKED(event))
+            {
+                SABRE_EVENT_DEACTIVATE(event);
+            }
+            break;
+    }
+}
+
+
+// ..\source\global-code\65-animation.c
 SABRE_Animation SABRE_CreateAnimation(float frameRate, unsigned int sprite)
 {
     SABRE_Animation anim;
@@ -2385,48 +2296,7 @@ void SABRE_UpdateAnimation(SABRE_Animator *animator)
 }
 
 
-// ..\source\global-code\55-entity.c
-#ifndef SABRE_ANIMATION_DEFINED
-typedef struct SABRE_AnimationStruct
-{
-    float frameRate;
-    unsigned int nframes;
-    unsigned int sprite;
-}SABRE_Animation;
-#define SABRE_ANIMATION_DEFINED
-#endif
-
-#ifndef SABRE_ANIMATOR_DEFINED
-typedef struct SABRE_AnimatorStruct
-{
-    char state;
-    unsigned int animpos;
-    float accumulatedAnimpos;
-    SABRE_Animation anim;
-}SABRE_Animator;
-#define SABRE_ANIMATOR_DEFINED
-#endif
-
-enum SABRE_EntityAttributeFlags
-{
-    SABRE_ENTITY_HIDDEN         = 1,
-    SABRE_ENTITY_NO_COLLISION   = 2
-};
-
-#ifndef SABRE_ENTITY_DEFINED
-typedef struct SABRE_EntityStruct
-{
-    float radius;
-    SABRE_Vector3 pos;
-    unsigned char attributes;
-    SABRE_Animator animator;
-    char name[256];
-}SABRE_Entity;
-#define SABRE_ENTITY_DEFINED
-#endif
-
-SABRE_List *SABRE_entities = NULL;
-
+// ..\source\global-code\70-entity.c
 SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned char attributes, const char name[256]);
 SABRE_Entity *SABRE_GetEntity(const char name[256]);
 int SABRE_CountEntitiesInList();
@@ -2557,41 +2427,7 @@ void SABRE_FreeEntityList()
 }
 
 
-// ..\source\global-code\57-projectile.c
-#define SABRE_PROJECTILE_HANDLER_ACTOR "SABRE_ProjectileHandler"
-
-#define SABRE_PROJECTILE_HIT_WALL 1
-#define SABRE_PROJECTILE_HIT_ENTITY 2
-#define SABRE_PROJECTILE_HIT_FLOOR 3
-
-#ifndef SABRE_PROJECTILE_DEFINED
-typedef struct SABRE_ProjectileStruct
-{
-    float speed;
-    float dropFactor;
-    SABRE_Vector3 dir;
-    SABRE_Entity *entity;
-}SABRE_Projectile;
-#define SABRE_PROJECTILE_DEFINED
-#endif
-
-// Not really anything like infinity, merely a very high value,
-// but the word infinity is shorter than "very high value" :D
-#define SABRE_INFINITY 1e30
-
-SABRE_List *SABRE_projectiles = NULL;
-
-typedef struct SABRE_ProjectileHitDataStruct
-{
-    float dist;
-    unsigned char hitType;
-    SABRE_Projectile *projectile;
-    SABRE_Vector3 hitPosition;
-    SABRE_Entity *entityHit;
-}SABRE_ProjectileHitData;
-
-SABRE_ProjectileHitData SABRE_projectileHitData;
-
+// ..\source\global-code\75-projectile.c
 SABRE_ProjectileHitData SABRE_CreateProjectileHit(unsigned char hitType, float dist, SABRE_Projectile *projectile, SABRE_Vector3 hitPosition, SABRE_Entity *entityHit)
 {
     SABRE_ProjectileHitData new;
@@ -2883,356 +2719,350 @@ void SABRE_FreeProjectileList()
 }
 
 
-// ..\source\global-code\60-renderer.c
-#ifndef SABRE_RENDER_OBJECT_DEFINED
-enum SABRE_RenderObjectTypeEnum
+// ..\source\global-code\80-engine.c
+// x = player
+// 000     abc
+// 0x0  => d e
+// 000     fgh
+
+#define SABRE_COLLISION_MASK_SIZE 7
+#define SABRE_TOP_L      0x80 // a
+#define SABRE_TOP_L_MASK 0xD0 // a && b && d
+#define SABRE_TOP        0x40 // b
+#define SABRE_TOP_MASK   0x40 // b
+#define SABRE_TOP_R      0x20 // c
+#define SABRE_TOP_R_MASK 0x68 // c && b && e
+#define SABRE_LEFT       0x10 // d
+#define SABRE_LEFT_MASK  0x10 // d
+#define SABRE_RIGHT      0x08 // e
+#define SABRE_RIGHT_MASK 0x08 // e
+#define SABRE_LOW_L      0x04 // f
+#define SABRE_LOW_L_MASK 0x16 // f && d && g
+#define SABRE_LOW        0x02 // g
+#define SABRE_LOW_MASK   0x02 // g
+#define SABRE_LOW_R      0x01 // h
+#define SABRE_LOW_R_MASK 0x0B // h && e && g
+
+void SABRE_SetCeilingColor(SABRE_Color color)
 {
-    SABRE_TEXTURE_RO,
-    SABRE_SPRITE_RO
-};
-
-typedef struct SABRE_RenderObjectStruct
-{
-    float sortValue;
-    enum SABRE_RenderObjectTypeEnum objectType;
-
-    float scale;
-    int width;
-    int height;
-    float verticalOffset;
-    int horizontalPosition;
-    int horizontalScalingCompensation;
-    SABRE_Slice slice;
-
-    struct SABRE_RenderObjectStruct *prev;
-    struct SABRE_RenderObjectStruct *next;
-}SABRE_RenderObject;
-#define SABRE_RENDER_OBJECT_DEFINED
-#endif
-
-struct SABRE_RenderObjectListManagerStruct
-{
-    SABRE_RenderObject *head;
-    SABRE_RenderObject *curr;
-    SABRE_RenderObject *reusableCache;
-}SABRE_ROListManager;
-
-#if DEBUG
-int allocations = 0;
-int traversals = 0;
-int singleSliceTraversals = 0;
-int maxTraversals = 0;
-size_t allocatedMemory = 0;
-#endif
-
-void SABRE_FreeRenderObjectList()
-{
-    SABRE_RenderObject *iterator = NULL;
-    SABRE_RenderObject *next = NULL;
-
-    for (iterator = SABRE_ROListManager.head; iterator != NULL; iterator = next)
-    {
-        next = iterator->next;
-        free(iterator);
-
-#if DEBUG
-        allocations--;
-        allocatedMemory -= sizeof *iterator;
-#endif
-    }
-
-    SABRE_ROListManager.head = NULL;
-    SABRE_ROListManager.curr = NULL;
-    SABRE_ROListManager.reusableCache = NULL;
+    SABRE_ColorActorByName(SABRE_CEILING_ACTOR, color);
 }
 
-SABRE_RenderObject *SABRE_GetLastROInList(SABRE_RenderObject *list)
+void SABRE_SetFloorColor(SABRE_Color color)
 {
-    SABRE_RenderObject *iterator = NULL;
+    SABRE_ColorActorByName(SABRE_FLOOR_ACTOR, color);
+}
 
-    for (iterator = list; iterator != NULL; iterator = iterator->next)
+int SABRE_GetSurroundingWalls(float *px, float *py, SABRE_Level *level)
+{
+    int i, j, edge = 0, rows = 3, cols = 3, mid = 0, collisions = 0;
+
+    for (j = 0; j < rows; j++)
     {
-        if (!iterator->next)
+        for (i = 0; i < cols; i++)
         {
-            return iterator;
+            edge = 0;
+
+            if (j == 1 && i == 1) mid = 1;
+            else
+            {
+                int row = (int)*py - 1 + j;
+                int col = (int)*px - 1 + i;
+
+                if (SABRE_graphicsSettings.levelEdgeMode < 2)
+                {
+                    if (row < 1 || row > level->height - 2) edge = 1;
+                    if (col < 1 || col > level->width - 2) edge = 1;
+                }
+                else
+                {
+                    row = SABRE_WrapIntValue(row, level->height);
+                    col = SABRE_WrapIntValue(col, level->width);
+                }
+
+                collisions += (level->map[row * level->width + col].texture > 0 || edge) << SABRE_COLLISION_MASK_SIZE - (j * cols + i - mid);
+            }
         }
     }
 
-    return NULL;
+    return collisions;
 }
 
-SABRE_RenderObject *SABRE_ConcatenateROList(SABRE_RenderObject *dest, SABRE_RenderObject *src)
+void SABRE_KeepDistance(float *x1, float *y1, float x2, float y2, float dist)
 {
-    SABRE_RenderObject *tail = SABRE_GetLastROInList(dest);
-    SABRE_RenderObject *result = NULL;
+    float len = distance(*x1, *y1, x2, y2);
+    float ang = degtorad(direction(x2, y2, *x1, *y1));
 
-    if (tail)
+    if (len < dist)
     {
-        tail->next = src;
-        result = dest;
+        // multiply the results by 1.001 to make the above condition evaluate
+        // to false if the player hasn't moved since their position was last
+        // modified by this function
+        *x1 = x2 + cos(ang) * dist * 1.001f;
+        *y1 = y2 + -sin(ang) * dist * 1.001f;
+    }
+}
+
+void SABRE_UpdateKeyboardState()
+{
+    char *keys = GetKeyState();
+
+    SABRE_keys.prevForward      = SABRE_keys.forward;
+    SABRE_keys.prevBackward     = SABRE_keys.backward;
+    SABRE_keys.prevTurnLeft     = SABRE_keys.turnLeft;
+    SABRE_keys.prevTurnRight    = SABRE_keys.turnRight;
+    SABRE_keys.prevStrafeLeft   = SABRE_keys.strafeLeft;
+    SABRE_keys.prevStrafeRight  = SABRE_keys.strafeRight;
+    SABRE_keys.prevCrouch       = SABRE_keys.crouch;
+    SABRE_keys.prevInteract     = SABRE_keys.interact;
+
+    SABRE_keys.forward          = keys[SABRE_binds.forward];
+    SABRE_keys.backward         = keys[SABRE_binds.backward];
+    SABRE_keys.turnLeft         = keys[SABRE_binds.turnLeft];
+    SABRE_keys.turnRight        = keys[SABRE_binds.turnRight];
+    SABRE_keys.strafeLeft       = keys[SABRE_binds.strafeLeft];
+    SABRE_keys.strafeRight      = keys[SABRE_binds.strafeRight];
+    SABRE_keys.crouch           = keys[SABRE_binds.crouch];
+    SABRE_keys.interact         = keys[SABRE_binds.interact];
+
+    SABRE_keys.pressedForward       = !SABRE_keys.prevForward       && SABRE_keys.forward;
+    SABRE_keys.pressedBackward      = !SABRE_keys.prevBackward      && SABRE_keys.backward;
+    SABRE_keys.pressedTurnLeft      = !SABRE_keys.prevTurnLeft      && SABRE_keys.turnLeft;
+    SABRE_keys.pressedTurnRight     = !SABRE_keys.prevTurnRight     && SABRE_keys.turnRight;
+    SABRE_keys.pressedStrafeLeft    = !SABRE_keys.prevStrafeLeft    && SABRE_keys.strafeLeft;
+    SABRE_keys.pressedStrafeRight   = !SABRE_keys.prevStrafeRight   && SABRE_keys.strafeRight;
+    SABRE_keys.pressedCrouch        = !SABRE_keys.prevCrouch        && SABRE_keys.crouch;
+    SABRE_keys.pressedInteract      = !SABRE_keys.prevInteract      && SABRE_keys.interact;
+
+    SABRE_keys.releasedForward      = SABRE_keys.prevForward        && !SABRE_keys.forward;
+    SABRE_keys.releasedBackward     = SABRE_keys.prevBackward       && !SABRE_keys.backward;
+    SABRE_keys.releasedTurnLeft     = SABRE_keys.prevTurnLeft       && !SABRE_keys.turnLeft;
+    SABRE_keys.releasedTurnRight    = SABRE_keys.prevTurnRight      && !SABRE_keys.turnRight;
+    SABRE_keys.releasedStrafeLeft   = SABRE_keys.prevStrafeLeft     && !SABRE_keys.strafeLeft;
+    SABRE_keys.releasedStrafeRight  = SABRE_keys.prevStrafeRight    && !SABRE_keys.strafeRight;
+    SABRE_keys.releasedCrouch       = SABRE_keys.prevCrouch         && !SABRE_keys.crouch;
+    SABRE_keys.releasedInteract     = SABRE_keys.prevInteract       && !SABRE_keys.interact;
+}
+
+void SABRE_DisableActor(const char *actorName)
+{
+    VisibilityState(actorName, DISABLE);
+    EventDisable(actorName, EVENTALL);
+}
+
+void SABRE_EnableActor(const char *actorName)
+{
+    VisibilityState(actorName, ENABLE);
+    EventEnable(actorName, EVENTALL);
+}
+
+void SABRE_DisableActors()
+{
+    SABRE_DisableActor("SABRE_Screen");
+    SABRE_DisableActor("SABRE_PlayerController");
+    SABRE_DisableActor("SABRE_ProjectileHandler");
+    SABRE_DisableActor("SABRE_TriggerHandler");
+    SABRE_DisableActor("SABRE_Ceiling");
+    SABRE_DisableActor("SABRE_Floor");
+}
+
+void SABRE_EnableActors()
+{
+    SABRE_EnableActor("SABRE_Screen");
+    SABRE_EnableActor("SABRE_PlayerController");
+    SABRE_EnableActor("SABRE_ProjectileHandler");
+    SABRE_EnableActor("SABRE_TriggerHandler");
+    SABRE_EnableActor("SABRE_Ceiling");
+    SABRE_EnableActor("SABRE_Floor");
+}
+
+#define SABRE_STRINGIFY(X) #X
+#define SABRE_EXPAND_STRINGIFY(X) SABRE_STRINGIFY(X)
+#define SABRE_PROCESS_STEP_LABEL(NAME, STAGE, STAGES) "[" NAME " (" SABRE_STRINGIFY(STAGE) "/" SABRE_EXPAND_STRINGIFY(STAGES) ")] "
+
+#define SABRE_INIT_STAGES 5
+#define SABRE_INIT_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("init", STAGE, SABRE_INIT_STAGES)
+
+#define SABRE_CLEANUP_STAGES 7
+#define SABRE_CLEANUP_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("cleanup", STAGE, SABRE_CLEANUP_STAGES)
+
+#define SABRE_START_STAGES 2
+#define SABRE_START_STEP_LABEL(STAGE) SABRE_PROCESS_STEP_LABEL("start", STAGE, SABRE_START_STAGES)
+
+void SABRE_ValidateGraphicsSettings()
+{
+    SABRE_graphicsSettings.levelEdgeWrapDepth = SABRE_LimitIntValue(SABRE_graphicsSettings.levelEdgeWrapDepth, 0, SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH);
+    SABRE_graphicsSettings.levelEdgeTextureIndex += 2;
+    if (SABRE_ValidateTextureIndex(SABRE_graphicsSettings.levelEdgeTextureIndex - 1) == 0)
+    {
+        SABRE_graphicsSettings.levelEdgeTextureIndex = 1; // texture index 1 indicates a missing texture
+    }
+}
+
+void SABRE_BuildTextureStore()
+{
+    if (SABRE_gameState < SABRE_TEXTURES_ADDED)
+    {
+        SendActivationEvent("SABRE_TextureActor");
+    }
+}
+
+void SABRE_BuildSpriteStore()
+{
+    if (SABRE_gameState < SABRE_SPRITES_ADDED)
+    {
+        SendActivationEvent("SABRE_SpriteActor");
+    }
+}
+
+void SABRE_CreateScreen()
+{
+    if (SABRE_gameState == SABRE_INITIALIZED)
+    {
+        CreateActor("SABRE_Screen", "icon", "(none)", "(none)", view.x, view.y, true);
+        CreateActor("SABRE_Ceiling", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + SABRE_Screen.height * 0.5 - 270, true);
+        CreateActor("SABRE_Floor", "background", "(none)", "(none)", view.x + view.width * 0.5, view.y + SABRE_Screen.height * 0.5 + 270, true);
+        SABRE_SetCeilingColor(SABRE_defaultCeiling);
+        SABRE_SetFloorColor(SABRE_defaultFloor);
     }
     else
     {
-        result = src;
+        DEBUG_MSG_FROM("SABRE has not been initialized, will not create screen.", "SABRE_CreateScreen");
     }
-
-    return result;
 }
 
-void SABRE_InitializeFrame()
+void SABRE_DestroyScreen()
 {
-    int i, j, k;
-    size_t index = 0;
-
-    for (j = 0; j < SABRE_level.height; j++)
-    {
-        for (i = 0; i < SABRE_level.width; i++)
-        {
-            index = j * SABRE_level.width + i;
-
-            for (k = 0; k <= SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH; k++)
-            {
-                SABRE_level.map[index].renderObject[k] = NULL;
-            }
-        }
-    }
-
-#if DEBUG
-    traversals = 0;
-    maxTraversals = 0;
-#endif
-
-    SABRE_ROListManager.reusableCache = SABRE_ConcatenateROList(SABRE_ROListManager.reusableCache, SABRE_ROListManager.head);
-    SABRE_ROListManager.head = NULL;
-    SABRE_ROListManager.curr = NULL;
+    DestroyActor("SABRE_Screen");
+    DestroyActor("SABRE_Ceiling");
+    DestroyActor("SABRE_Floor");
 }
 
-int SABRE_InsertRO(SABRE_RenderObject *object)
+void SABRE_Start()
 {
-    SABRE_RenderObject *iterator = NULL;
-    SABRE_RenderObject *prev = NULL;
-    SABRE_RenderObject *next = NULL;
-
-    if (!object)
+    if (SABRE_gameState == SABRE_INITIALIZED)
     {
-        return 1;
-    }
-
-    if (!SABRE_ROListManager.head || !SABRE_ROListManager.curr)
-    {
-        SABRE_ROListManager.head = object;
-        SABRE_ROListManager.curr = object;
-        return 0;
-    }
-
-    iterator = SABRE_ROListManager.curr;
-
-#if DEBUG
-    singleSliceTraversals = 0;
-#endif
-
-    if (object->sortValue <= iterator->sortValue)
-    {
-        while (iterator && object->sortValue <= iterator->sortValue)
+        if (SABRE_ValidateCurrentLevel() == 0)
         {
-            prev = iterator;
-            iterator = iterator->next;
-#if DEBUG
-            traversals++;
-            singleSliceTraversals++;
-#endif
-        }
-
-        if (iterator)
-        {
-            object->prev = iterator->prev;
-            object->next = iterator;
-            if (iterator->prev)
-            {
-                iterator->prev->next = object;
-            }
-            iterator->prev = object;
-
+            DEBUG_MSG_FROM(SABRE_START_STEP_LABEL(1) "Level validation done, no errors.", "SABRE_Start");
         }
         else
         {
-            object->prev = prev;
-            object->next = NULL;
-            prev->next = object;
+            DEBUG_MSG_FROM(SABRE_START_STEP_LABEL(1) "Warning! At least one missing texture was detected.", "SABRE_Start");
         }
-        SABRE_ROListManager.curr = object;
+
+        SABRE_ValidateGraphicsSettings();
+        SABRE_CreateScreen();
+        SABRE_EnableActors();
+        SABRE_gameState = SABRE_RUNNING;
+        DEBUG_MSG_FROM(SABRE_START_STEP_LABEL(2) "SABRE started.", "SABRE_Start");
+
+        SABRE_SetEntities(); // Set the test entities
     }
     else
     {
-        while (iterator && object->sortValue > iterator->sortValue)
-        {
-            next = iterator;
-            iterator = iterator->prev;
-#if DEBUG
-            traversals++;
-            singleSliceTraversals++;
-#endif
-        }
-
-        if (iterator)
-        {
-            object->prev = iterator;
-            object->next = iterator->next;
-            if (iterator->next)
-            {
-                iterator->next->prev = object;
-            }
-            iterator->next = object;
-        }
-        else
-        {
-            object->prev = NULL;
-            object->next = next;
-            next->prev = object;
-            SABRE_ROListManager.head = object;
-        }
-        SABRE_ROListManager.curr = object;
+        DEBUG_MSG_FROM("SABRE has not been initialized, can't start.", "SABRE_Start");
     }
-
-#if DEBUG
-    if (singleSliceTraversals > maxTraversals) maxTraversals = singleSliceTraversals;
-#endif
-
-    return 0;
 }
 
-SABRE_RenderObject *SABRE_GetNextUnusedRO()
+void SABRE_Stop()
 {
-    if (SABRE_ROListManager.reusableCache)
+    if (SABRE_gameState == SABRE_RUNNING)
     {
-        SABRE_RenderObject *new = SABRE_ROListManager.reusableCache;
-        SABRE_ROListManager.reusableCache = SABRE_ROListManager.reusableCache->next;
-        return new;
+        SABRE_gameState = SABRE_INITIALIZED;
+        SABRE_DisableActors();
+        SABRE_DestroyScreen();
+        DEBUG_MSG_FROM("SABRE stopped.", "SABRE_Stop");
     }
     else
     {
-        SABRE_RenderObject *new = malloc(sizeof *new);
+        DEBUG_MSG_FROM("SABRE is not running, no-op.", "SABRE_Stop");
+    }
+}
 
-        if (!new)
+void SABRE_Cleanup()
+{
+    SABRE_Stop();
+
+    if (SABRE_gameState != SABRE_FINISHED)
+    {
+        SABRE_DisableActors();
+
+        SABRE_FreeLevel();
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(1) "Freed level data memory.", "SABRE_Cleanup");
+
+        SABRE_FreeTextureStore();
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(2) "Freed texture store memory.", "SABRE_Cleanup");
+
+        SABRE_FreeSpriteStore();
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(3) "Freed sprite store memory.", "SABRE_Cleanup");
+
+        SABRE_FreeProjectileList();
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(4) "Freed projectile list memory.", "SABRE_Cleanup");
+
+        SABRE_FreeEntityList();
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(5) "Freed entity list memory.", "SABRE_Cleanup");
+
+        SABRE_FreeRenderObjectList();
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(6) "Freed render object list memory.", "SABRE_Cleanup");
+
+        SABRE_gameState = SABRE_FINISHED;
+        DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(7) "SABRE cleanup complete.", "SABRE_Cleanup");
+    }
+}
+
+void SABRE_Initialize()
+{
+    int nextStep = 1;
+
+    while (nextStep)
+    {
+        switch (SABRE_gameState)
         {
-            DEBUG_MSG_FROM("Memory allocation failed!", "SABRE_GetNextUnusedRO");
-            return NULL;
-        }
+            case SABRE_UNINITIALIZED:
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(1) "Signal textureActor to start adding textures.", "SABRE_Initialize");
+                SABRE_BuildTextureStore();
+                if (SABRE_gameState != SABRE_TEXTURES_ADDED)
+                {
+                    DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Error! Texture addition failed.", "SABRE_Initialize");
+                    SABRE_Cleanup();
+                    nextStep = 0;
+                }
+                break;
 
-#if DEBUG
-    allocations++;
-    allocatedMemory += sizeof *new;
-#endif
+            case SABRE_TEXTURES_ADDED:
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Texture addition successful.", "SABRE_Initialize");
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(3) "Signal spriteActor to start adding sprites.", "SABRE_Initialize");
+                SABRE_BuildSpriteStore();
+                if (SABRE_gameState != SABRE_SPRITES_ADDED)
+                {
+                    DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Error! Sprite addition failed.", "SABRE_Initialize");
+                    SABRE_Cleanup();
+                    nextStep = 0;
+                }
+                break;
 
-        return new;
-    }
-}
+            case SABRE_SPRITES_ADDED:
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Sprite addition successful.", "SABRE_Initialize");
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(5) "SABRE initialization complete.", "SABRE_Initialize");
+                SABRE_gameState = SABRE_INITIALIZED;
+                break;
 
-SABRE_RenderObject *SABRE_AddTextureRO(float sortValue, float scale, int width, int height, int horizontalPosition, int compensation, SABRE_Slice slice)
-{
-    int err = 0;
-    SABRE_RenderObject *new = SABRE_GetNextUnusedRO();
+            case SABRE_INITIALIZED:
+                nextStep = 0;
+                break;
 
-    if (!new)
-    {
-        return NULL;
-    }
-
-    new->sortValue = sortValue;
-    new->objectType = SABRE_TEXTURE_RO;
-    new->scale = scale;
-    new->width = width;
-    new->height = height;
-    new->verticalOffset = 0;
-    new->horizontalPosition = horizontalPosition;
-    new->horizontalScalingCompensation = compensation;
-    new->slice = slice;
-    new->prev = NULL;
-    new->next = NULL;
-
-    err = SABRE_InsertRO(new);
-
-    return new;
-}
-
-SABRE_RenderObject *SABRE_AddSpriteRO(float sortValue, float scale, int horizontalPosition, float verticalOffset, SABRE_Slice slice)
-{
-    int err = 0;
-    SABRE_RenderObject *new = SABRE_GetNextUnusedRO();
-
-    if (!new)
-    {
-        return NULL;
-    }
-
-    new->sortValue = sortValue;
-    new->objectType = SABRE_SPRITE_RO;
-    new->scale = scale;
-    new->width = 0;
-    new->height = 0;
-    new->verticalOffset = verticalOffset;
-    new->horizontalPosition = horizontalPosition;
-    new->horizontalScalingCompensation = 0;
-    new->slice = slice;
-    new->prev = NULL;
-    new->next = NULL;
-
-    err = SABRE_InsertRO(new);
-
-    return new;
-}
-
-void SABRE_PrintROList()
-{
-    int counter = 0;
-    char temp[256];
-    struct SABRE_RenderObjectStruct *iterator = NULL;
-
-    sprintf(temp, "head: %f, curr: %f", SABRE_ROListManager.head->sortValue, SABRE_ROListManager.curr->sortValue);
-    DEBUG_MSG(temp);
-
-    for (iterator = SABRE_ROListManager.head; iterator != NULL; iterator = iterator->next)
-    {
-        sprintf(temp, "frame: %3d render object %3d: [sortValue: %f, scale: %f, hpos: %d, compensation: %d, slice: [anim: %d, slice: %d]]",
-            frame, counter++, iterator->sortValue, iterator->scale, iterator->horizontalPosition, iterator->horizontalScalingCompensation,
-            iterator->slice.anim, iterator->slice.slice);
-        DEBUG_MSG(temp);
-    }
-}
-
-void SABRE_RenderObjects()
-{
-    int horizontalPosition = 0;
-    float verticalPosition = height * 0.5f;
-    SABRE_RenderObject *iterator = NULL;
-    float verticalResolutionFactor = SABRE_screenHeight / SABRE_heightUnit;
-    const float horizontalCompensationThreshold = 0.0315f; // threshold for growing the compensation
-
-    textureDrawCalls = 0;
-    spriteDrawCalls = 0;
-
-    for (iterator = SABRE_ROListManager.head; iterator != NULL; iterator = iterator->next)
-    {
-        if (iterator->objectType == SABRE_TEXTURE_RO)
-        {
-            SABRE_slice.anim = iterator->slice.anim;
-            SABRE_slice.slice = iterator->slice.slice;
-            SendActivationEvent(SABRE_TEXTURE_ACTOR);
-            draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition - SABRE_camera.vPos * (iterator->height / SABRE_halfHeightUnit),
-                iterator->scale);
-            textureDrawCalls++;
-        }
-        else if (iterator->objectType == SABRE_SPRITE_RO)
-        {
-            SABRE_slice.anim = iterator->slice.anim;
-            SABRE_slice.slice = iterator->slice.slice;
-            SendActivationEvent(SABRE_SPRITE_ACTOR);
-            draw_from(SABRE_SPRITE_ACTOR, iterator->horizontalPosition,
-                verticalPosition + ((SABRE_halfHeightUnit - (float)SABRE_sprites[SABRE_slice.anim - 1].halfHeight - SABRE_camera.vPos * 2) - (iterator->verticalOffset * SABRE_heightUnit)) * iterator->scale * verticalResolutionFactor,
-                iterator->scale * verticalResolutionFactor);
-            spriteDrawCalls++;
+            default:
+                nextStep = 0;
+                break;
         }
     }
+}
+
+void SABRE_InitializeAndStart()
+{
+    SABRE_Initialize();
+    SABRE_Start();
 }
 
 

@@ -1,37 +1,3 @@
-#define SABRE_PROJECTILE_HANDLER_ACTOR "SABRE_ProjectileHandler"
-
-#define SABRE_PROJECTILE_HIT_WALL 1
-#define SABRE_PROJECTILE_HIT_ENTITY 2
-#define SABRE_PROJECTILE_HIT_FLOOR 3
-
-#ifndef SABRE_PROJECTILE_DEFINED
-typedef struct SABRE_ProjectileStruct
-{
-    float speed;
-    float dropFactor;
-    SABRE_Vector3 dir;
-    SABRE_Entity *entity;
-}SABRE_Projectile;
-#define SABRE_PROJECTILE_DEFINED
-#endif
-
-// Not really anything like infinity, merely a very high value,
-// but the word infinity is shorter than "very high value" :D
-#define SABRE_INFINITY 1e30
-
-SABRE_List *SABRE_projectiles = NULL;
-
-typedef struct SABRE_ProjectileHitDataStruct
-{
-    float dist;
-    unsigned char hitType;
-    SABRE_Projectile *projectile;
-    SABRE_Vector3 hitPosition;
-    SABRE_Entity *entityHit;
-}SABRE_ProjectileHitData;
-
-SABRE_ProjectileHitData SABRE_projectileHitData;
-
 SABRE_ProjectileHitData SABRE_CreateProjectileHit(unsigned char hitType, float dist, SABRE_Projectile *projectile, SABRE_Vector3 hitPosition, SABRE_Entity *entityHit)
 {
     SABRE_ProjectileHitData new;

@@ -1,52 +1,6 @@
 const unsigned long SABRE_NORMAL    = 0;
 const unsigned long SABRE_IS_WINDOW = (1 << 0);
 
-#ifndef SABRE_RENDER_OBJECT_DEFINED
-typedef struct SABRE_RenderObjectStruct
-{
-    float sortValue;
-    enum SABRE_RenderObjectTypeEnum objectType;
-
-    float scale;
-    int width;
-    int height;
-    float verticalOffset;
-    int horizontalPosition;
-    int horizontalScalingCompensation;
-    SABRE_Slice slice;
-
-    struct SABRE_RenderObjectStruct *prev;
-    struct SABRE_RenderObjectStruct *next;
-}SABRE_RenderObject;
-#define SABRE_RENDER_OBJECT_DEFINED
-#endif
-
-#ifndef SABRE_LEVEL_DEFINED
-#define SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH 5
-typedef struct SABRE_LevelTileStruct
-{
-    unsigned texture;
-    unsigned long properties;
-    struct SABRE_RenderObjectStruct *renderObject[SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH + 1];
-}SABRE_LevelTile;
-
-typedef struct SABRE_LevelStruct
-{
-    char validated;
-
-    unsigned width;
-    unsigned height;
-    SABRE_LevelTile *map;
-}SABRE_Level;
-#define SABRE_LEVEL_DEFINED
-#endif
-
-// from texture.c
-int SABRE_ValidateTextureIndex(int index);
-int SABRE_IsWindowTexture(int index);
-
-SABRE_Level SABRE_level;
-
 int SABRE_FreeLevel();
 int SABRE_PrintLevel(SABRE_Level *level);
 int SABRE_InitLevel(SABRE_Level *level, unsigned width, unsigned height);

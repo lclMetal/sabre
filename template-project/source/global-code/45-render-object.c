@@ -1,29 +1,3 @@
-#ifndef SABRE_RENDER_OBJECT_DEFINED
-enum SABRE_RenderObjectTypeEnum
-{
-    SABRE_TEXTURE_RO,
-    SABRE_SPRITE_RO
-};
-
-typedef struct SABRE_RenderObjectStruct
-{
-    float sortValue;
-    enum SABRE_RenderObjectTypeEnum objectType;
-
-    float scale;
-    int width;
-    int height;
-    float verticalOffset;
-    int horizontalPosition;
-    int horizontalScalingCompensation;
-    SABRE_Slice slice;
-
-    struct SABRE_RenderObjectStruct *prev;
-    struct SABRE_RenderObjectStruct *next;
-}SABRE_RenderObject;
-#define SABRE_RENDER_OBJECT_DEFINED
-#endif
-
 struct SABRE_RenderObjectListManagerStruct
 {
     SABRE_RenderObject *head;
@@ -91,34 +65,6 @@ SABRE_RenderObject *SABRE_ConcatenateROList(SABRE_RenderObject *dest, SABRE_Rend
     }
 
     return result;
-}
-
-void SABRE_InitializeFrame()
-{
-    int i, j, k;
-    size_t index = 0;
-
-    for (j = 0; j < SABRE_level.height; j++)
-    {
-        for (i = 0; i < SABRE_level.width; i++)
-        {
-            index = j * SABRE_level.width + i;
-
-            for (k = 0; k <= SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH; k++)
-            {
-                SABRE_level.map[index].renderObject[k] = NULL;
-            }
-        }
-    }
-
-#if DEBUG
-    traversals = 0;
-    maxTraversals = 0;
-#endif
-
-    SABRE_ROListManager.reusableCache = SABRE_ConcatenateROList(SABRE_ROListManager.reusableCache, SABRE_ROListManager.head);
-    SABRE_ROListManager.head = NULL;
-    SABRE_ROListManager.curr = NULL;
 }
 
 int SABRE_InsertRO(SABRE_RenderObject *object)
@@ -311,40 +257,5 @@ void SABRE_PrintROList()
             frame, counter++, iterator->sortValue, iterator->scale, iterator->horizontalPosition, iterator->horizontalScalingCompensation,
             iterator->slice.anim, iterator->slice.slice);
         DEBUG_MSG(temp);
-    }
-}
-
-void SABRE_RenderObjects()
-{
-    int horizontalPosition = 0;
-    float verticalPosition = height * 0.5f;
-    SABRE_RenderObject *iterator = NULL;
-    float verticalResolutionFactor = SABRE_screenHeight / SABRE_heightUnit;
-    const float horizontalCompensationThreshold = 0.0315f; // threshold for growing the compensation
-
-    textureDrawCalls = 0;
-    spriteDrawCalls = 0;
-
-    for (iterator = SABRE_ROListManager.head; iterator != NULL; iterator = iterator->next)
-    {
-        if (iterator->objectType == SABRE_TEXTURE_RO)
-        {
-            SABRE_slice.anim = iterator->slice.anim;
-            SABRE_slice.slice = iterator->slice.slice;
-            SendActivationEvent(SABRE_TEXTURE_ACTOR);
-            draw_from(SABRE_TEXTURE_ACTOR, iterator->horizontalPosition + iterator->horizontalScalingCompensation, verticalPosition - SABRE_camera.vPos * (iterator->height / SABRE_halfHeightUnit),
-                iterator->scale);
-            textureDrawCalls++;
-        }
-        else if (iterator->objectType == SABRE_SPRITE_RO)
-        {
-            SABRE_slice.anim = iterator->slice.anim;
-            SABRE_slice.slice = iterator->slice.slice;
-            SendActivationEvent(SABRE_SPRITE_ACTOR);
-            draw_from(SABRE_SPRITE_ACTOR, iterator->horizontalPosition,
-                verticalPosition + ((SABRE_halfHeightUnit - (float)SABRE_sprites[SABRE_slice.anim - 1].halfHeight - SABRE_camera.vPos * 2) - (iterator->verticalOffset * SABRE_heightUnit)) * iterator->scale * verticalResolutionFactor,
-                iterator->scale * verticalResolutionFactor);
-            spriteDrawCalls++;
-        }
     }
 }

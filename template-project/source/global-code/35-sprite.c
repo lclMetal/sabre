@@ -1,24 +1,3 @@
-#define SABRE_SPRITE_ACTOR "SABRE_SpriteActor"
-
-typedef struct SABRE_SpriteStruct
-{
-    unsigned int width;
-    unsigned int height;
-    unsigned int halfWidth;
-    unsigned int halfHeight;
-    unsigned int nframes;
-    char name[256];
-}SABRE_Sprite;
-
-#define SABRE_DATA_STORE_AS_SPRITE_ARRAY(DATA_STORE) SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, (SABRE_Sprite *))
-#define SABRE_SPRITE_POINTER_CAST(POINTER) ((SABRE_Sprite *)POINTER)
-
-// Actual sprite data store
-SABRE_DataStore SABRE_spriteStore;
-// A shortcut pointer to access the data from the store
-// without having to cast pointers all the time
-SABRE_Sprite *SABRE_sprites = NULL;
-
 int SABRE_AutoAddSprites();
 int SABRE_AddSprite(const char spriteName[256]);
 

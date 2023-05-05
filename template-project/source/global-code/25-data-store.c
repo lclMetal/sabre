@@ -1,17 +1,3 @@
-#define SABRE_DATA_STORE_DOUBLING_LIMIT 128
-#define SABRE_DATA_STORE_GROW_AMOUNT 64 // SABRE_DATA_STORE_DOUBLING_LIMIT / 2
-
-#define SABRE_DATA_STORE_AS_CAST_ARRAY(DATA_STORE, DATA_TYPE) (DATA_TYPE(DATA_STORE).elems)
-
-typedef struct SABRE_DataStoreStruct
-{
-    size_t capacity; // the maximum amount of elements the store can hold at the moment
-    size_t count; // the amount of elements the store actually holds at the moment
-    size_t elemSize; // the size of a single element in the store
-    void *elems; // pointer to the elements
-    void (*addFunc)(struct SABRE_DataStoreStruct*, void*);
-}SABRE_DataStore;
-
 void SABRE_SetDataStoreAddFunc(SABRE_DataStore *dataStore, void (*addDataFunc)(SABRE_DataStore*, void*));
 int SABRE_InitDataStore(SABRE_DataStore *dataStore, size_t elemSize);
 int SABRE_GrowDataStore(SABRE_DataStore *dataStore);

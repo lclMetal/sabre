@@ -1,139 +1,3 @@
-#define SABRE_CEILING_ACTOR "SABRE_Ceiling"
-#define SABRE_FLOOR_ACTOR "SABRE_Floor"
-
-typedef struct SABRE_SliceStruct
-{
-    short anim;
-    short slice;
-}SABRE_Slice;
-
-#ifndef SABRE_RENDER_OBJECT_DEFINED
-enum SABRE_RenderObjectTypeEnum
-{
-    SABRE_TEXTURE_RO,
-    SABRE_SPRITE_RO
-};
-
-typedef struct SABRE_RenderObjectStruct
-{
-    float sortValue;
-    enum SABRE_RenderObjectTypeEnum objectType;
-
-    float scale;
-    int width;
-    int height;
-    float verticalOffset;
-    int horizontalPosition;
-    int horizontalScalingCompensation;
-    SABRE_Slice slice;
-
-    struct SABRE_RenderObjectStruct *prev;
-    struct SABRE_RenderObjectStruct *next;
-}SABRE_RenderObject;
-#define SABRE_RENDER_OBJECT_DEFINED
-#endif
-
-#ifndef SABRE_LEVEL_DEFINED
-#define SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH 5
-typedef struct SABRE_LevelTileStruct
-{
-    unsigned texture;
-    unsigned long properties;
-    struct SABRE_RenderObjectStruct *renderObject[SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH + 1];
-}SABRE_LevelTile;
-
-typedef struct SABRE_LevelStruct
-{
-    char validated;
-
-    unsigned width;
-    unsigned height;
-    SABRE_LevelTile *map;
-}SABRE_Level;
-#define SABRE_LEVEL_DEFINED
-#endif
-
-enum SABRE_GameStatesEnum
-{
-    SABRE_UNINITIALIZED = 0,
-    SABRE_TEXTURES_ADDED,
-    SABRE_SPRITES_ADDED,
-    SABRE_INITIALIZED,
-    SABRE_RUNNING,
-    SABRE_FINISHED
-}SABRE_gameState = SABRE_UNINITIALIZED;
-
-typedef struct SABRE_CameraStruct
-{
-    SABRE_Vector2 prevPos;
-    SABRE_Vector2 pos;
-    SABRE_Vector2 prevDir;
-    SABRE_Vector2 dir;
-    SABRE_Vector2 plane;
-    float vPos;
-}SABRE_Camera;
-
-const float SABRE_heightUnit = 480.0f;
-const float SABRE_halfHeightUnit = SABRE_heightUnit * 0.5f;
-float SABRE_screenWidth = 640.0f, SABRE_screenHeight = 480.0f;
-
-SABRE_Camera SABRE_camera;
-
-struct SABRE_KeybindStruct
-{
-    short forward, backward;
-    short turnLeft, turnRight;
-    short strafeLeft, strafeRight;
-    short crouch;
-    short interact;
-}SABRE_binds =
-{
-    KEY_w, KEY_s, // forward, backward
-    KEY_a, KEY_d, // turn left, right
-    KEY_q, KEY_e, // strafe left, right
-    KEY_LCTRL,    // crouch
-    KEY_r         // interact
-};
-
-typedef struct SABRE_KeyboardStateStruct
-{
-    char pressedForward,     releasedForward,     forward,     prevForward;
-    char pressedBackward,    releasedBackward,    backward,    prevBackward;
-    char pressedTurnLeft,    releasedTurnLeft,    turnLeft,    prevTurnLeft;
-    char pressedTurnRight,   releasedTurnRight,   turnRight,   prevTurnRight;
-    char pressedStrafeLeft,  releasedStrafeLeft,  strafeLeft,  prevStrafeLeft;
-    char pressedStrafeRight, releasedStrafeRight, strafeRight, prevStrafeRight;
-    char pressedCrouch,      releasedCrouch,      crouch,      prevCrouch;
-    char pressedInteract,    releasedInteract,    interact,    prevInteract;
-}SABRE_KeyboardState;
-
-SABRE_KeyboardState SABRE_keys;
-
-struct SABRE_PlayerStruct
-{
-    float moveSpeed;
-    float turnSpeed;
-    float crouchSpeed;
-    float crouchHeightChange;
-    float radius;
-}SABRE_player = { 0.05f, 0.05f, 5.0f, 60.0f, 0.2f };
-
-#define SABRE_EDGE_MODE_NO_RENDER 0
-#define SABRE_EDGE_MODE_TEXTURE 1
-#define SABRE_EDGE_MODE_WRAP 2
-
-struct SABRE_GraphicsSettingsStruct
-{
-    unsigned char windowRenderDepth;    // how many windows can be rendered in a line, 0 means no limit
-    unsigned char levelEdgeWrapDepth;   // how many times the raycast is allowed to wrap around the level in level edge mode 2
-    unsigned char levelEdgeMode;        // how the level edges should be handled, 0: don't render, 1: render with specified texture
-    int levelEdgeTextureIndex;          // the texture to use for level edge mode 1
-}SABRE_graphicsSettings = { 0, 2, SABRE_EDGE_MODE_TEXTURE, 3 };
-
-SABRE_Slice SABRE_slice;
-SABRE_Color SABRE_defaultCeiling = { 215.0, 54.0, 91.0, 106, 158, 231, 1.0 };
-SABRE_Color SABRE_defaultFloor   = {  86.0, 76.0, 62.0, 106, 158,  38, 1.0 };
-
 // x = player
 // 000     abc
 // 0x0  => d e
@@ -290,17 +154,6 @@ void SABRE_EnableActors()
     SABRE_EnableActor("SABRE_Floor");
 }
 
-// from level.c
-int SABRE_ValidateCurrentLevel();
-
-// from entity.c
-void SABRE_SetEntities();
-
-// from texture.c
-int SABRE_ValidateTextureIndex(int index);
-
-void SABRE_Cleanup();
-
 #define SABRE_STRINGIFY(X) #X
 #define SABRE_EXPAND_STRINGIFY(X) SABRE_STRINGIFY(X)
 #define SABRE_PROCESS_STEP_LABEL(NAME, STAGE, STAGES) "[" NAME " (" SABRE_STRINGIFY(STAGE) "/" SABRE_EXPAND_STRINGIFY(STAGES) ")] "
@@ -337,54 +190,6 @@ void SABRE_BuildSpriteStore()
     if (SABRE_gameState < SABRE_SPRITES_ADDED)
     {
         SendActivationEvent("SABRE_SpriteActor");
-    }
-}
-
-void SABRE_Initialize()
-{
-    int nextStep = 1;
-
-    while (nextStep)
-    {
-        switch (SABRE_gameState)
-        {
-            case SABRE_UNINITIALIZED:
-                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(1) "Signal textureActor to start adding textures.", "SABRE_Initialize");
-                SABRE_BuildTextureStore();
-                if (SABRE_gameState != SABRE_TEXTURES_ADDED)
-                {
-                    DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Error! Texture addition failed.", "SABRE_Initialize");
-                    SABRE_Cleanup();
-                    nextStep = 0;
-                }
-                break;
-
-            case SABRE_TEXTURES_ADDED:
-                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Texture addition successful.", "SABRE_Initialize");
-                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(3) "Signal spriteActor to start adding sprites.", "SABRE_Initialize");
-                SABRE_BuildSpriteStore();
-                if (SABRE_gameState != SABRE_SPRITES_ADDED)
-                {
-                    DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Error! Sprite addition failed.", "SABRE_Initialize");
-                    SABRE_Cleanup();
-                    nextStep = 0;
-                }
-                break;
-
-            case SABRE_SPRITES_ADDED:
-                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Sprite addition successful.", "SABRE_Initialize");
-                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(5) "SABRE initialization complete.", "SABRE_Initialize");
-                SABRE_gameState = SABRE_INITIALIZED;
-                break;
-
-            case SABRE_INITIALIZED:
-                nextStep = 0;
-                break;
-
-            default:
-                nextStep = 0;
-                break;
-        }
     }
 }
 
@@ -453,19 +258,6 @@ void SABRE_Stop()
     }
 }
 
-void SABRE_InitializeAndStart()
-{
-    SABRE_Initialize();
-    SABRE_Start();
-}
-
-int SABRE_FreeLevel();              // from level.c
-void SABRE_FreeTextureStore();      // from texture.c
-void SABRE_FreeSpriteStore();       // from sprite.c
-void SABRE_FreeRenderObjectList();  // from render.c
-void SABRE_FreeEntityList();        // from entity.c
-void SABRE_FreeProjectileList();    // from projectile.c
-
 void SABRE_Cleanup()
 {
     SABRE_Stop();
@@ -495,4 +287,58 @@ void SABRE_Cleanup()
         SABRE_gameState = SABRE_FINISHED;
         DEBUG_MSG_FROM(SABRE_CLEANUP_STEP_LABEL(7) "SABRE cleanup complete.", "SABRE_Cleanup");
     }
+}
+
+void SABRE_Initialize()
+{
+    int nextStep = 1;
+
+    while (nextStep)
+    {
+        switch (SABRE_gameState)
+        {
+            case SABRE_UNINITIALIZED:
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(1) "Signal textureActor to start adding textures.", "SABRE_Initialize");
+                SABRE_BuildTextureStore();
+                if (SABRE_gameState != SABRE_TEXTURES_ADDED)
+                {
+                    DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Error! Texture addition failed.", "SABRE_Initialize");
+                    SABRE_Cleanup();
+                    nextStep = 0;
+                }
+                break;
+
+            case SABRE_TEXTURES_ADDED:
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(2) "Texture addition successful.", "SABRE_Initialize");
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(3) "Signal spriteActor to start adding sprites.", "SABRE_Initialize");
+                SABRE_BuildSpriteStore();
+                if (SABRE_gameState != SABRE_SPRITES_ADDED)
+                {
+                    DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Error! Sprite addition failed.", "SABRE_Initialize");
+                    SABRE_Cleanup();
+                    nextStep = 0;
+                }
+                break;
+
+            case SABRE_SPRITES_ADDED:
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(4) "Sprite addition successful.", "SABRE_Initialize");
+                DEBUG_MSG_FROM(SABRE_INIT_STEP_LABEL(5) "SABRE initialization complete.", "SABRE_Initialize");
+                SABRE_gameState = SABRE_INITIALIZED;
+                break;
+
+            case SABRE_INITIALIZED:
+                nextStep = 0;
+                break;
+
+            default:
+                nextStep = 0;
+                break;
+        }
+    }
+}
+
+void SABRE_InitializeAndStart()
+{
+    SABRE_Initialize();
+    SABRE_Start();
 }
