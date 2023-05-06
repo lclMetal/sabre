@@ -962,8 +962,8 @@ typedef struct SABRE_AnimationStruct
 
 typedef struct SABRE_AnimatorStruct
 {
-    char state;
-    unsigned int animpos;
+    int state;
+    int animpos;
     float accumulatedAnimpos;
     SABRE_Animation anim;
 }SABRE_Animator;
@@ -972,7 +972,7 @@ typedef struct SABRE_EntityStruct
 {
     float radius;
     SABRE_Vector3 pos;
-    unsigned char attributes;
+    unsigned int attributes;
     SABRE_Animator animator;
     char name[256];
 }SABRE_Entity;
@@ -1043,7 +1043,7 @@ typedef struct SABRE_RenderObjectStruct
 typedef struct SABRE_LevelTileStruct
 {
     unsigned texture;
-    unsigned long properties;
+    unsigned int properties;
     struct SABRE_RenderObjectStruct *renderObject[SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH + 1];
 }SABRE_LevelTile;
 
@@ -2267,7 +2267,7 @@ SABRE_Animation SABRE_CreateAnimation(float frameRate, unsigned int sprite)
     return anim;
 }
 
-void SABRE_ChangeAnimation(SABRE_Animator *animator, SABRE_Animation anim, char state)
+void SABRE_ChangeAnimation(SABRE_Animator *animator, SABRE_Animation anim, int state)
 {
     animator->state = state;
     animator->animpos = 0;
@@ -2275,7 +2275,7 @@ void SABRE_ChangeAnimation(SABRE_Animator *animator, SABRE_Animation anim, char 
     animator->anim = anim;
 }
 
-void SABRE_ChangeAnimationDirection(SABRE_Animator *animator, char state)
+void SABRE_ChangeAnimationDirection(SABRE_Animator *animator, int state)
 {
     animator->state = state;
 }
@@ -2314,7 +2314,7 @@ void SABRE_UpdateAnimation(SABRE_Animator *animator)
 
 
 // ..\source\global-code\70-entity.c
-SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned char attributes, const char name[256]);
+SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned int attributes, const char name[256]);
 SABRE_Entity *SABRE_GetEntity(const char name[256]);
 int SABRE_CountEntitiesInList();
 void SABRE_FreeEntityList();
@@ -2367,7 +2367,7 @@ void SABRE_SetEntities()
     }
 }
 
-SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned char attributes, const char name[256])
+SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned int attributes, const char name[256])
 {
     SABRE_Entity new;
     SABRE_ListTypes newListElement;

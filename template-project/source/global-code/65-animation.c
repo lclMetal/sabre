@@ -17,7 +17,7 @@ SABRE_Animation SABRE_CreateAnimation(float frameRate, unsigned int sprite)
     return anim;
 }
 
-void SABRE_ChangeAnimation(SABRE_Animator *animator, SABRE_Animation anim, char state)
+void SABRE_ChangeAnimation(SABRE_Animator *animator, SABRE_Animation anim, int state)
 {
     animator->state = state;
     animator->animpos = 0;
@@ -25,7 +25,7 @@ void SABRE_ChangeAnimation(SABRE_Animator *animator, SABRE_Animation anim, char 
     animator->anim = anim;
 }
 
-void SABRE_ChangeAnimationDirection(SABRE_Animator *animator, char state)
+void SABRE_ChangeAnimationDirection(SABRE_Animator *animator, int state)
 {
     animator->state = state;
 }

@@ -75,8 +75,8 @@ typedef struct SABRE_AnimationStruct
 
 typedef struct SABRE_AnimatorStruct
 {
-    char state;
-    unsigned int animpos;
+    int state;
+    int animpos;
     float accumulatedAnimpos;
     SABRE_Animation anim;
 }SABRE_Animator;
@@ -85,7 +85,7 @@ typedef struct SABRE_EntityStruct
 {
     float radius;
     SABRE_Vector3 pos;
-    unsigned char attributes;
+    unsigned int attributes;
     SABRE_Animator animator;
     char name[256];
 }SABRE_Entity;
@@ -156,7 +156,7 @@ typedef struct SABRE_RenderObjectStruct
 typedef struct SABRE_LevelTileStruct
 {
     unsigned texture;
-    unsigned long properties;
+    unsigned int properties;
     struct SABRE_RenderObjectStruct *renderObject[SABRE_MAX_LEVEL_EDGE_WRAP_DEPTH + 1];
 }SABRE_LevelTile;
 

@@ -1,4 +1,4 @@
-SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned char attributes, const char name[256]);
+SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned int attributes, const char name[256]);
 SABRE_Entity *SABRE_GetEntity(const char name[256]);
 int SABRE_CountEntitiesInList();
 void SABRE_FreeEntityList();
@@ -51,7 +51,7 @@ void SABRE_SetEntities()
     }
 }
 
-SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned char attributes, const char name[256])
+SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned int attributes, const char name[256])
 {
     SABRE_Entity new;
     SABRE_ListTypes newListElement;
