@@ -1,9 +1,3 @@
-int SABRE_AutoAddSprites();
-int SABRE_AddSprite(const char spriteName[256]);
-
-void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite);
-void SABRE_FreeSpriteStore();
-
 int SABRE_ValidateSpriteIndex(int index)
 {
     // 0 is reserved for the "sprite missing" sprite
@@ -11,6 +5,25 @@ int SABRE_ValidateSpriteIndex(int index)
         return index;
 
     return 0;
+}
+
+void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite)
+{
+    SABRE_sprites[dataStore->count] = *SABRE_SPRITE_POINTER_CAST(sprite);
+}
+
+int SABRE_AddSprite(const char spriteName[256])
+{
+    SABRE_Sprite newSprite;
+
+    strcpy(newSprite.name, spriteName);
+    newSprite.width = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_WIDTH);
+    newSprite.height = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_HEIGHT);
+    newSprite.halfWidth = newSprite.width * 0.5f;
+    newSprite.halfHeight = newSprite.height * 0.5f;
+    newSprite.nframes = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_NFRAMES);
+
+    return SABRE_AddToDataStore(&SABRE_spriteStore, &newSprite);
 }
 
 int SABRE_AutoAddSprites()
@@ -45,25 +58,6 @@ int SABRE_AutoAddSprites()
     }
 
     return 0;
-}
-
-int SABRE_AddSprite(const char spriteName[256])
-{
-    SABRE_Sprite newSprite;
-
-    strcpy(newSprite.name, spriteName);
-    newSprite.width = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_WIDTH);
-    newSprite.height = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_HEIGHT);
-    newSprite.halfWidth = newSprite.width * 0.5f;
-    newSprite.halfHeight = newSprite.height * 0.5f;
-    newSprite.nframes = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_NFRAMES);
-
-    return SABRE_AddToDataStore(&SABRE_spriteStore, &newSprite);
-}
-
-void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite)
-{
-    SABRE_sprites[dataStore->count] = *SABRE_SPRITE_POINTER_CAST(sprite);
 }
 
 void SABRE_FreeSpriteStore()

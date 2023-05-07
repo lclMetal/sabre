@@ -46,35 +46,6 @@ struct debugStruct
     double fpsAverage;
 }debugController;
 
-void debugPrintFps(int mode);
-void debugUpdateFps(void);
-int debugCreateFile(void);
-void debugMsg(const char *msg);
-void debugMsgFrom(const char *msg, const char *label, int line);
-
-void debugPrintFps(int mode)
-{
-    debugUpdateFps();
-
-    switch (mode)
-    {
-        default:
-        case FPS_AVERAGE:
-            sprintf(text, "FPS %.02f", debugController.fpsAverage);
-        break;
-
-        case FPS_RANGE:
-            sprintf(text, "Min FPS: %i\nMax FPS: %i",
-                debugController.fpsLowest, debugController.fpsHighest);
-        break;
-
-        case FPS_BOTH:
-            sprintf(text, "FPS: %.02f\n+ min: %i\n+ max: %i",
-                debugController.fpsAverage, debugController.fpsLowest, debugController.fpsHighest);
-        break;
-    }
-}
-
 void debugUpdateFps(void)
 {
     debugController.fpsTime = getTime();
@@ -108,6 +79,29 @@ void debugUpdateFps(void)
     }
 }
 
+void debugPrintFps(int mode)
+{
+    debugUpdateFps();
+
+    switch (mode)
+    {
+        default:
+        case FPS_AVERAGE:
+            sprintf(text, "FPS %.02f", debugController.fpsAverage);
+        break;
+
+        case FPS_RANGE:
+            sprintf(text, "Min FPS: %i\nMax FPS: %i",
+                debugController.fpsLowest, debugController.fpsHighest);
+        break;
+
+        case FPS_BOTH:
+            sprintf(text, "FPS: %.02f\n+ min: %i\n+ max: %i",
+                debugController.fpsAverage, debugController.fpsLowest, debugController.fpsHighest);
+        break;
+    }
+}
+
 // It is recommended to only use this function through the macro DEBUG_INIT()
 int debugCreateFile(void)
 {
@@ -122,7 +116,6 @@ int debugCreateFile(void)
 
         debugController.fileInitialized = 1;
         fclose(f);
-        debugMsgFrom("Debug file initialized.", __FILE__, __LINE__);
         return true;
     }
 
@@ -134,8 +127,8 @@ void debugMsg(const char *msg)
 {
     FILE *f = NULL;
 
-    if (!debugController.fileInitialized)
-        debugCreateFile();
+    if (!debugController.fileInitialized && debugCreateFile())
+        debugMsg("Debug file initialized.");
 
     f = fopen("debug.log", "a+");
 
@@ -152,8 +145,8 @@ void debugMsgFrom(const char *msg, const char *label, int line)
     char temp[256];
     stTime t = getTime();
 
-    if (!debugController.fileInitialized)
-        debugCreateFile();
+    if (!debugController.fileInitialized && debugCreateFile())
+        debugMsgFrom("Debug file initialized.", __FILE__, __LINE__);
 
     sprintf(temp, "[%-25s, line: %4i, time: %3i, frame: %5i]: \"%s\"",
             label, line, t.sec_utc - debugController.startTime, frame, msg);
@@ -200,66 +193,6 @@ SABRE_Color SABRE_predefinedColors[] =
     SABRE_COLOR_WHITE, SABRE_COLOR_BLACK, SABRE_COLOR_RED, SABRE_COLOR_GREEN,
     SABRE_COLOR_BLUE, SABRE_COLOR_YELLOW, SABRE_COLOR_MAGENTA, SABRE_COLOR_CYAN
 };
-
-SABRE_Color SABRE_CreateRGB(int rValue, int gValue, int bValue, double aValue);
-SABRE_Color SABRE_CreateHSB(double hValue, double sValue, double bValue, double aValue);
-SABRE_Color SABRE_HSBtoRGB(double hValue, double sValue, double bValue, double aValue);
-SABRE_Color SABRE_RGBtoHSB(int rValue, int gValue, int bValue, double aValue);
-int SABRE_CompareColors(SABRE_Color *color1, SABRE_Color *color2);
-SABRE_Color SABRE_GetActorColor(const char *actorName);
-void SABRE_ColorThisActor(SABRE_Color color);
-void SABRE_ColorActor(Actor *pActor, SABRE_Color color);
-void SABRE_ColorActorByName(const char *actorName, SABRE_Color color);
-void SABRE_ColorClones(const char *actorName, long startIndex, long endIndex, SABRE_Color color);
-
-// This function creates a color with given values of red, green and blue, and then returns the color
-// rValue - the value of the red component of the color
-// gValue - the value of the green component of the color
-// bValue - the value of the blue component of the color
-// aValue - the alpha of the color
-SABRE_Color SABRE_CreateRGB(int rValue, int gValue, int bValue, double aValue)
-{
-    SABRE_Color color;
-    SABRE_Color hsb;
-
-    color.r = rValue;
-    color.g = gValue;
-    color.b = bValue;
-    color.alpha = aValue;
-
-    hsb = SABRE_RGBtoHSB(rValue, gValue, bValue, color.alpha);
-
-    color.hue = hsb.hue;
-    color.saturation = hsb.saturation;
-    color.brightness = hsb.brightness;
-
-    return color;
-}
-
-// This function creates a color with given values of hue, saturation and brightness, and then
-// returns the color
-// hValue - the hue for the color
-// sValue - the saturation for the color
-// bValue - the brightness for the color
-// aValue - the alpha of the color
-SABRE_Color SABRE_CreateHSB(double hValue, double sValue, double bValue, double aValue)
-{
-    SABRE_Color color;
-    SABRE_Color rgb;
-
-    color.hue = hValue;
-    color.saturation = sValue;
-    color.brightness = bValue;
-    color.alpha = aValue;
-
-    rgb = SABRE_HSBtoRGB(hValue, sValue, bValue, color.alpha);
-
-    color.r = rgb.r;
-    color.g = rgb.g;
-    color.b = rgb.b;
-
-    return color;
-}
 
 // This function converts given HSB color system values to corresponding RGB system color values
 // and returns a SABRE_Color with the r, g and b values
@@ -379,6 +312,55 @@ SABRE_Color SABRE_RGBtoHSB(int rValue, int gValue, int bValue, double aValue)
         color.saturation = (chromaMax == 0) ? 0 : (chroma / chromaMax);
         color.brightness = chromaMax;
     }
+
+    return color;
+}
+
+// This function creates a color with given values of red, green and blue, and then returns the color
+// rValue - the value of the red component of the color
+// gValue - the value of the green component of the color
+// bValue - the value of the blue component of the color
+// aValue - the alpha of the color
+SABRE_Color SABRE_CreateRGB(int rValue, int gValue, int bValue, double aValue)
+{
+    SABRE_Color color;
+    SABRE_Color hsb;
+
+    color.r = rValue;
+    color.g = gValue;
+    color.b = bValue;
+    color.alpha = aValue;
+
+    hsb = SABRE_RGBtoHSB(rValue, gValue, bValue, color.alpha);
+
+    color.hue = hsb.hue;
+    color.saturation = hsb.saturation;
+    color.brightness = hsb.brightness;
+
+    return color;
+}
+
+// This function creates a color with given values of hue, saturation and brightness, and then
+// returns the color
+// hValue - the hue for the color
+// sValue - the saturation for the color
+// bValue - the brightness for the color
+// aValue - the alpha of the color
+SABRE_Color SABRE_CreateHSB(double hValue, double sValue, double bValue, double aValue)
+{
+    SABRE_Color color;
+    SABRE_Color rgb;
+
+    color.hue = hValue;
+    color.saturation = sValue;
+    color.brightness = bValue;
+    color.alpha = aValue;
+
+    rgb = SABRE_HSBtoRGB(hValue, sValue, bValue, color.alpha);
+
+    color.r = rgb.r;
+    color.g = rgb.g;
+    color.b = rgb.b;
 
     return color;
 }
@@ -1189,13 +1171,6 @@ SABRE_Color SABRE_defaultFloor   = {  86.0, 76.0, 62.0, 106, 158,  38, 1.0 };
 
 
 // ..\source\global-code\25-data-store.c
-void SABRE_SetDataStoreAddFunc(SABRE_DataStore *dataStore, void (*addDataFunc)(SABRE_DataStore*, void*));
-int SABRE_InitDataStore(SABRE_DataStore *dataStore, size_t elemSize);
-int SABRE_GrowDataStore(SABRE_DataStore *dataStore);
-int SABRE_PrepareDataStore(SABRE_DataStore *dataStore);
-int SABRE_AddToDataStore(SABRE_DataStore *dataStore, void *elem);
-void SABRE_FreeDataStore(SABRE_DataStore *dataStore);
-
 void SABRE_SetDataStoreAddFunc(SABRE_DataStore *dataStore, void (*addDataFunc)(SABRE_DataStore*, void*))
 {
     dataStore->addFunc = addDataFunc;
@@ -1285,9 +1260,6 @@ void SABRE_FreeDataStore(SABRE_DataStore *dataStore)
 
 
 // ..\source\global-code\30-list.c
-SABRE_List *SABRE_AddToList(SABRE_List **list, SABRE_ListTypes elem);
-void SABRE_FreeList(SABRE_List *list);
-
 SABRE_List *SABRE_AddToList(SABRE_List **list, SABRE_ListTypes elem)
 {
     SABRE_List *new = malloc(sizeof *new);
@@ -1358,12 +1330,6 @@ void SABRE_FreeList(SABRE_List *list)
 
 
 // ..\source\global-code\35-sprite.c
-int SABRE_AutoAddSprites();
-int SABRE_AddSprite(const char spriteName[256]);
-
-void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite);
-void SABRE_FreeSpriteStore();
-
 int SABRE_ValidateSpriteIndex(int index)
 {
     // 0 is reserved for the "sprite missing" sprite
@@ -1371,6 +1337,25 @@ int SABRE_ValidateSpriteIndex(int index)
         return index;
 
     return 0;
+}
+
+void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite)
+{
+    SABRE_sprites[dataStore->count] = *SABRE_SPRITE_POINTER_CAST(sprite);
+}
+
+int SABRE_AddSprite(const char spriteName[256])
+{
+    SABRE_Sprite newSprite;
+
+    strcpy(newSprite.name, spriteName);
+    newSprite.width = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_WIDTH);
+    newSprite.height = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_HEIGHT);
+    newSprite.halfWidth = newSprite.width * 0.5f;
+    newSprite.halfHeight = newSprite.height * 0.5f;
+    newSprite.nframes = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_NFRAMES);
+
+    return SABRE_AddToDataStore(&SABRE_spriteStore, &newSprite);
 }
 
 int SABRE_AutoAddSprites()
@@ -1407,25 +1392,6 @@ int SABRE_AutoAddSprites()
     return 0;
 }
 
-int SABRE_AddSprite(const char spriteName[256])
-{
-    SABRE_Sprite newSprite;
-
-    strcpy(newSprite.name, spriteName);
-    newSprite.width = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_WIDTH);
-    newSprite.height = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_HEIGHT);
-    newSprite.halfWidth = newSprite.width * 0.5f;
-    newSprite.halfHeight = newSprite.height * 0.5f;
-    newSprite.nframes = SABRE_GetAnimationDataValue(SABRE_SPRITE_ACTOR, spriteName, SABRE_ANIM_NFRAMES);
-
-    return SABRE_AddToDataStore(&SABRE_spriteStore, &newSprite);
-}
-
-void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite)
-{
-    SABRE_sprites[dataStore->count] = *SABRE_SPRITE_POINTER_CAST(sprite);
-}
-
 void SABRE_FreeSpriteStore()
 {
     SABRE_FreeDataStore(&SABRE_spriteStore);
@@ -1434,17 +1400,6 @@ void SABRE_FreeSpriteStore()
 
 
 // ..\source\global-code\40-texture.c
-int SABRE_ValidateTextureIndex(int index);
-int SABRE_IsWindowTexture(int index);
-
-int SABRE_AutoAddTextures();
-int SABRE_AddTexture(const char textureName[256]);
-int SABRE_CalculateTextureWidth(SABRE_Texture *texture);
-int SABRE_CalculateTextureHeight(SABRE_Texture *texture);
-
-void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture);
-void SABRE_FreeTextureStore();
-
 int SABRE_ValidateTextureIndex(int index)
 {
     // 0 is reserved for the "texture missing" texture
@@ -1457,6 +1412,35 @@ int SABRE_ValidateTextureIndex(int index)
 int SABRE_IsWindowTexture(int index)
 {
     return SABRE_textures[index].isWindow;
+}
+
+int SABRE_CalculateTextureWidth(SABRE_Texture *texture)
+{
+    // TODO: make a check for if the animation actually exists, use getAnimIndex(), if -1, doesn't exist
+    ChangeAnimation(SABRE_TEXTURE_ACTOR, texture->name, STOPPED);
+    return getclone(SABRE_TEXTURE_ACTOR)->nframes;
+}
+
+int SABRE_CalculateTextureHeight(SABRE_Texture *texture)
+{
+    return SABRE_GetAnimationDataValue(SABRE_TEXTURE_ACTOR, texture->name, SABRE_ANIM_HEIGHT);
+}
+
+void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture)
+{
+    SABRE_textures[dataStore->count] = *SABRE_TEXTURE_POINTER_CAST(texture);
+}
+
+int SABRE_AddTexture(const char textureName[256])
+{
+    SABRE_Texture newTexture;
+
+    strcpy(newTexture.name, textureName);
+    newTexture.width = SABRE_CalculateTextureWidth(&newTexture);
+    newTexture.height = SABRE_CalculateTextureHeight(&newTexture);
+    newTexture.isWindow = SABRE_StringEndsWith(newTexture.name, "-window");
+
+    return SABRE_AddToDataStore(&SABRE_textureStore, &newTexture);
 }
 
 // only works for non-animated textures
@@ -1492,35 +1476,6 @@ int SABRE_AutoAddTextures()
     }
 
     return 0;
-}
-
-int SABRE_AddTexture(const char textureName[256])
-{
-    SABRE_Texture newTexture;
-
-    strcpy(newTexture.name, textureName);
-    newTexture.width = SABRE_CalculateTextureWidth(&newTexture);
-    newTexture.height = SABRE_CalculateTextureHeight(&newTexture);
-    newTexture.isWindow = SABRE_StringEndsWith(newTexture.name, "-window");
-
-    return SABRE_AddToDataStore(&SABRE_textureStore, &newTexture);
-}
-
-int SABRE_CalculateTextureWidth(SABRE_Texture *texture)
-{
-    // TODO: make a check for if the animation actually exists, use getAnimIndex(), if -1, doesn't exist
-    ChangeAnimation(SABRE_TEXTURE_ACTOR, texture->name, STOPPED);
-    return getclone(SABRE_TEXTURE_ACTOR)->nframes;
-}
-
-int SABRE_CalculateTextureHeight(SABRE_Texture *texture)
-{
-    return SABRE_GetAnimationDataValue(SABRE_TEXTURE_ACTOR, texture->name, SABRE_ANIM_HEIGHT);
-}
-
-void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture)
-{
-    SABRE_textures[dataStore->count] = *SABRE_TEXTURE_POINTER_CAST(texture);
 }
 
 void SABRE_FreeTextureStore()
@@ -1798,15 +1753,6 @@ void SABRE_PrintROList()
 const unsigned long SABRE_NORMAL    = 0;
 const unsigned long SABRE_IS_WINDOW = (1 << 0);
 
-int SABRE_FreeLevel();
-int SABRE_PrintLevel(SABRE_Level *level);
-int SABRE_InitLevel(SABRE_Level *level, unsigned width, unsigned height);
-int SABRE_FreeLevelData(SABRE_Level *level);
-int SABRE_AllocLevel(SABRE_Level *level);
-int SABRE_ValidateLevel(SABRE_Level *level);
-int SABRE_ValidateCurrentLevel();
-int SABRE_SetLevelDataFromArray(SABRE_Level *level, unsigned width, unsigned height, unsigned arr[]);
-
 int  SABRE_PrintLevel(SABRE_Level *level)
 {
     unsigned i, j;
@@ -1853,11 +1799,6 @@ int SABRE_InitLevel(SABRE_Level *level, unsigned width, unsigned height)
     return 0;
 }
 
-int SABRE_FreeLevel()
-{
-    return SABRE_FreeLevelData(&SABRE_level);
-}
-
 int SABRE_FreeLevelData(SABRE_Level *level)
 {
     if (!level) return 1; // 1: invalid pointer
@@ -1867,6 +1808,11 @@ int SABRE_FreeLevelData(SABRE_Level *level)
     level->map = NULL;
 
     return 0;
+}
+
+int SABRE_FreeLevel()
+{
+    return SABRE_FreeLevelData(&SABRE_level);
 }
 
 int SABRE_AllocLevel(SABRE_Level *level)
@@ -2097,72 +2043,6 @@ SABRE_EventTrigger event2 =
 
 SABRE_EventTrigger *SABRE_updatedTrigger = NULL;
 
-void UpdateEvents();
-void SABRE_UpdateEvent(SABRE_EventTrigger *event);
-void SABRE_EnterEventTrigger(SABRE_EventTrigger *event);
-void SABRE_StayInEventTrigger(SABRE_EventTrigger *event);
-void SABRE_LeaveEventTrigger(SABRE_EventTrigger *event);
-
-#if DEBUG
-void SABRE_ResetEvent(SABRE_EventTrigger *event);
-void SABRE_CycleEventType(SABRE_EventTrigger *event);
-#endif
-
-void SABRE_UpdateEvent(SABRE_EventTrigger *event)
-{
-    SABRE_Vector2 camPos = SABRE_camera.pos;
-    SABRE_Vector2 prevPos = SABRE_camera.prevPos;
-
-    float deltaTo180 = 180.0f - event->facingDir;
-    float normalizedDir = SABRE_NormalizeAngleTo360(direction(0, 0, SABRE_camera.dir.x, SABRE_camera.dir.y) + deltaTo180);
-    float normalizedPrevDir = SABRE_NormalizeAngleTo360(direction(0, 0, SABRE_camera.prevDir.x, SABRE_camera.prevDir.y) + deltaTo180);
-
-    short isFacingRightDirection = (event->facingFov < 0 || (abs(normalizedDir - 180.0f) <= event->facingFov / 2.0f));
-    short wasFacingRightDirection = (event->facingFov < 0 || (abs(normalizedPrevDir - 180.0f) <= event->facingFov / 2.0f));
-
-    short isInsideTrigger = (camPos.x >= event->p1.x &&
-                                camPos.x <= event->p2.x &&
-                                camPos.y >= event->p1.y &&
-                                camPos.y <= event->p2.y);
-    short wasInsideTrigger = (prevPos.x >= event->p1.x &&
-                                prevPos.x <= event->p2.x &&
-                                prevPos.y >= event->p1.y &&
-                                prevPos.y <= event->p2.y);
-
-    if (isFacingRightDirection && isInsideTrigger && (!wasFacingRightDirection && isFacingRightDirection || !wasInsideTrigger && isInsideTrigger))
-    {
-        SABRE_EnterEventTrigger(event);
-    }
-    else if ((!isFacingRightDirection || !isInsideTrigger) && (wasFacingRightDirection && wasInsideTrigger))
-    {
-        SABRE_LeaveEventTrigger(event);
-    }
-    else if (wasFacingRightDirection && isFacingRightDirection && wasInsideTrigger && isInsideTrigger)
-    {
-        SABRE_StayInEventTrigger(event);
-    }
-}
-
-void SABRE_UpdateEvents()
-{
-    // TODO: Function that updates the events associated with the tile the player is standing in.
-    SABRE_UpdateEvent(&event1);
-    SABRE_UpdateEvent(&event2);
-}
-
-#if DEBUG
-void SABRE_ResetEvent(SABRE_EventTrigger *event)
-{
-    event->state = 0;
-}
-
-void SABRE_CycleEventType(SABRE_EventTrigger *event)
-{
-    event->type++;
-    if (event->type > 4) event->type = 0;
-}
-#endif
-
 void SABRE_EnterEventTrigger(SABRE_EventTrigger *event)
 {
     switch (event->type)
@@ -2246,6 +2126,61 @@ void SABRE_LeaveEventTrigger(SABRE_EventTrigger *event)
     }
 }
 
+void SABRE_UpdateEvent(SABRE_EventTrigger *event)
+{
+    SABRE_Vector2 camPos = SABRE_camera.pos;
+    SABRE_Vector2 prevPos = SABRE_camera.prevPos;
+
+    float deltaTo180 = 180.0f - event->facingDir;
+    float normalizedDir = SABRE_NormalizeAngleTo360(direction(0, 0, SABRE_camera.dir.x, SABRE_camera.dir.y) + deltaTo180);
+    float normalizedPrevDir = SABRE_NormalizeAngleTo360(direction(0, 0, SABRE_camera.prevDir.x, SABRE_camera.prevDir.y) + deltaTo180);
+
+    short isFacingRightDirection = (event->facingFov < 0 || (abs(normalizedDir - 180.0f) <= event->facingFov / 2.0f));
+    short wasFacingRightDirection = (event->facingFov < 0 || (abs(normalizedPrevDir - 180.0f) <= event->facingFov / 2.0f));
+
+    short isInsideTrigger = (camPos.x >= event->p1.x &&
+                                camPos.x <= event->p2.x &&
+                                camPos.y >= event->p1.y &&
+                                camPos.y <= event->p2.y);
+    short wasInsideTrigger = (prevPos.x >= event->p1.x &&
+                                prevPos.x <= event->p2.x &&
+                                prevPos.y >= event->p1.y &&
+                                prevPos.y <= event->p2.y);
+
+    if (isFacingRightDirection && isInsideTrigger && (!wasFacingRightDirection && isFacingRightDirection || !wasInsideTrigger && isInsideTrigger))
+    {
+        SABRE_EnterEventTrigger(event);
+    }
+    else if ((!isFacingRightDirection || !isInsideTrigger) && (wasFacingRightDirection && wasInsideTrigger))
+    {
+        SABRE_LeaveEventTrigger(event);
+    }
+    else if (wasFacingRightDirection && isFacingRightDirection && wasInsideTrigger && isInsideTrigger)
+    {
+        SABRE_StayInEventTrigger(event);
+    }
+}
+
+void SABRE_UpdateEvents()
+{
+    // TODO: Function that updates the events associated with the tile the player is standing in.
+    SABRE_UpdateEvent(&event1);
+    SABRE_UpdateEvent(&event2);
+}
+
+#if DEBUG
+void SABRE_ResetEvent(SABRE_EventTrigger *event)
+{
+    event->state = 0;
+}
+
+void SABRE_CycleEventType(SABRE_EventTrigger *event)
+{
+    event->type++;
+    if (event->type > 4) event->type = 0;
+}
+#endif
+
 
 // ..\source\global-code\65-animation.c
 SABRE_Animation SABRE_CreateAnimation(float frameRate, unsigned int sprite)
@@ -2314,11 +2249,6 @@ void SABRE_UpdateAnimation(SABRE_Animator *animator)
 
 
 // ..\source\global-code\70-entity.c
-SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned int attributes, const char name[256]);
-SABRE_Entity *SABRE_GetEntity(const char name[256]);
-int SABRE_CountEntitiesInList();
-void SABRE_FreeEntityList();
-
 SABRE_Entity *movableFlowerPot = NULL;
 SABRE_Entity *hiddenFlowerPot = NULL;
 SABRE_Entity *inCorner = NULL;
@@ -2365,6 +2295,19 @@ void SABRE_SetEntities()
         if (SABRE_AddToList(&SABRE_entities, data))
             DEBUG_MSG_FROM("Added new entity", "SABRE_SetEntities");
     }
+}
+
+int SABRE_CountEntitiesInList()
+{
+    int count = 0;
+    SABRE_List *iterator = NULL;
+
+    for (iterator = SABRE_entities; iterator != NULL; iterator = iterator->next)
+    {
+        count++;
+    }
+
+    return count;
 }
 
 SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned int attributes, const char name[256])
@@ -2422,19 +2365,6 @@ SABRE_List *SABRE_GetEntityListObject(SABRE_Entity *entity)
     }
 
     return NULL;
-}
-
-int SABRE_CountEntitiesInList()
-{
-    int count = 0;
-    SABRE_List *iterator = NULL;
-
-    for (iterator = SABRE_entities; iterator != NULL; iterator = iterator->next)
-    {
-        count++;
-    }
-
-    return count;
 }
 
 void SABRE_FreeEntityList()

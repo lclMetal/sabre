@@ -1,14 +1,3 @@
-int SABRE_ValidateTextureIndex(int index);
-int SABRE_IsWindowTexture(int index);
-
-int SABRE_AutoAddTextures();
-int SABRE_AddTexture(const char textureName[256]);
-int SABRE_CalculateTextureWidth(SABRE_Texture *texture);
-int SABRE_CalculateTextureHeight(SABRE_Texture *texture);
-
-void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture);
-void SABRE_FreeTextureStore();
-
 int SABRE_ValidateTextureIndex(int index)
 {
     // 0 is reserved for the "texture missing" texture
@@ -21,6 +10,35 @@ int SABRE_ValidateTextureIndex(int index)
 int SABRE_IsWindowTexture(int index)
 {
     return SABRE_textures[index].isWindow;
+}
+
+int SABRE_CalculateTextureWidth(SABRE_Texture *texture)
+{
+    // TODO: make a check for if the animation actually exists, use getAnimIndex(), if -1, doesn't exist
+    ChangeAnimation(SABRE_TEXTURE_ACTOR, texture->name, STOPPED);
+    return getclone(SABRE_TEXTURE_ACTOR)->nframes;
+}
+
+int SABRE_CalculateTextureHeight(SABRE_Texture *texture)
+{
+    return SABRE_GetAnimationDataValue(SABRE_TEXTURE_ACTOR, texture->name, SABRE_ANIM_HEIGHT);
+}
+
+void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture)
+{
+    SABRE_textures[dataStore->count] = *SABRE_TEXTURE_POINTER_CAST(texture);
+}
+
+int SABRE_AddTexture(const char textureName[256])
+{
+    SABRE_Texture newTexture;
+
+    strcpy(newTexture.name, textureName);
+    newTexture.width = SABRE_CalculateTextureWidth(&newTexture);
+    newTexture.height = SABRE_CalculateTextureHeight(&newTexture);
+    newTexture.isWindow = SABRE_StringEndsWith(newTexture.name, "-window");
+
+    return SABRE_AddToDataStore(&SABRE_textureStore, &newTexture);
 }
 
 // only works for non-animated textures
@@ -56,35 +74,6 @@ int SABRE_AutoAddTextures()
     }
 
     return 0;
-}
-
-int SABRE_AddTexture(const char textureName[256])
-{
-    SABRE_Texture newTexture;
-
-    strcpy(newTexture.name, textureName);
-    newTexture.width = SABRE_CalculateTextureWidth(&newTexture);
-    newTexture.height = SABRE_CalculateTextureHeight(&newTexture);
-    newTexture.isWindow = SABRE_StringEndsWith(newTexture.name, "-window");
-
-    return SABRE_AddToDataStore(&SABRE_textureStore, &newTexture);
-}
-
-int SABRE_CalculateTextureWidth(SABRE_Texture *texture)
-{
-    // TODO: make a check for if the animation actually exists, use getAnimIndex(), if -1, doesn't exist
-    ChangeAnimation(SABRE_TEXTURE_ACTOR, texture->name, STOPPED);
-    return getclone(SABRE_TEXTURE_ACTOR)->nframes;
-}
-
-int SABRE_CalculateTextureHeight(SABRE_Texture *texture)
-{
-    return SABRE_GetAnimationDataValue(SABRE_TEXTURE_ACTOR, texture->name, SABRE_ANIM_HEIGHT);
-}
-
-void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture)
-{
-    SABRE_textures[dataStore->count] = *SABRE_TEXTURE_POINTER_CAST(texture);
 }
 
 void SABRE_FreeTextureStore()

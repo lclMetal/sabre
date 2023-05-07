@@ -1,15 +1,6 @@
 const unsigned long SABRE_NORMAL    = 0;
 const unsigned long SABRE_IS_WINDOW = (1 << 0);
 
-int SABRE_FreeLevel();
-int SABRE_PrintLevel(SABRE_Level *level);
-int SABRE_InitLevel(SABRE_Level *level, unsigned width, unsigned height);
-int SABRE_FreeLevelData(SABRE_Level *level);
-int SABRE_AllocLevel(SABRE_Level *level);
-int SABRE_ValidateLevel(SABRE_Level *level);
-int SABRE_ValidateCurrentLevel();
-int SABRE_SetLevelDataFromArray(SABRE_Level *level, unsigned width, unsigned height, unsigned arr[]);
-
 int  SABRE_PrintLevel(SABRE_Level *level)
 {
     unsigned i, j;
@@ -56,11 +47,6 @@ int SABRE_InitLevel(SABRE_Level *level, unsigned width, unsigned height)
     return 0;
 }
 
-int SABRE_FreeLevel()
-{
-    return SABRE_FreeLevelData(&SABRE_level);
-}
-
 int SABRE_FreeLevelData(SABRE_Level *level)
 {
     if (!level) return 1; // 1: invalid pointer
@@ -70,6 +56,11 @@ int SABRE_FreeLevelData(SABRE_Level *level)
     level->map = NULL;
 
     return 0;
+}
+
+int SABRE_FreeLevel()
+{
+    return SABRE_FreeLevelData(&SABRE_level);
 }
 
 int SABRE_AllocLevel(SABRE_Level *level)

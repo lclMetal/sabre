@@ -1,18 +1,38 @@
+SABRE_KeyboardState *keys = NULL; // a pointer to the player key binds
+SABRE_Camera *camera = NULL; // a pointer to the camera
+
+SABRE_Vector2 oldDir;
+SABRE_Vector2 oldPlane;
+float rotateSpeed;
+float moveSpeed;
+
+SABRE_Vector2 prevPos;
+SABRE_Vector2 prevDir;
+SABRE_Vector2 newPos;
+SABRE_Vector2 normalizedForwardDir;
+SABRE_Vector2 normalizedRightDir;
+
+int coll;
+float posX;
+float posY;
+float radius;
+unsigned int i;
+SABRE_List *iterator = NULL;
+SABRE_Entity *entity = NULL;
+
 if (SABRE_gameState == SABRE_RUNNING)
 {
-    SABRE_KeyboardState *keys = &SABRE_keys; // a pointer to the player key binds
-    SABRE_Camera *camera = &SABRE_camera; // a pointer to the camera
+    keys = &SABRE_keys; // a pointer to the player key binds
+    camera = &SABRE_camera; // a pointer to the camera
 
-    SABRE_Vector2 oldDir   = camera->dir;
-    SABRE_Vector2 oldPlane = camera->plane;
-    float rotateSpeed = SABRE_player.turnSpeed;
-    float moveSpeed = SABRE_player.moveSpeed;
+    oldDir   = camera->dir;
+    oldPlane = camera->plane;
+    rotateSpeed = SABRE_player.turnSpeed;
+    moveSpeed = SABRE_player.moveSpeed;
 
-    SABRE_Vector2 prevPos = camera->pos;
-    SABRE_Vector2 prevDir = camera->dir;
-    SABRE_Vector2 newPos = SABRE_CreateVector2(0.0f, 0.0f);
-    SABRE_Vector2 normalizedForwardDir;
-    SABRE_Vector2 normalizedRightDir;
+    prevPos = camera->pos;
+    prevDir = camera->dir;
+    newPos = SABRE_CreateVector2(0.0f, 0.0f);
 
     SABRE_UpdateKeyboardState();
 
@@ -77,47 +97,43 @@ if (SABRE_gameState == SABRE_RUNNING)
         SABRE_NormalizeVector2InPlace(&newPos);
         SABRE_ScaleVector2InPlace(&newPos, moveSpeed);
 
+        posX = newPos.x + camera->pos.x;
+        posY = newPos.y + camera->pos.y;
+        coll = SABRE_GetSurroundingWalls(&posX, &posY, &SABRE_level);
+        radius = SABRE_player.radius;
+
+        posX = fmod(posX, SABRE_level.width);
+        if (posX < 0) posX += SABRE_level.width;
+        posY = fmod(posY, SABRE_level.height);
+        if (posY < 0) posY += SABRE_level.height;
+
+        if ((coll & SABRE_TOP_L_MASK) == SABRE_TOP_L)
+            SABRE_KeepDistance(&posX, &posY, (int)posX, (int)posY, radius);
+        if ((coll & SABRE_TOP_MASK) == SABRE_TOP)
+            SABRE_KeepDistance(&posX, &posY, posX, (int)posY, radius);
+        if ((coll & SABRE_TOP_R_MASK) == SABRE_TOP_R)
+            SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY, radius);
+        if ((coll & SABRE_LEFT_MASK) == SABRE_LEFT)
+            SABRE_KeepDistance(&posX, &posY, (int)posX, posY, radius);
+        if ((coll & SABRE_RIGHT_MASK) == SABRE_RIGHT)
+            SABRE_KeepDistance(&posX, &posY, (int)posX +  1, posY, radius);
+        if ((coll & SABRE_LOW_L_MASK) == SABRE_LOW_L)
+            SABRE_KeepDistance(&posX, &posY, (int)posX, (int)posY + 1, radius);
+        if ((coll & SABRE_LOW_MASK) == SABRE_LOW)
+            SABRE_KeepDistance(&posX, &posY, posX, (int)posY + 1, radius);
+        if ((coll & SABRE_LOW_R_MASK) == SABRE_LOW_R)
+            SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY + 1, radius);
+
+        for (iterator = SABRE_entities; iterator != NULL; iterator = iterator->next)
         {
-            unsigned int i;
-            SABRE_List *iterator = NULL;
-            SABRE_Entity *entity = NULL;
-            float posX = newPos.x + camera->pos.x, posY = newPos.y + camera->pos.y;
-            int coll = SABRE_GetSurroundingWalls(&posX, &posY, &SABRE_level);
-            float radius = SABRE_player.radius;
+            entity = &iterator->data.entity;
+            if (entity->attributes & SABRE_ENTITY_NO_COLLISION)
+                continue;
 
-            posX = fmod(posX, SABRE_level.width);
-            if (posX < 0) posX += SABRE_level.width;
-            posY = fmod(posY, SABRE_level.height);
-            if (posY < 0) posY += SABRE_level.height;
-
-            if ((coll & SABRE_TOP_L_MASK) == SABRE_TOP_L)
-                SABRE_KeepDistance(&posX, &posY, (int)posX, (int)posY, radius);
-            if ((coll & SABRE_TOP_MASK) == SABRE_TOP)
-                SABRE_KeepDistance(&posX, &posY, posX, (int)posY, radius);
-            if ((coll & SABRE_TOP_R_MASK) == SABRE_TOP_R)
-                SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY, radius);
-            if ((coll & SABRE_LEFT_MASK) == SABRE_LEFT)
-                SABRE_KeepDistance(&posX, &posY, (int)posX, posY, radius);
-            if ((coll & SABRE_RIGHT_MASK) == SABRE_RIGHT)
-                SABRE_KeepDistance(&posX, &posY, (int)posX +  1, posY, radius);
-            if ((coll & SABRE_LOW_L_MASK) == SABRE_LOW_L)
-                SABRE_KeepDistance(&posX, &posY, (int)posX, (int)posY + 1, radius);
-            if ((coll & SABRE_LOW_MASK) == SABRE_LOW)
-                SABRE_KeepDistance(&posX, &posY, posX, (int)posY + 1, radius);
-            if ((coll & SABRE_LOW_R_MASK) == SABRE_LOW_R)
-                SABRE_KeepDistance(&posX, &posY, (int)posX + 1, (int)posY + 1, radius);
-
-            for (iterator = SABRE_entities; iterator != NULL; iterator = iterator->next)
-            {
-                entity = &iterator->data.entity;
-                if (entity->attributes & SABRE_ENTITY_NO_COLLISION)
-                    continue;
-
-                SABRE_KeepDistance(&posX, &posY, entity->pos.x, entity->pos.y, entity->radius + radius);
-            }
-
-            camera->pos = SABRE_CreateVector2(posX, posY);
+            SABRE_KeepDistance(&posX, &posY, entity->pos.x, entity->pos.y, entity->radius + radius);
         }
+
+        camera->pos = SABRE_CreateVector2(posX, posY);
     }
 
     if (prevPos.x != camera->pos.x || prevPos.y != camera->pos.y)

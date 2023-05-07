@@ -45,35 +45,6 @@ struct debugStruct
     double fpsAverage;
 }debugController;
 
-void debugPrintFps(int mode);
-void debugUpdateFps(void);
-int debugCreateFile(void);
-void debugMsg(const char *msg);
-void debugMsgFrom(const char *msg, const char *label, int line);
-
-void debugPrintFps(int mode)
-{
-    debugUpdateFps();
-
-    switch (mode)
-    {
-        default:
-        case FPS_AVERAGE:
-            sprintf(text, "FPS %.02f", debugController.fpsAverage);
-        break;
-
-        case FPS_RANGE:
-            sprintf(text, "Min FPS: %i\nMax FPS: %i",
-                debugController.fpsLowest, debugController.fpsHighest);
-        break;
-
-        case FPS_BOTH:
-            sprintf(text, "FPS: %.02f\n+ min: %i\n+ max: %i",
-                debugController.fpsAverage, debugController.fpsLowest, debugController.fpsHighest);
-        break;
-    }
-}
-
 void debugUpdateFps(void)
 {
     debugController.fpsTime = getTime();
@@ -107,6 +78,29 @@ void debugUpdateFps(void)
     }
 }
 
+void debugPrintFps(int mode)
+{
+    debugUpdateFps();
+
+    switch (mode)
+    {
+        default:
+        case FPS_AVERAGE:
+            sprintf(text, "FPS %.02f", debugController.fpsAverage);
+        break;
+
+        case FPS_RANGE:
+            sprintf(text, "Min FPS: %i\nMax FPS: %i",
+                debugController.fpsLowest, debugController.fpsHighest);
+        break;
+
+        case FPS_BOTH:
+            sprintf(text, "FPS: %.02f\n+ min: %i\n+ max: %i",
+                debugController.fpsAverage, debugController.fpsLowest, debugController.fpsHighest);
+        break;
+    }
+}
+
 // It is recommended to only use this function through the macro DEBUG_INIT()
 int debugCreateFile(void)
 {
@@ -121,7 +115,6 @@ int debugCreateFile(void)
 
         debugController.fileInitialized = 1;
         fclose(f);
-        debugMsgFrom("Debug file initialized.", __FILE__, __LINE__);
         return true;
     }
 
@@ -133,8 +126,8 @@ void debugMsg(const char *msg)
 {
     FILE *f = NULL;
 
-    if (!debugController.fileInitialized)
-        debugCreateFile();
+    if (!debugController.fileInitialized && debugCreateFile())
+        debugMsg("Debug file initialized.");
 
     f = fopen("debug.log", "a+");
 
@@ -151,8 +144,8 @@ void debugMsgFrom(const char *msg, const char *label, int line)
     char temp[256];
     stTime t = getTime();
 
-    if (!debugController.fileInitialized)
-        debugCreateFile();
+    if (!debugController.fileInitialized && debugCreateFile())
+        debugMsgFrom("Debug file initialized.", __FILE__, __LINE__);
 
     sprintf(temp, "[%-25s, line: %4i, time: %3i, frame: %5i]: \"%s\"",
             label, line, t.sec_utc - debugController.startTime, frame, msg);

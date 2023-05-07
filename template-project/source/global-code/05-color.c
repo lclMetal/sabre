@@ -37,66 +37,6 @@ SABRE_Color SABRE_predefinedColors[] =
     SABRE_COLOR_BLUE, SABRE_COLOR_YELLOW, SABRE_COLOR_MAGENTA, SABRE_COLOR_CYAN
 };
 
-SABRE_Color SABRE_CreateRGB(int rValue, int gValue, int bValue, double aValue);
-SABRE_Color SABRE_CreateHSB(double hValue, double sValue, double bValue, double aValue);
-SABRE_Color SABRE_HSBtoRGB(double hValue, double sValue, double bValue, double aValue);
-SABRE_Color SABRE_RGBtoHSB(int rValue, int gValue, int bValue, double aValue);
-int SABRE_CompareColors(SABRE_Color *color1, SABRE_Color *color2);
-SABRE_Color SABRE_GetActorColor(const char *actorName);
-void SABRE_ColorThisActor(SABRE_Color color);
-void SABRE_ColorActor(Actor *pActor, SABRE_Color color);
-void SABRE_ColorActorByName(const char *actorName, SABRE_Color color);
-void SABRE_ColorClones(const char *actorName, long startIndex, long endIndex, SABRE_Color color);
-
-// This function creates a color with given values of red, green and blue, and then returns the color
-// rValue - the value of the red component of the color
-// gValue - the value of the green component of the color
-// bValue - the value of the blue component of the color
-// aValue - the alpha of the color
-SABRE_Color SABRE_CreateRGB(int rValue, int gValue, int bValue, double aValue)
-{
-    SABRE_Color color;
-    SABRE_Color hsb;
-
-    color.r = rValue;
-    color.g = gValue;
-    color.b = bValue;
-    color.alpha = aValue;
-
-    hsb = SABRE_RGBtoHSB(rValue, gValue, bValue, color.alpha);
-
-    color.hue = hsb.hue;
-    color.saturation = hsb.saturation;
-    color.brightness = hsb.brightness;
-
-    return color;
-}
-
-// This function creates a color with given values of hue, saturation and brightness, and then
-// returns the color
-// hValue - the hue for the color
-// sValue - the saturation for the color
-// bValue - the brightness for the color
-// aValue - the alpha of the color
-SABRE_Color SABRE_CreateHSB(double hValue, double sValue, double bValue, double aValue)
-{
-    SABRE_Color color;
-    SABRE_Color rgb;
-
-    color.hue = hValue;
-    color.saturation = sValue;
-    color.brightness = bValue;
-    color.alpha = aValue;
-
-    rgb = SABRE_HSBtoRGB(hValue, sValue, bValue, color.alpha);
-
-    color.r = rgb.r;
-    color.g = rgb.g;
-    color.b = rgb.b;
-
-    return color;
-}
-
 // This function converts given HSB color system values to corresponding RGB system color values
 // and returns a SABRE_Color with the r, g and b values
 // hValue - the hue value of the color to be converted to RGB
@@ -215,6 +155,55 @@ SABRE_Color SABRE_RGBtoHSB(int rValue, int gValue, int bValue, double aValue)
         color.saturation = (chromaMax == 0) ? 0 : (chroma / chromaMax);
         color.brightness = chromaMax;
     }
+
+    return color;
+}
+
+// This function creates a color with given values of red, green and blue, and then returns the color
+// rValue - the value of the red component of the color
+// gValue - the value of the green component of the color
+// bValue - the value of the blue component of the color
+// aValue - the alpha of the color
+SABRE_Color SABRE_CreateRGB(int rValue, int gValue, int bValue, double aValue)
+{
+    SABRE_Color color;
+    SABRE_Color hsb;
+
+    color.r = rValue;
+    color.g = gValue;
+    color.b = bValue;
+    color.alpha = aValue;
+
+    hsb = SABRE_RGBtoHSB(rValue, gValue, bValue, color.alpha);
+
+    color.hue = hsb.hue;
+    color.saturation = hsb.saturation;
+    color.brightness = hsb.brightness;
+
+    return color;
+}
+
+// This function creates a color with given values of hue, saturation and brightness, and then
+// returns the color
+// hValue - the hue for the color
+// sValue - the saturation for the color
+// bValue - the brightness for the color
+// aValue - the alpha of the color
+SABRE_Color SABRE_CreateHSB(double hValue, double sValue, double bValue, double aValue)
+{
+    SABRE_Color color;
+    SABRE_Color rgb;
+
+    color.hue = hValue;
+    color.saturation = sValue;
+    color.brightness = bValue;
+    color.alpha = aValue;
+
+    rgb = SABRE_HSBtoRGB(hValue, sValue, bValue, color.alpha);
+
+    color.r = rgb.r;
+    color.g = rgb.g;
+    color.b = rgb.b;
 
     return color;
 }

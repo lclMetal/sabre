@@ -1,10 +1,3 @@
-void SABRE_SetDataStoreAddFunc(SABRE_DataStore *dataStore, void (*addDataFunc)(SABRE_DataStore*, void*));
-int SABRE_InitDataStore(SABRE_DataStore *dataStore, size_t elemSize);
-int SABRE_GrowDataStore(SABRE_DataStore *dataStore);
-int SABRE_PrepareDataStore(SABRE_DataStore *dataStore);
-int SABRE_AddToDataStore(SABRE_DataStore *dataStore, void *elem);
-void SABRE_FreeDataStore(SABRE_DataStore *dataStore);
-
 void SABRE_SetDataStoreAddFunc(SABRE_DataStore *dataStore, void (*addDataFunc)(SABRE_DataStore*, void*))
 {
     dataStore->addFunc = addDataFunc;

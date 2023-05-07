@@ -1,6 +1,3 @@
-SABRE_List *SABRE_AddToList(SABRE_List **list, SABRE_ListTypes elem);
-void SABRE_FreeList(SABRE_List *list);
-
 SABRE_List *SABRE_AddToList(SABRE_List **list, SABRE_ListTypes elem)
 {
     SABRE_List *new = malloc(sizeof *new);

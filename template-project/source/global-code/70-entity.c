@@ -1,8 +1,3 @@
-SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned int attributes, const char name[256]);
-SABRE_Entity *SABRE_GetEntity(const char name[256]);
-int SABRE_CountEntitiesInList();
-void SABRE_FreeEntityList();
-
 SABRE_Entity *movableFlowerPot = NULL;
 SABRE_Entity *hiddenFlowerPot = NULL;
 SABRE_Entity *inCorner = NULL;
@@ -49,6 +44,19 @@ void SABRE_SetEntities()
         if (SABRE_AddToList(&SABRE_entities, data))
             DEBUG_MSG_FROM("Added new entity", "SABRE_SetEntities");
     }
+}
+
+int SABRE_CountEntitiesInList()
+{
+    int count = 0;
+    SABRE_List *iterator = NULL;
+
+    for (iterator = SABRE_entities; iterator != NULL; iterator = iterator->next)
+    {
+        count++;
+    }
+
+    return count;
 }
 
 SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned int attributes, const char name[256])
@@ -106,19 +114,6 @@ SABRE_List *SABRE_GetEntityListObject(SABRE_Entity *entity)
     }
 
     return NULL;
-}
-
-int SABRE_CountEntitiesInList()
-{
-    int count = 0;
-    SABRE_List *iterator = NULL;
-
-    for (iterator = SABRE_entities; iterator != NULL; iterator = iterator->next)
-    {
-        count++;
-    }
-
-    return count;
 }
 
 void SABRE_FreeEntityList()
