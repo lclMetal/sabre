@@ -558,30 +558,25 @@ int SABRE_IsZeroVector2(SABRE_Vector2 vec)
 // ..\source\global-code\15-vector3.c
 #define SABRE_VECTOR3_ZERO SABRE_CreateVector3(0.0f, 0.0f, 0.0f)
 
-typedef struct SABRE_Vector3Struct
+Vector SABRE_CreateVector3(float x, float y, float z)
 {
-    float x, y, z;
-}SABRE_Vector3;
-
-SABRE_Vector3 SABRE_CreateVector3(float x, float y, float z)
-{
-    SABRE_Vector3 new;
+    Vector new;
     new.x = x;
     new.y = y;
     new.z = z;
     return new;
 }
 
-SABRE_Vector3 SABRE_Vector2ToVector3(SABRE_Vector2 vec2, float z)
+Vector SABRE_Vector2ToVector3(SABRE_Vector2 vec2, float z)
 {
-    SABRE_Vector3 new;
+    Vector new;
     new.x = vec2.x;
     new.y = vec2.y;
     new.z = z;
     return new;
 }
 
-SABRE_Vector2 SABRE_Vector3ToVector2WithoutZ(SABRE_Vector3 vec3)
+SABRE_Vector2 SABRE_Vector3ToVector2WithoutZ(Vector vec3)
 {
     SABRE_Vector2 new;
     new.x = vec3.x;
@@ -589,49 +584,49 @@ SABRE_Vector2 SABRE_Vector3ToVector2WithoutZ(SABRE_Vector3 vec3)
     return new;
 }
 
-SABRE_Vector3 SABRE_ScaleVector3(SABRE_Vector3 vec, float scale)
+Vector SABRE_ScaleVector3(Vector vec, float scale)
 {
-    SABRE_Vector3 new;
+    Vector new;
     new.x = vec.x * scale;
     new.y = vec.y * scale;
     new.z = vec.z * scale;
     return new;
 }
 
-void SABRE_ScaleVector3InPlace(SABRE_Vector3 *vec, float scale)
+void SABRE_ScaleVector3InPlace(Vector *vec, float scale)
 {
     vec->x *= scale;
     vec->y *= scale;
     vec->z *= scale;
 }
 
-SABRE_Vector3 SABRE_AddVector3(SABRE_Vector3 a, SABRE_Vector3 b)
+Vector SABRE_AddVector3(Vector a, Vector b)
 {
-    SABRE_Vector3 new;
+    Vector new;
     new.x = a.x + b.x;
     new.y = a.y + b.y;
     new.z = a.z + b.z;
     return new;
 }
 
-void SABRE_AddVector3InPlace(SABRE_Vector3 *a, SABRE_Vector3 b)
+void SABRE_AddVector3InPlace(Vector *a, Vector b)
 {
     a->x += b.x;
     a->y += b.y;
     a->z += b.z;
 }
 
-float SABRE_DotProductVector3(SABRE_Vector3 a, SABRE_Vector3 b)
+float SABRE_DotProductVector3(Vector a, Vector b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-float SABRE_MagnitudeVector3(SABRE_Vector3 a)
+float SABRE_MagnitudeVector3(Vector a)
 {
     return sqrt(SABRE_DotProductVector3(a, a));
 }
 
-SABRE_Vector3 SABRE_NormalizeVector3(SABRE_Vector3 vec)
+Vector SABRE_NormalizeVector3(Vector vec)
 {
     float magnitude = SABRE_MagnitudeVector3(vec);
 
@@ -644,7 +639,7 @@ SABRE_Vector3 SABRE_NormalizeVector3(SABRE_Vector3 vec)
     return SABRE_ScaleVector3(vec, 1.0f / magnitude);
 }
 
-void SABRE_NormalizeVector3InPlace(SABRE_Vector3 *vec)
+void SABRE_NormalizeVector3InPlace(Vector *vec)
 {
     float magnitude = SABRE_MagnitudeVector3(*vec);
 
@@ -953,7 +948,7 @@ typedef struct SABRE_AnimatorStruct
 typedef struct SABRE_EntityStruct
 {
     float radius;
-    SABRE_Vector3 pos;
+    Vector pos;
     unsigned int attributes;
     SABRE_Animator animator;
     char name[256];
@@ -963,7 +958,7 @@ typedef struct SABRE_ProjectileStruct
 {
     float speed;
     float dropFactor;
-    SABRE_Vector3 dir;
+    Vector dir;
     SABRE_Entity *entity;
 }SABRE_Projectile;
 
@@ -1070,7 +1065,7 @@ typedef struct SABRE_ProjectileHitDataStruct
     float dist;
     unsigned char hitType;
     SABRE_Projectile *projectile;
-    SABRE_Vector3 hitPosition;
+    Vector hitPosition;
     SABRE_Entity *entityHit;
 }SABRE_ProjectileHitData;
 
@@ -2310,7 +2305,7 @@ int SABRE_CountEntitiesInList()
     return count;
 }
 
-SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned int attributes, const char name[256])
+SABRE_Entity *SABRE_AddEntity(float radius, Vector pos, SABRE_Animator animator, unsigned int attributes, const char name[256])
 {
     SABRE_Entity new;
     SABRE_ListTypes newListElement;
@@ -2375,7 +2370,7 @@ void SABRE_FreeEntityList()
 
 
 // ..\source\global-code\75-projectile.c
-SABRE_ProjectileHitData SABRE_CreateProjectileHit(unsigned char hitType, float dist, SABRE_Projectile *projectile, SABRE_Vector3 hitPosition, SABRE_Entity *entityHit)
+SABRE_ProjectileHitData SABRE_CreateProjectileHit(unsigned char hitType, float dist, SABRE_Projectile *projectile, Vector hitPosition, SABRE_Entity *entityHit)
 {
     SABRE_ProjectileHitData new;
 
@@ -2394,7 +2389,7 @@ void SABRE_SendProjectileHitEvent(SABRE_ProjectileHitData hitData)
     SendActivationEvent(SABRE_PROJECTILE_HANDLER_ACTOR);
 }
 
-void SABRE_FireProjectile(SABRE_Vector3 dir, float speed, float dropFactor, float radius, SABRE_Vector3 pos, SABRE_Animator animator)
+void SABRE_FireProjectile(Vector dir, float speed, float dropFactor, float radius, Vector pos, SABRE_Animator animator)
 {
     char temp[256];
     SABRE_Projectile new;
@@ -2605,7 +2600,7 @@ SABRE_ProjectileHitData SABRE_CheckProjectileEntityCollisions(SABRE_Projectile *
     return hitData;
 }
 
-void SABRE_StopProjectileAtPosition(SABRE_Projectile *projectile, SABRE_Vector3 position)
+void SABRE_StopProjectileAtPosition(SABRE_Projectile *projectile, Vector position)
 {
     projectile->entity->pos = position;
     projectile->dir = SABRE_VECTOR3_ZERO;

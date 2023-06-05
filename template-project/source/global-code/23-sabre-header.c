@@ -84,7 +84,7 @@ typedef struct SABRE_AnimatorStruct
 typedef struct SABRE_EntityStruct
 {
     float radius;
-    SABRE_Vector3 pos;
+    Vector pos;
     unsigned int attributes;
     SABRE_Animator animator;
     char name[256];
@@ -94,7 +94,7 @@ typedef struct SABRE_ProjectileStruct
 {
     float speed;
     float dropFactor;
-    SABRE_Vector3 dir;
+    Vector dir;
     SABRE_Entity *entity;
 }SABRE_Projectile;
 
@@ -201,7 +201,7 @@ typedef struct SABRE_ProjectileHitDataStruct
     float dist;
     unsigned char hitType;
     SABRE_Projectile *projectile;
-    SABRE_Vector3 hitPosition;
+    Vector hitPosition;
     SABRE_Entity *entityHit;
 }SABRE_ProjectileHitData;
 

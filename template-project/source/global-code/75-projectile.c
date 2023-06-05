@@ -1,4 +1,4 @@
-SABRE_ProjectileHitData SABRE_CreateProjectileHit(unsigned char hitType, float dist, SABRE_Projectile *projectile, SABRE_Vector3 hitPosition, SABRE_Entity *entityHit)
+SABRE_ProjectileHitData SABRE_CreateProjectileHit(unsigned char hitType, float dist, SABRE_Projectile *projectile, Vector hitPosition, SABRE_Entity *entityHit)
 {
     SABRE_ProjectileHitData new;
 
@@ -17,7 +17,7 @@ void SABRE_SendProjectileHitEvent(SABRE_ProjectileHitData hitData)
     SendActivationEvent(SABRE_PROJECTILE_HANDLER_ACTOR);
 }
 
-void SABRE_FireProjectile(SABRE_Vector3 dir, float speed, float dropFactor, float radius, SABRE_Vector3 pos, SABRE_Animator animator)
+void SABRE_FireProjectile(Vector dir, float speed, float dropFactor, float radius, Vector pos, SABRE_Animator animator)
 {
     char temp[256];
     SABRE_Projectile new;
@@ -228,7 +228,7 @@ SABRE_ProjectileHitData SABRE_CheckProjectileEntityCollisions(SABRE_Projectile *
     return hitData;
 }
 
-void SABRE_StopProjectileAtPosition(SABRE_Projectile *projectile, SABRE_Vector3 position)
+void SABRE_StopProjectileAtPosition(SABRE_Projectile *projectile, Vector position)
 {
     projectile->entity->pos = position;
     projectile->dir = SABRE_VECTOR3_ZERO;

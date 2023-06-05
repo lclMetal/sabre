@@ -59,7 +59,7 @@ int SABRE_CountEntitiesInList()
     return count;
 }
 
-SABRE_Entity *SABRE_AddEntity(float radius, SABRE_Vector3 pos, SABRE_Animator animator, unsigned int attributes, const char name[256])
+SABRE_Entity *SABRE_AddEntity(float radius, Vector pos, SABRE_Animator animator, unsigned int attributes, const char name[256])
 {
     SABRE_Entity new;
     SABRE_ListTypes newListElement;
