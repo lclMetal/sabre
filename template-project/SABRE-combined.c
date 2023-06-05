@@ -949,6 +949,7 @@ typedef struct SABRE_EntityStruct
 {
     float radius;
     Vector pos;
+    Vector dir;
     unsigned int attributes;
     SABRE_Animator animator;
     char name[256];
@@ -2257,29 +2258,29 @@ void SABRE_SetEntities()
 
     SABRE_Entity tempEntities[SABRE_ENTITY_COUNT] =
     {
-        { 0.15f, { 8.5f, 1.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 1), "barrel.0" },
-        { 0.15f, { 7.5f, 1.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 1), "barrel.1" },
-        { 0.15f, { 6.5f, 1.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 2), "terra-cotta-planter.0" },
-        { 0.15f, { 8.5f, 2.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 1), "barrel.2" },
-        { 0.14f, { 2.5f, 2.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 0), "pillar.0" },
-        { 0.15f, { 6.5f, 2.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 1), "barrel.3" },
-        { 0.19f, { 6.5f, 3.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.0" },
-        { 0.19f, { 7.0f, 3.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.1" },
-        { 0.19f, { 7.5f, 3.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.2" },
-        { 0.19f, { 8.0f, 3.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.3" },
-        { 0.19f, { 8.5f, 3.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.4" },
-        { 0.19f, { 6.5f, 5.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.0" },
-        { 0.19f, { 7.0f, 5.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.1" },
-        { 0.19f, { 7.5f, 5.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.2" },
-        { 0.19f, { 8.0f, 5.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.3" },
-        { 0.19f, { 8.5f, 5.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.4" },
-        { 0.19f, { 6.75f, 5.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.5" },
-        { 0.19f, { 7.25f, 5.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.6" },
-        { 0.19f, { 7.75f, 5.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.7" },
-        { 0.19f, { 8.25f, 5.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.8" },
-        { 0.19f, { 8.75f, 5.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.9" },
+        { 0.15f, { 8.5f, 1.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 1), "barrel.0" },
+        { 0.15f, { 7.5f, 1.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 1), "barrel.1" },
+        { 0.15f, { 6.5f, 1.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 2), "terra-cotta-planter.0" },
+        { 0.15f, { 8.5f, 2.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 1), "barrel.2" },
+        { 0.14f, { 2.5f, 2.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 0), "pillar.0" },
+        { 0.15f, { 6.5f, 2.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 1), "barrel.3" },
+        { 0.19f, { 6.5f, 3.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.0" },
+        { 0.19f, { 7.0f, 3.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.1" },
+        { 0.19f, { 7.5f, 3.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.2" },
+        { 0.19f, { 8.0f, 3.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.3" },
+        { 0.19f, { 8.5f, 3.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 3), "flower-pot.4" },
+        { 0.19f, { 6.5f, 5.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.0" },
+        { 0.19f, { 7.0f, 5.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.1" },
+        { 0.19f, { 7.5f, 5.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.2" },
+        { 0.19f, { 8.0f, 5.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.3" },
+        { 0.19f, { 8.5f, 5.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.4" },
+        { 0.19f, { 6.75f, 5.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.5" },
+        { 0.19f, { 7.25f, 5.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.6" },
+        { 0.19f, { 7.75f, 5.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.7" },
+        { 0.19f, { 8.25f, 5.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.8" },
+        { 0.19f, { 8.75f, 5.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 9), "pit.9" },
         // { 0.15f, { 2.5f, 8.5f }, 0, SABRE_ANIMATOR_LITERAL(0, 1, 5), "tree.4" }
-        { 0.15f, { 2.5f, 8.5f, 0.0f }, 0, SABRE_ANIMATOR_LITERAL(10, 1, 7), "dude.0" }
+        { 0.15f, { 2.5f, 8.5f, 0.0f }, { 0 }, 0, SABRE_ANIMATOR_LITERAL(10, 1, 7), "dude.0" }
     };
 
     for (i = 0; i < SABRE_ENTITY_COUNT; i++)

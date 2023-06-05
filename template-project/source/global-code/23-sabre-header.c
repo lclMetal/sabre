@@ -85,6 +85,7 @@ typedef struct SABRE_EntityStruct
 {
     float radius;
     Vector pos;
+    Vector dir;
     unsigned int attributes;
     SABRE_Animator animator;
     char name[256];
