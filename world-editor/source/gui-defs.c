@@ -233,7 +233,10 @@ void SWE_CreateWindows(Style *ctxMenuStyle, Style *sweMainStyle)
     panel = getWindowRootPanel(window);
     setPosition(addText(panel, "title", "Level properties:", 0), 0, 0);
     setPosition(addText(panel, "labelColors", "Colors", 200), 1, 0);
-    panel = getPanel(setPosition(addPanel(getWindowRootPanel(window), "colorsPanel"), 2, 0));
+    // panel = getPanel(setPosition(addPanel(getWindowRootPanel(window), "colorsPanel"), 2, 0));
     //setPosition(addInputField(panel, ""))
+    panel = getPanel(setPosition(addPanel(getWindowRootPanel(window), "buttonsPanel"), 3, 0));
+    setPosition(addButton(panel, "okBtn", "Ok", createCloseWindowAction(window->tag)), 0, 0);
+    setPosition(addButton(panel, "cancelBtn", "Cancel", createCloseWindowAction(window->tag)), 0, 1);
     DEBUG_MSG_FROM("Created level properties window", "SWE_CreateWindows");
 }
