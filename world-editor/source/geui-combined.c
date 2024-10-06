@@ -1678,7 +1678,7 @@ void setTileDimensions()
     setDimensions = NULL;
 }
 
-Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
+/*Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Font *textFont,
                   short padding, short focusWidth, short titleProperties, short buttonProperties, float buttonPadding, Color titleBgColor,
                   Color windowBgColor, Color inputBgColor, Color titleColor, Color labelColor, Color textColor,
                   Color buttonColor, Color buttonHilitColor, Color buttonPressedColor,
@@ -1707,6 +1707,96 @@ Style createStyle(const char guiAnim[100], Font *titleFont, Font *labelFont, Fon
     new.focusColor = focusColor;
 
     return new;
+}*/
+
+void initStyle(Style *style)
+{
+    if (style)
+    {
+        *style = defStyle;
+    }
+}
+
+void setStyleGuiSheet(Style *style, const char guiAnim[100])
+{
+    if (style)
+    {
+        strcpy(style->guiAnim, guiAnim);
+    }
+}
+
+void setStylePadding(Style *style, short padding)
+{
+    if (style)
+    {
+        style->padding = padding;
+    }
+}
+
+void setStyleWindowColor(Style *style, Color windowBgColor)
+{
+    if (style)
+    {
+        style->windowBgColor = windowBgColor;
+    }
+}
+
+void setStyleInputColor(Style *style, Color inputBgColor)
+{
+    if (style)
+    {
+        style->inputBgColor = inputBgColor;
+    }
+}
+
+void setStyleFocus(Style *style, short focusWidth, Color focusColor)
+{
+    if (style)
+    {
+        style->focusWidth = focusWidth;
+        style->focusColor = focusColor;
+    }
+}
+
+void setStyleTitleStyle(Style *style, Font *titleFont, short titleProperties, Color titleColor, Color titleBgColor)
+{
+    if (style)
+    {
+        style->titleFont = titleFont;
+        style->titleProperties = titleProperties;
+        style->titleColor = titleColor;
+        style->titleBgColor = titleBgColor;
+    }
+}
+
+void setStyleLabelStyle(Style *style, Font *labelFont, Color labelColor)
+{
+    if (style)
+    {
+        style->labelFont = labelFont;
+        style->labelColor = labelColor;
+    }
+}
+
+void setStyleTextStyle(Style *style, Font *textFont, Color textColor)
+{
+    if (style)
+    {
+        style->textFont = textFont;
+        style->textColor = textColor;
+    }
+}
+
+void setStyleButtonStyle(Style *style, short buttonProperties, float buttonPadding, Color buttonColor, Color buttonHilitColor, Color buttonPressedColor)
+{
+    if (style)
+    {
+        style->buttonProperties = buttonProperties;
+        style->buttonPadding = buttonPadding;
+        style->buttonColor = buttonColor;
+        style->buttonHilitColor = buttonHilitColor;
+        style->buttonPressedColor = buttonPressedColor;
+    }
 }
 
 //This function defines and creates a new style

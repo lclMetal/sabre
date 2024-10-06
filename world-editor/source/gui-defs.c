@@ -135,44 +135,54 @@ void SWE_CreateWindows(Style *ctxMenuStyle, Style *sweMainStyle)
     setPosition(addButton(panel, "placeEntityBtn", "Place entity", createOpenWindowAction(SWE_WINDOW_PLACE_ENTITY, GEUI_WPOS_MOUSE_TOP)), 0, 0);
     setPosition(addButton(panel, "placeTriggerBtn", "Place trigger     ", createOpenWindowAction(SWE_WINDOW_PLACE_TRIGGER, GEUI_WPOS_MOUSE_TOP)), 1, 0);
     // setPosition(addButton(panel, "closeBtn", "Close", createCloseWindowAction(window->tag)), 2, 0);
+    DEBUG_MSG_FROM("Created context menu window", "SWE_CreateWindows");
 
     // Define "new project" alert window
     window = createWindow(SWE_WINDOW_NEW_PROJECT_ALERT, "Create new project?", sweMainStyle);
+    // window = createWindow(SWE_WINDOW_NEW_PROJECT_ALERT, GEUI_NO_TITLE, sweMainStyle);
     panel = getWindowRootPanel(window);
     setPosition(addText(panel, "alertText",
         "Creating a new project will discard the current one. Continue?", 300), 0, 0);
     panel = getPanel(setPosition(addPanel(panel, "buttonsPanel"), 1, 0));
     setPosition(addButton(panel, "okBtn", "Ok", createCloseWindowAction(window->tag)), 0, 0);
     setPosition(addButton(panel, "cancelBtn", "Cancel", createCloseWindowAction(window->tag)), 0, 1);
+    DEBUG_MSG_FROM("Created new project window", "SWE_CreateWindows");
 
     // Define "open project" window
     window = createWindow(SWE_WINDOW_OPEN_PROJECT, "Open project", sweMainStyle);
+    // window = createWindow(SWE_WINDOW_OPEN_PROJECT, GEUI_NO_TITLE, sweMainStyle);
     panel = getWindowRootPanel(window);
     setPosition(addText(panel, "title", "Project file name", 0), 0, 0);
     setPosition(addInputField(panel, "fileName", "untitled", createTextInputSettings(), 200), 1, 0);
     panel = getPanel(setPosition(addPanel(panel, "buttonsPanel"), 2, 0));
     setPosition(addButton(panel, "openBtn", "Open", createAction(loadProject)), 0, 0);
     setPosition(addButton(panel, "cancelBtn", "Cancel", createCloseWindowAction(window->tag)), 0, 1);
+    DEBUG_MSG_FROM("Created open project window", "SWE_CreateWindows");
 
     // Define "save project" window
     window = createWindow(SWE_WINDOW_SAVE_PROJECT, "Save project", sweMainStyle);
+    // window = createWindow(SWE_WINDOW_SAVE_PROJECT, GEUI_NO_TITLE, sweMainStyle);
     panel = getWindowRootPanel(window);
     setPosition(addText(panel, "title", "Project file name", 0), 0, 0);
     setPosition(addInputField(panel, "fileName", "untitled", createTextInputSettings(), 200), 1, 0);
     panel = getPanel(setPosition(addPanel(panel, "buttonsPanel"), 2, 0));
     setPosition(addButton(panel, "saveBtn", "Save", createAction(saveProject)), 0, 0);
     setPosition(addButton(panel, "cancelBtn", "Cancel", createCloseWindowAction(window->tag)), 0, 1);
+    DEBUG_MSG_FROM("Created save project window", "SWE_CreateWindows");
 
     // Define "place entity" window
     window = createWindow(SWE_WINDOW_PLACE_ENTITY, "Place entity", sweMainStyle);
+    // window = createWindow(SWE_WINDOW_PLACE_ENTITY, GEUI_NO_TITLE, sweMainStyle);
     panel = getWindowRootPanel(window);
     setPosition(addText(panel, "title", "Place entity", 0), 0, 0);
     panel = getPanel(setPosition(addPanel(panel, "buttonsPanel"), 1, 0));
     setPosition(addButton(panel, "okBtn", "Ok", createCloseWindowAction(window->tag)), 0, 0);
     setPosition(addButton(panel, "createNewBtn", "Create new entity type", createOpenWindowAction(SWE_WINDOW_CREATE_ENTITY_TYPE, GEUI_WPOS_SCREEN_CENTER)), 0, 1);
+    DEBUG_MSG_FROM("Created place entity window", "SWE_CreateWindows");
 
     // Define "create entity type" window
     window = createWindow(SWE_WINDOW_CREATE_ENTITY_TYPE, "Create new entity type", sweMainStyle);
+    // window = createWindow(SWE_WINDOW_CREATE_ENTITY_TYPE, GEUI_NO_TITLE, sweMainStyle);
     panel = getWindowRootPanel(window);
     setPosition(addText(panel, "title", "Entity settings\n", 0), 0, 0);
     panel = getPanel(setPosition(addPanel(panel, "propertiesPanel"), 1, 0));
@@ -189,15 +199,19 @@ void SWE_CreateWindows(Style *ctxMenuStyle, Style *sweMainStyle)
     panel = getPanel(setPosition(addPanel(getWindowRootPanel(window), "buttonsPanel"), 2, 0));
     setPosition(addButton(panel, "doneBtn", "Done", createCloseWindowAction(window->tag)), 0, 0);
     setPosition(addButton(panel, "cancelBtn", "Cancel", createCloseWindowAction(window->tag)), 0, 1);
+    DEBUG_MSG_FROM("Created create entity type window", "SWE_CreateWindows");
 
     // Define "place trigger" window
     window = createWindow(SWE_WINDOW_PLACE_TRIGGER, "Place trigger", sweMainStyle);
+    // window = createWindow(SWE_WINDOW_PLACE_TRIGGER, GEUI_NO_TITLE, sweMainStyle);
     panel = getWindowRootPanel(window);
     setPosition(addText(panel, "title", "Place trigger", 0), 0, 0);
     setPosition(addButton(panel, "okBtn", "Ok", createCloseWindowAction(window->tag)), 1, 0);
+    DEBUG_MSG_FROM("Created place trigger window", "SWE_CreateWindows");
 
     // Define "texture config" window
     window = createWindow(SWE_WINDOW_TXR_CONFIG, "Configure texture", sweMainStyle);
+    // window = createWindow(SWE_WINDOW_TXR_CONFIG, GEUI_NO_TITLE, sweMainStyle);
     panel = getWindowRootPanel(window);
     addDataBind(window, "texture", NULL);
     setPosition(addText(panel, "title", "Texture settings:", 0), 0, 0);
@@ -211,12 +225,15 @@ void SWE_CreateWindows(Style *ctxMenuStyle, Style *sweMainStyle)
     panel = getPanel(setPosition(addPanel(getWindowRootPanel(window), "buttonsPanel"), 3, 0));
     setPosition(addButton(panel, "doneBtn", "Done", createAction(applyTextureConfig)), 0, 0);
     setPosition(addButton(panel, "cancelBtn", "Cancel", createCloseWindowAction(window->tag)), 0, 1);
+    DEBUG_MSG_FROM("Created texture config window", "SWE_CreateWindows");
 
     // Define the "level properties" window
     window = createWindow(SWE_WINDOW_LEVEL_PROPERTIES, "Edit level properties", sweMainStyle);
+    // window = createWindow(SWE_WINDOW_LEVEL_PROPERTIES, GEUI_NO_TITLE, sweMainStyle);
     panel = getWindowRootPanel(window);
     setPosition(addText(panel, "title", "Level properties:", 0), 0, 0);
     setPosition(addText(panel, "labelColors", "Colors", 200), 1, 0);
     panel = getPanel(setPosition(addPanel(getWindowRootPanel(window), "colorsPanel"), 2, 0));
     //setPosition(addInputField(panel, ""))
+    DEBUG_MSG_FROM("Created level properties window", "SWE_CreateWindows");
 }
