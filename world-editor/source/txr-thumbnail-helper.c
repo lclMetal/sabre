@@ -1,6 +1,9 @@
 #define SWE_TEXTURE_CONF_FILE "textures.conf"
 #define SWE_TEXTURE_NAME_MAX_LENGTH 30
 
+#define SWE_SPRITE_CONF_FILE "sprites.conf"
+#define SWE_SPRITE_NAME_MAX_LENGTH 30
+
 int stringIsAlphaNumericHyphenUnderscore(const char *str)
 {
     char c;
@@ -30,6 +33,13 @@ void clearTextureConfFile()
     if (f) fclose(f);
 }
 
+void clearSpriteConfFile()
+{
+    FILE *f;
+    f = fopen(SWE_SPRITE_CONF_FILE, "w");
+    if (f) fclose(f);
+}
+
 // Must be called from an event of SABRE_TextureActor
 int validateTextureNames()
 {
@@ -39,7 +49,7 @@ int validateTextureNames()
 
     if (strcmp(name, "SABRE_TextureActor") != 0)
     {
-        DEBUG_MSG_FROM("This function must be called from an event of SABRE_TextureActor", "validateTextureNameLengths");
+        DEBUG_MSG_FROM("This function must be called from an event of SABRE_TextureActor", "validateTextureNames");
         return 1; // Function called from invalid event
     }
 
@@ -57,6 +67,37 @@ int validateTextureNames()
 
         strcpy(animName, getAnimName(++texIndex));
         texNameLen = strlen(animName);
+    }
+
+    return 0;
+}
+
+int validateSpriteNames()
+{
+    int spriteIndex = 2; // Ignore project-management animation and "missing sprite" sprite
+    size_t spriteNameLen;
+    char animName[256];
+
+    if (strcmp(name, "SABRE_SpriteActor") != 0)
+    {
+        DEBUG_MSG_FROM("This function must be called from an event of SABRE_SpriteActor", "validateSpriteNames");
+        return 1; // Function called from invalid event
+    }
+
+    strcpy(animName, getAnimName(spriteIndex));
+    spriteNameLen = strlen(animName);
+
+    while (spriteNameLen)
+    {
+        // Name length greater than 30, can't guarantee correct matching to sprite file
+        if (spriteNameLen > SWE_SPRITE_NAME_MAX_LENGTH || !stringIsAlphaNumericHyphenUnderscore(animName))
+        {
+            clearSpriteConfFile();
+            return spriteIndex;
+        }
+
+        strcpy(animName, getAnimName(++spriteIndex));
+        spriteNameLen = strlen(animName);
     }
 
     return 0;
@@ -102,6 +143,46 @@ int checkTextureNameChanges()
     return 0;
 }
 
+// Must be called from an event of SABRE_SpriteActor
+int checkSpriteNameChanges()
+{
+    FILE *f;
+    int spriteIndex = 2; // Ignore project-management animation and "missing sprite" sprite
+    size_t spriteNameLen = strlen(getAnimName(spriteIndex));
+    char readName[SWE_SPRITE_NAME_MAX_LENGTH + 1];
+    char format[30];
+    char temp[256];
+
+    if (strcmp(name, "SABRE_SpriteActor") != 0)
+    {
+        DEBUG_MSG_FROM("This function must be called from an event of SABRE_SpriteActor", "checkSpriteNameChanges");
+        return 1; // Function called from invalid event
+    }
+
+    f = fopen(SWE_SPRITE_CONF_FILE, "r");
+    if (!f) return 2; // Couldn't open file
+
+    sprintf(format, "%%*04d %%%ds\n", SWE_SPRITE_NAME_MAX_LENGTH);
+
+    while (spriteNameLen)
+    {
+        if (fscanf(f, format, readName) != 2 || strcmp(getAnimName(spriteIndex), readName) != 0)
+        {
+            sprintf(temp, "Sprite name: %s,\tName read from file: %s", getAnimName(spriteIndex), readName);
+            DEBUG_MSG_FROM(temp, "checkSpriteNameChanges");
+
+            fclose(f);
+            return -spriteIndex; // Sprite name wasn't found in the file
+        }
+
+        spriteNameLen = strlen(getAnimName(++spriteIndex));
+    }
+
+
+    fclose(f);
+    return 0;
+}
+
 // Must be called from an event of SABRE_TextureActor
 int printTextureNames()
 {
@@ -122,6 +203,32 @@ int printTextureNames()
     {
         fprintf(f, "%04d %s\n", texIndex - 1, getAnimName(texIndex));
         texNameLen = strlen(getAnimName(++texIndex));
+    }
+
+    fclose(f);
+    return 0;
+}
+
+// Must be called from an event of SABRE_SpriteActor
+int printSpriteNames()
+{
+    FILE *f;
+    int spriteIndex = 2; // Ignore project-management animation and "missing sprite" sprite
+    size_t spriteNameLen = strlen(getAnimName(spriteIndex));
+
+    if (strcmp(name, "SABRE_SpriteActor") != 0)
+    {
+        DEBUG_MSG_FROM("This function must be called from an event of SABRE_SpriteActor", "printSpriteNames");
+        return 1; // Function called from invalid event
+    }
+
+    f = fopen(SWE_SPRITE_CONF_FILE, "w");
+    if (!f) return 2; // Couldn't open file
+
+    while (spriteNameLen)
+    {
+        fprintf(f, "%04d %s\n", spriteIndex - 1, getAnimName(spriteIndex));
+        spriteNameLen = strlen(getAnimName(++spriteIndex));
     }
 
     fclose(f);

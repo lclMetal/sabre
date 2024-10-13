@@ -12,8 +12,9 @@ debug.log
 # Test level file
 level.c
 
-# Texture thumbnail configuration file
+# Texture and sprite thumbnail configuration files
 textures.conf
+sprites.conf
 
 # Level project files
 *.swp
