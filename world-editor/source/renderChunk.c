@@ -26,6 +26,20 @@ int** edgeTestMap = NULL;
 
 int renderChunkCount = 0;
 
+typedef struct SWE_EntityTemplateStruct
+{
+    int sprite;
+    float radius;
+    unsigned int attributes;
+    char name[256];
+}SWE_EntityTemplate;
+
+typedef struct SWE_EntityStruct
+{
+    SWE_EntityTemplate *template;
+    struct SWE_EntityStruct *next;
+}SWE_Entity;
+
 typedef struct RenderChunkStruct
 {
     int x;
@@ -39,6 +53,7 @@ typedef struct RenderChunkStruct
     int usedEndY;
 
     int chunkArray[RENDER_CHUNK_SIZE][RENDER_CHUNK_SIZE];
+    SWE_Entity *entities;
     struct RenderChunkStruct *next;
 }RenderChunk;
 
@@ -133,6 +148,9 @@ void initializeRenderChunk(RenderChunk *this)
     this->usedStartX = this->usedStartY = RENDER_CHUNK_SIZE - 1;
     this->usedEndX = this->usedEndY = 0;
 
+    this->entities = NULL;
+    this->next = NULL;
+
     renderChunkCount ++;
 
     for (i = 0; i < RENDER_CHUNK_SIZE; i ++)
@@ -186,7 +204,8 @@ void updateRenderChunkUsedArea(RenderChunk *ptr)
     }
 
     if (startX == RENDER_CHUNK_SIZE - 1 && endX == 0 &&
-        startY == RENDER_CHUNK_SIZE - 1 && endY == 0)
+        startY == RENDER_CHUNK_SIZE - 1 && endY == 0 &&
+        ptr->entities == NULL)
     {
         deleteRenderChunk(ptr->x, ptr->y);
     }
@@ -350,6 +369,26 @@ RenderChunk *searchRenderChunkByCoords(int chunkX, int chunkY)
     return NULL;
 }
 
+void deleteEntitiesInRenderChunk(RenderChunk *chunk)
+{
+    SWE_Entity *ptr = NULL;
+    SWE_Entity *next = NULL;
+
+    if (chunk)
+    {
+        ptr = chunk->entities;
+
+        while (ptr != NULL)
+        {
+            next = ptr->next;
+            free(ptr);
+            ptr = next;
+        }
+
+        chunk->entities = NULL;
+    }
+}
+
 //This function deletes a render chunk identified by its coordinates
 //chunkX - the x coordinate of the render chunk to be deleted
 //chunkY - the y coordinate of the render chunk to be deleted
@@ -383,6 +422,7 @@ int deleteRenderChunk(int chunkX, int chunkY)
         }
     }
 
+    deleteEntitiesInRenderChunk(del);
     free(del);
     del = NULL;
     renderChunkCount --;
@@ -406,6 +446,28 @@ int deleteRenderChunkList()
     renderChunkHead = renderChunkTail = NULL;
 
     return 1;
+}
+
+//This function add an entity to the world and stores it to the correct render chunk
+//entX - the x coordinate for the entity
+//entY - the y coordinate for the entity
+//entity - pointer to the entity template
+void plotEntity(float entX, float entY, SWE_EntityTemplate *entity)
+{
+    RenderChunk *ptr;
+    int chunkCoords[2];
+
+    coordsToRenderChunkCoords((int)entX, (int)entY, chunkCoords);
+
+    ptr = searchRenderChunkByCoords(chunkCoords[X], chunkCoords[Y]);
+
+    if (ptr)
+    {
+        if (ptr->entities == NULL) // CONTINUE FROM HERE!!!!
+        {
+            
+        }
+    }
 }
 
 //This function adds a block to the world grid and stores it to the correct render chunk
