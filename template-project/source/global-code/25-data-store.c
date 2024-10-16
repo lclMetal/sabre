@@ -27,7 +27,7 @@ int SABRE_GrowDataStore(SABRE_DataStore *dataStore)
     if (dataStore->capacity < SABRE_DATA_STORE_DOUBLING_LIMIT) dataStore->capacity *= 2;
     else dataStore->capacity += SABRE_DATA_STORE_GROW_AMOUNT;
 
-    newElems = realloc(dataStore->elems, dataStore->capacity);
+    newElems = realloc(dataStore->elems, dataStore->capacity * dataStore->elemSize);
 
     if (!newElems)
     {
@@ -49,7 +49,7 @@ int SABRE_PrepareDataStore(SABRE_DataStore *dataStore)
         return 1;
     }
     // the data store is full, grow it and make sure no errors occurred
-    else if (dataStore->count == dataStore->capacity && SABRE_GrowDataStore(dataStore) != 0)
+    else if (dataStore->count >= dataStore->capacity && SABRE_GrowDataStore(dataStore) != 0)
     {
         DEBUG_MSG_FROM("Unable to grow data store.", "SABRE_PrepareDataStore");
         return 2;
