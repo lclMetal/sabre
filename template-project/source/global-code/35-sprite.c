@@ -7,6 +7,11 @@ int SABRE_ValidateSpriteIndex(int index)
     return 0;
 }
 
+void SABRE_UpdateSpriteShortcutPointer(void)
+{
+    SABRE_sprites = SABRE_DATA_STORE_AS_SPRITE_ARRAY(SABRE_spriteStore);
+}
+
 void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite)
 {
     SABRE_sprites[dataStore->count] = *SABRE_SPRITE_POINTER_CAST(sprite);
@@ -33,12 +38,6 @@ int SABRE_AutoAddSprites()
     char animName[256];
 
     strcpy(animName, getAnimName(i));
-    SABRE_SetDataStoreAddFunc(&SABRE_spriteStore, SABRE_AddSpriteToDataStore);
-    SABRE_spriteStore.elemSize = sizeof(SABRE_Sprite);
-    SABRE_PrepareDataStore(&SABRE_spriteStore);
-
-    // Set the shortcut pointer to allow easier access to sprite data
-    SABRE_sprites = SABRE_DATA_STORE_AS_SPRITE_ARRAY(SABRE_spriteStore);
 
     while (strcmp(animName, "") != 0)
     {

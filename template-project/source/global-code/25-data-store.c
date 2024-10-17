@@ -1,20 +1,19 @@
-void SABRE_SetDataStoreAddFunc(SABRE_DataStore *dataStore, void (*addDataFunc)(SABRE_DataStore*, void*))
-{
-    dataStore->addFunc = addDataFunc;
-}
-
-int SABRE_InitDataStore(SABRE_DataStore *dataStore, size_t elemSize)
+int SABRE_InitDataStore(SABRE_DataStore *dataStore, size_t elemSize, void (*addData)(SABRE_DataStore*, void*), void (*updateShortcutPointer)(void))
 {
     dataStore->capacity = 16;
     dataStore->count = 0;
     dataStore->elemSize = elemSize;
     dataStore->elems = calloc(dataStore->capacity, dataStore->elemSize);
+    dataStore->addData = addData;
+    dataStore->updateShortcutPointer = updateShortcutPointer;
 
     if (!dataStore->elems)
     {
-        DEBUG_MSG_FROM("Memory allocation failed!", "SABRE_InitDataStore");
+        DEBUG_MSG_FROM("Unable to initialize data store: memory allocation failed!", "SABRE_InitDataStore");
         return 1;
     }
+
+    dataStore->updateShortcutPointer();
 
     return 0;
 }
@@ -24,8 +23,10 @@ int SABRE_GrowDataStore(SABRE_DataStore *dataStore)
     void *newElems = NULL;
 
     // double the data store size or grow it by SABRE_DATA_STORE_GROW_AMOUNT
-    if (dataStore->capacity < SABRE_DATA_STORE_DOUBLING_LIMIT) dataStore->capacity *= 2;
-    else dataStore->capacity += SABRE_DATA_STORE_GROW_AMOUNT;
+    if (dataStore->capacity < SABRE_DATA_STORE_DOUBLING_LIMIT)
+        dataStore->capacity *= 2;
+    else
+        dataStore->capacity += SABRE_DATA_STORE_GROW_AMOUNT;
 
     newElems = realloc(dataStore->elems, dataStore->capacity * dataStore->elemSize);
 
@@ -36,16 +37,17 @@ int SABRE_GrowDataStore(SABRE_DataStore *dataStore)
     }
 
     dataStore->elems = newElems;
+    dataStore->updateShortcutPointer();
 
     return 0;
 }
 
 int SABRE_PrepareDataStore(SABRE_DataStore *dataStore)
 {
-    // the data store has not been initialized, initialize it and make sure no errors occurred
-    if (!dataStore->capacity && SABRE_InitDataStore(dataStore, dataStore->elemSize) != 0)
+    // the data store has not been initialized, quit
+    if (dataStore->capacity == 0)
     {
-        DEBUG_MSG_FROM("Unable to initialize data store.", "SABRE_PrepareDataStore");
+        DEBUG_MSG_FROM("Data store not initialized.", "SABRE_PrepareDataStore");
         return 1;
     }
     // the data store is full, grow it and make sure no errors occurred
@@ -67,7 +69,7 @@ int SABRE_AddToDataStore(SABRE_DataStore *dataStore, void *elem)
 
     if (err != 0) return err;
 
-    dataStore->addFunc(dataStore, elem);
+    dataStore->addData(dataStore, elem);
     dataStore->count++; // new element has been added, increment count
 
     return 0;
@@ -82,5 +84,7 @@ void SABRE_FreeDataStore(SABRE_DataStore *dataStore)
         dataStore->count = 0;
         dataStore->elemSize = 0;
         dataStore->elems = NULL;
+        dataStore->addData = NULL;
+        dataStore->updateShortcutPointer = NULL;
     }
 }

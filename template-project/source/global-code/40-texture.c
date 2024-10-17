@@ -24,6 +24,11 @@ int SABRE_CalculateTextureHeight(SABRE_Texture *texture)
     return SABRE_GetAnimationDataValue(SABRE_TEXTURE_ACTOR, texture->name, SABRE_ANIM_HEIGHT);
 }
 
+void SABRE_UpdateTextureShortcutPointer(void)
+{
+    SABRE_textures = SABRE_DATA_STORE_AS_TEXTURE_ARRAY(SABRE_textureStore);
+}
+
 void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture)
 {
     SABRE_textures[dataStore->count] = *SABRE_TEXTURE_POINTER_CAST(texture);
@@ -49,12 +54,6 @@ int SABRE_AutoAddTextures()
     char animName[256];
 
     strcpy(animName, getAnimName(i));
-    SABRE_SetDataStoreAddFunc(&SABRE_textureStore, SABRE_AddTextureToDataStore);
-    SABRE_textureStore.elemSize = sizeof(SABRE_Texture);
-    SABRE_PrepareDataStore(&SABRE_textureStore);
-
-    // Set the shortcut pointer to allow easier access to texture data
-    SABRE_textures = SABRE_DATA_STORE_AS_TEXTURE_ARRAY(SABRE_textureStore);
 
     while (strcmp(animName, "") != 0)
     {

@@ -63,7 +63,8 @@ typedef struct SABRE_DataStoreStruct
     size_t count; // the amount of elements the store actually holds at the moment
     size_t elemSize; // the size of a single element in the store
     void *elems; // pointer to the elements
-    void (*addFunc)(struct SABRE_DataStoreStruct*, void*);
+    void (*addData)(struct SABRE_DataStoreStruct*, void*); // pointer to a function that handles adding data to the store
+    void (*updateShortcutPointer)(void); // pointer to a function that handles updating a shortcut pointer to the data
 }SABRE_DataStore;
 
 typedef struct SABRE_AnimationStruct

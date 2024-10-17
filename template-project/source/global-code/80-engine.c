@@ -181,6 +181,7 @@ void SABRE_BuildTextureStore()
 {
     if (SABRE_gameState < SABRE_TEXTURES_ADDED)
     {
+        SABRE_InitDataStore(&SABRE_textureStore, sizeof(SABRE_Texture), SABRE_AddTextureToDataStore, SABRE_UpdateTextureShortcutPointer);
         SendActivationEvent("SABRE_TextureActor");
     }
 }
@@ -189,6 +190,7 @@ void SABRE_BuildSpriteStore()
 {
     if (SABRE_gameState < SABRE_SPRITES_ADDED)
     {
+        SABRE_InitDataStore(&SABRE_spriteStore, sizeof(SABRE_Sprite), SABRE_AddSpriteToDataStore, SABRE_UpdateSpriteShortcutPointer);
         SendActivationEvent("SABRE_SpriteActor");
     }
 }
