@@ -1,12 +1,13 @@
-#define SWE_WINDOW_WORLD_CONTEXT_MENU   "worldContextMenu"
-#define SWE_WINDOW_NEW_PROJECT_ALERT    "newProjectAlert"
-#define SWE_WINDOW_OPEN_PROJECT         "openProjectWindow"
-#define SWE_WINDOW_SAVE_PROJECT         "saveProjectWindow"
-#define SWE_WINDOW_PLACE_ENTITY         "placeEntityWindow"
-#define SWE_WINDOW_CREATE_ENTITY_TYPE   "createEntityTypeWindow"
-#define SWE_WINDOW_PLACE_TRIGGER        "placeTriggerWindow"
-#define SWE_WINDOW_TXR_CONFIG           "configureTexture"
-#define SWE_WINDOW_LEVEL_PROPERTIES     "levelProperties"
+#define SWE_WINDOW_WORLD_CONTEXT_MENU       "worldContextMenu"
+#define SWE_WINDOW_NEW_PROJECT_ALERT        "newProjectAlert"
+#define SWE_WINDOW_OPEN_PROJECT             "openProjectWindow"
+#define SWE_WINDOW_SAVE_PROJECT             "saveProjectWindow"
+#define SWE_WINDOW_PLACE_ENTITY             "placeEntityWindow"
+#define SWE_WINDOW_CREATE_ENTITY_TYPE       "createEntityTypeWindow"
+#define SWE_WINDOW_PLACE_TRIGGER            "placeTriggerWindow"
+#define SWE_WINDOW_TXR_CONFIG               "configureTexture"
+#define SWE_WINDOW_LEVEL_PROPERTIES         "levelProperties"
+#define SWE_WINDOW_THUMBNAIL_MISSING_HELP   "thumbnailMissingHelp"
 
 Style sweStyle;
 Style contextMenuStyle;
@@ -239,4 +240,18 @@ void SWE_CreateWindows(Style *ctxMenuStyle, Style *sweMainStyle)
     setPosition(addButton(panel, "okBtn", "Ok", createCloseWindowAction(window->tag)), 0, 0);
     setPosition(addButton(panel, "cancelBtn", "Cancel", createCloseWindowAction(window->tag)), 0, 1);
     DEBUG_MSG_FROM("Created level properties window", "SWE_CreateWindows");
+
+    // Define the "thumbnail missing help" window
+    window = createWindow(SWE_WINDOW_THUMBNAIL_MISSING_HELP, "Thumbnail missing", sweMainStyle);
+    panel = getWindowRootPanel(window);
+    setPosition(addText(panel, "title",
+        "This texture/sprite is missing its thumbnail."
+        "\v\vYou can fix the issue by running the batch files"
+        "\v\t- $c00dd00gen-txr-thumbs.bat$xc"
+        "\v\t- $c00dd00gen-spr-thumbs.bat$xc"
+        "\vand then restarting Game Editor."
+        "\v\v$c999999(Remember to save your project before restarting if you have unsaved changes that you want to keep!)$xc", 400), 0, 0);
+    panel = getPanel(setPosition(addPanel(getWindowRootPanel(window), "buttonsPanel"), 1, 0));
+    setPosition(addButton(panel, "okBtn", "Ok", createCloseWindowAction(window->tag)), 0, 0);
+    DEBUG_MSG_FROM("Created thumbnail missing help window", "SWE_CreateWindows");
 }
