@@ -4,12 +4,14 @@
 #define LINE 2
 #define RECTANGLE 3
 #define ELLIPSE 4
-#define BORDER_TOOL 5
+#define ENTITY_TOOL 5
 #define NOT_CLICKED 0
 #define CLICKED 1
 #define HUE 0
 #define SATURATION 1
 #define BRIGHTNESS 2
+#define EDIT_MODE_BLOCK 0
+#define EDIT_MODE_ENTITY 1
 
 int clickX;
 int clickY;
@@ -30,6 +32,7 @@ int wait;
 int currentTexture = 0;
 int paintTexture = 0;
 int selectedTool;
+int editMode = EDIT_MODE_BLOCK;
 int renderMode = 0;
 int HSBIndicatorIndex[3] = {-1, -1, -1};
 
@@ -49,7 +52,7 @@ char tools[6][256] =
     "Line",
     "Rectangle",
     "Ellipse",
-    "Border tool"
+    "Entity tool"
 };
 
 //SABRE engine variables

@@ -8,6 +8,8 @@ Actor *createMenuLabel(char text[256]);
 void guiItemFloat(int corner, int xOffset, int yOffset);
 void guiItemFloatActor(char actorName[256], int corner, int xOffset, int yOffset);
 void guiItemFloatRelativeToActor(char actorName[256], int corner, int xOffset, int yOffset);
+void guiItemFloatRelativeToThis(char actorName[256], int xOffset, int yOffset);
+void guiChildOffset(char actorName[256], int xOffset, int yOffset);
 void showTooltip(char *tooltipText);
 
 Actor *createMenuLabel(char text[256])
@@ -120,6 +122,28 @@ void guiItemFloatRelativeToActor(char actorName[256], int corner, int xOffset, i
             y = a->y - a->height * 0.5 + yOffset;
         break;
     }
+}
+
+//This function can be used to make another actor's position relative to the current actors' position
+//actorName - the name of the another actor
+//xOffset - the actor's desired offset on the x-axis
+//yOffset - the actor's desired offset on the y-axis
+void guiItemFloatRelativeToThis(char actorName[256], int xOffset, int yOffset)
+{
+    Actor *a = getclone(actorName);
+    a->x = x + xOffset;
+    a->y = y + yOffset;
+}
+
+//This function can be used to adjust a child actor's position relative to the parent actors' position
+//actorName - the name of the child actor
+//xOffset - the actor's desired offset on the x-axis
+//yOffset - the actor's desired offset on the y-axis
+void guiChildOffset(char actorName[256], int xOffset, int yOffset)
+{
+    Actor *a = getclone(actorName);
+    a->x = xOffset;
+    a->y = yOffset;
 }
 
 //This function is used for showing a tooltip in the bottom left corner of the screen

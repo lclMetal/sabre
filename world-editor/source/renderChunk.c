@@ -36,6 +36,8 @@ typedef struct SWE_EntityTemplateStruct
 
 typedef struct SWE_EntityStruct
 {
+    float x;
+    float y;
     SWE_EntityTemplate *template;
     struct SWE_EntityStruct *next;
 }SWE_Entity;
@@ -454,8 +456,28 @@ int deleteRenderChunkList()
 //entity - pointer to the entity template
 void plotEntity(float entX, float entY, SWE_EntityTemplate *entity)
 {
-    RenderChunk *ptr;
+    RenderChunk *ptr = NULL;
+    SWE_Entity *ent = NULL;
     int chunkCoords[2];
+
+    if (!entity)
+    {
+        DEBUG_MSG_FROM("Invalid entity template!", "plotEntity");
+        return;
+    }
+
+    ent = malloc(sizeof *ent);
+
+    if (!ent)
+    {
+        DEBUG_MSG_FROM("Failed to allocate memory for a new entity!", "plotEntity");
+        return;
+    }
+
+    ent->x = entX;
+    ent->y = entY;
+    ent->template = entity;
+    ent->next = NULL;
 
     coordsToRenderChunkCoords((int)entX, (int)entY, chunkCoords);
 
@@ -465,7 +487,27 @@ void plotEntity(float entX, float entY, SWE_EntityTemplate *entity)
     {
         if (ptr->entities == NULL) // CONTINUE FROM HERE!!!!
         {
-            
+            ent->next = NULL;
+            ptr->entities = ent;
+        }
+        else
+        {
+            ent->next = ptr->entities;
+            ptr->entities = ent;
+        }
+    }
+    else
+    {
+        ptr = addRenderChunk(chunkCoords[X], chunkCoords[Y]);
+        if (ptr != NULL)
+        {
+            ent->next = NULL;
+            ptr->entities = ent;
+        }
+        else
+        {
+            free(ent);
+            DEBUG_MSG_FROM("Failed to add entity.", "plotEntity");
         }
     }
 }

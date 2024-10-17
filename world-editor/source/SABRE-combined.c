@@ -771,7 +771,8 @@ typedef struct SABRE_DataStoreStruct
     size_t count; // the amount of elements the store actually holds at the moment
     size_t elemSize; // the size of a single element in the store
     void *elems; // pointer to the elements
-    void (*addFunc)(struct SABRE_DataStoreStruct*, void*);
+    void (*addData)(struct SABRE_DataStoreStruct*, void*); // pointer to a function that handles adding data to the store
+    void (*updateShortcutPointer)(void); // pointer to a function that handles updating a shortcut pointer to the data
 }SABRE_DataStore;
 
 typedef struct SABRE_AnimationStruct
@@ -1011,23 +1012,22 @@ SABRE_Color SABRE_defaultFloor   = {  86.0, 76.0, 62.0, 106, 158,  38, 1.0 };
 
 
 // ..\source\global-code\25-data-store.c
-void SABRE_SetDataStoreAddFunc(SABRE_DataStore *dataStore, void (*addDataFunc)(SABRE_DataStore*, void*))
-{
-    dataStore->addFunc = addDataFunc;
-}
-
-int SABRE_InitDataStore(SABRE_DataStore *dataStore, size_t elemSize)
+int SABRE_InitDataStore(SABRE_DataStore *dataStore, size_t elemSize, void (*addData)(SABRE_DataStore*, void*), void (*updateShortcutPointer)(void))
 {
     dataStore->capacity = 16;
     dataStore->count = 0;
     dataStore->elemSize = elemSize;
     dataStore->elems = calloc(dataStore->capacity, dataStore->elemSize);
+    dataStore->addData = addData;
+    dataStore->updateShortcutPointer = updateShortcutPointer;
 
     if (!dataStore->elems)
     {
-        DEBUG_MSG_FROM("Memory allocation failed!", "SABRE_InitDataStore");
+        DEBUG_MSG_FROM("Unable to initialize data store: memory allocation failed!", "SABRE_InitDataStore");
         return 1;
     }
+
+    dataStore->updateShortcutPointer();
 
     return 0;
 }
@@ -1037,10 +1037,12 @@ int SABRE_GrowDataStore(SABRE_DataStore *dataStore)
     void *newElems = NULL;
 
     // double the data store size or grow it by SABRE_DATA_STORE_GROW_AMOUNT
-    if (dataStore->capacity < SABRE_DATA_STORE_DOUBLING_LIMIT) dataStore->capacity *= 2;
-    else dataStore->capacity += SABRE_DATA_STORE_GROW_AMOUNT;
+    if (dataStore->capacity < SABRE_DATA_STORE_DOUBLING_LIMIT)
+        dataStore->capacity *= 2;
+    else
+        dataStore->capacity += SABRE_DATA_STORE_GROW_AMOUNT;
 
-    newElems = realloc(dataStore->elems, dataStore->capacity);
+    newElems = realloc(dataStore->elems, dataStore->capacity * dataStore->elemSize);
 
     if (!newElems)
     {
@@ -1049,20 +1051,21 @@ int SABRE_GrowDataStore(SABRE_DataStore *dataStore)
     }
 
     dataStore->elems = newElems;
+    dataStore->updateShortcutPointer();
 
     return 0;
 }
 
 int SABRE_PrepareDataStore(SABRE_DataStore *dataStore)
 {
-    // the data store has not been initialized, initialize it and make sure no errors occurred
-    if (!dataStore->capacity && SABRE_InitDataStore(dataStore, dataStore->elemSize) != 0)
+    // the data store has not been initialized, quit
+    if (dataStore->capacity == 0)
     {
-        DEBUG_MSG_FROM("Unable to initialize data store.", "SABRE_PrepareDataStore");
+        DEBUG_MSG_FROM("Data store not initialized.", "SABRE_PrepareDataStore");
         return 1;
     }
     // the data store is full, grow it and make sure no errors occurred
-    else if (dataStore->count == dataStore->capacity && SABRE_GrowDataStore(dataStore) != 0)
+    else if (dataStore->count >= dataStore->capacity && SABRE_GrowDataStore(dataStore) != 0)
     {
         DEBUG_MSG_FROM("Unable to grow data store.", "SABRE_PrepareDataStore");
         return 2;
@@ -1080,7 +1083,7 @@ int SABRE_AddToDataStore(SABRE_DataStore *dataStore, void *elem)
 
     if (err != 0) return err;
 
-    dataStore->addFunc(dataStore, elem);
+    dataStore->addData(dataStore, elem);
     dataStore->count++; // new element has been added, increment count
 
     return 0;
@@ -1095,6 +1098,8 @@ void SABRE_FreeDataStore(SABRE_DataStore *dataStore)
         dataStore->count = 0;
         dataStore->elemSize = 0;
         dataStore->elems = NULL;
+        dataStore->addData = NULL;
+        dataStore->updateShortcutPointer = NULL;
     }
 }
 
@@ -1179,6 +1184,11 @@ int SABRE_ValidateSpriteIndex(int index)
     return 0;
 }
 
+void SABRE_UpdateSpriteShortcutPointer(void)
+{
+    SABRE_sprites = SABRE_DATA_STORE_AS_SPRITE_ARRAY(SABRE_spriteStore);
+}
+
 void SABRE_AddSpriteToDataStore(SABRE_DataStore *dataStore, void *sprite)
 {
     SABRE_sprites[dataStore->count] = *SABRE_SPRITE_POINTER_CAST(sprite);
@@ -1205,12 +1215,6 @@ int SABRE_AutoAddSprites()
     char animName[256];
 
     strcpy(animName, getAnimName(i));
-    SABRE_SetDataStoreAddFunc(&SABRE_spriteStore, SABRE_AddSpriteToDataStore);
-    SABRE_spriteStore.elemSize = sizeof(SABRE_Sprite);
-    SABRE_PrepareDataStore(&SABRE_spriteStore);
-
-    // Set the shortcut pointer to allow easier access to sprite data
-    SABRE_sprites = SABRE_DATA_STORE_AS_SPRITE_ARRAY(SABRE_spriteStore);
 
     while (strcmp(animName, "") != 0)
     {
@@ -1266,6 +1270,11 @@ int SABRE_CalculateTextureHeight(SABRE_Texture *texture)
     return SABRE_GetAnimationDataValue(SABRE_TEXTURE_ACTOR, texture->name, SABRE_ANIM_HEIGHT);
 }
 
+void SABRE_UpdateTextureShortcutPointer(void)
+{
+    SABRE_textures = SABRE_DATA_STORE_AS_TEXTURE_ARRAY(SABRE_textureStore);
+}
+
 void SABRE_AddTextureToDataStore(SABRE_DataStore *dataStore, void *texture)
 {
     SABRE_textures[dataStore->count] = *SABRE_TEXTURE_POINTER_CAST(texture);
@@ -1291,12 +1300,6 @@ int SABRE_AutoAddTextures()
     char animName[256];
 
     strcpy(animName, getAnimName(i));
-    SABRE_SetDataStoreAddFunc(&SABRE_textureStore, SABRE_AddTextureToDataStore);
-    SABRE_textureStore.elemSize = sizeof(SABRE_Texture);
-    SABRE_PrepareDataStore(&SABRE_textureStore);
-
-    // Set the shortcut pointer to allow easier access to texture data
-    SABRE_textures = SABRE_DATA_STORE_AS_TEXTURE_ARRAY(SABRE_textureStore);
 
     while (strcmp(animName, "") != 0)
     {
@@ -2690,6 +2693,7 @@ void SABRE_BuildTextureStore()
 {
     if (SABRE_gameState < SABRE_TEXTURES_ADDED)
     {
+        SABRE_InitDataStore(&SABRE_textureStore, sizeof(SABRE_Texture), SABRE_AddTextureToDataStore, SABRE_UpdateTextureShortcutPointer);
         SendActivationEvent("SABRE_TextureActor");
     }
 }
@@ -2698,6 +2702,7 @@ void SABRE_BuildSpriteStore()
 {
     if (SABRE_gameState < SABRE_SPRITES_ADDED)
     {
+        SABRE_InitDataStore(&SABRE_spriteStore, sizeof(SABRE_Sprite), SABRE_AddSpriteToDataStore, SABRE_UpdateSpriteShortcutPointer);
         SendActivationEvent("SABRE_SpriteActor");
     }
 }
