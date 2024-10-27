@@ -215,14 +215,24 @@ void SWE_CreateWindows(Style *ctxMenuStyle, Style *sweMainStyle)
     // window = createWindow(SWE_WINDOW_TXR_CONFIG, GEUI_NO_TITLE, sweMainStyle);
     panel = getWindowRootPanel(window);
     addDataBind(window, "texture", NULL);
-    setPosition(addText(panel, "title", "Texture settings:", 0), 0, 0);
+    panel = getPanel(setPosition(addPanel(getWindowRootPanel(window), "contentPanel"), 0, 0));
+    setPosition(addEmbedder(panel, "texturePreview", "animPreviewCanv", True), 0, 0);
+    panel = getPanel(setPosition(addPanel(panel, "attributesPanel"), 0, 1));
+    setPosition(addText(panel, "labelAttributes", "$c666666Attributes$xc", 200), 0, 0);
+    panel = getPanel(setPosition(addPanel(panel, "isWindowPanel"), 1, 0));
+    setPosition(addCheckbox(panel, "chkAttribIsWindow", False), 0, 0);
+    setPosition(addText(panel, "labelAttribIsWindow", "Is window", 200), 0, 1);
+
+
+    /*setPosition(addText(panel, "title", "Texture settings:", 0), 0, 0);
+    setPosition(addEmbedder(panel, "texturePreview", "animPreviewCanv", True), 0, 1);
     // panel = getPanel(setPosition(addPanel(panel, "propertiesPanel"), 1, 0));
     // setPosition(addText(panel, "labelName", "Name", 200), 0, 0);
     // setPosition(addText(panel, "valueName", "Name", 200), 0, 1);
     setPosition(addText(panel, "labelAttributes", "Attributes", 200), 1, 0);
     panel = getPanel(setPosition(addPanel(getWindowRootPanel(window), "attributesPanel"), 2, 0));
     setPosition(addCheckbox(panel, "chkAttribIsWindow", False), 0, 0);
-    setPosition(addText(panel, "labelAttribIsWindow", "Is window", 200), 0, 1);
+    setPosition(addText(panel, "labelAttribIsWindow", "Is window", 200), 0, 1);*/
     panel = getPanel(setPosition(addPanel(getWindowRootPanel(window), "buttonsPanel"), 3, 0));
     setPosition(addButton(panel, "doneBtn", "Done", createAction(applyTextureConfig)), 0, 0);
     setPosition(addButton(panel, "cancelBtn", "Cancel", createCloseWindowAction(window->tag)), 0, 1);
