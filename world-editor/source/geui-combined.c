@@ -1905,7 +1905,8 @@ typedef enum ItemTypeEnum
     GEUI_Checkbox,
     GEUI_Input,
     GEUI_Panel,
-    GEUI_Embedder
+    GEUI_Embedder,
+    GEUI_DataBind
 }ItemType;
 
 struct WindowStruct;
@@ -2073,6 +2074,7 @@ typedef struct WindowItemStruct
             bool isRegion;
             char actorCName[256];
         }embedder;
+        void *dataBind;
     }data;
 
     Layout layout;
@@ -2093,14 +2095,6 @@ typedef struct PanelStruct
     struct WindowItemStruct *iList;
 }Panel;
 
-typedef struct DataBindStruct
-{
-    void *data;
-    char tag[256];
-}DataBind;
-
-#define GEUI_MAX_DATA_BINDS_PER_WINDOW 5
-
 typedef struct WindowStruct
 {
     int index;          // window index
@@ -2111,8 +2105,6 @@ typedef struct WindowStruct
     Style *style;        // window style
     double zDepth;      // window z depth
     char parentCName[256]; // clonename of the window parent actor
-    int dataBindIndex;  // next available data bind index
-    DataBind dataBinds[GEUI_MAX_DATA_BINDS_PER_WINDOW]; // data binds array
     bool hasTitle;              // does the window have a title
     Text title;                 // window title text
     TileIndices tiles;          // cloneindices of the window tiles
@@ -2171,86 +2163,6 @@ struct GEUIControllerStruct
 }GEUIController;
 
 #define CURRENT_KEYBOARD GEUIController.kbLayout
-
-
-// ..\source\geui\11-geui-data-binds.c
-void initWindowDataBinds(Window *window)
-{
-    int i;
-
-    if (!window) return;
-
-    for (i = 0; i < GEUI_MAX_DATA_BINDS_PER_WINDOW; i++)
-    {
-        window->dataBinds[i].data = NULL;
-        strcpy(window->dataBinds[i].tag, "");
-    }
-}
-
-int addDataBind(Window *window, char tag[256], void *data)
-{
-    if (!window) return 1; // window is NULL
-    if (window->dataBindIndex >= GEUI_MAX_DATA_BINDS_PER_WINDOW)
-        return 2; // max data binds already in use
-
-    window->dataBinds[window->dataBindIndex].data = data;
-    strcpy(window->dataBinds[window->dataBindIndex].tag, tag);
-    window->dataBindIndex++;
-
-    return 0;
-}
-
-int updateDataBind(Window *window, char tag[256], void *data)
-{
-    int i;
-
-    if (!window) return 1; // window is NULL
-
-    for (i = 0; i < GEUI_MAX_DATA_BINDS_PER_WINDOW; i++)
-    {
-        if (!strcmp(window->dataBinds[i].tag, tag))
-        {
-            window->dataBinds[i].data = data;
-            return 0;
-        }
-    }
-
-    return 2; // data bind not found
-}
-
-void removeDataBind(Window *window, char tag[256])
-{
-    int i;
-
-    if (!window) return; // window is NULL
-
-    for (i = 0; i < GEUI_MAX_DATA_BINDS_PER_WINDOW; i++)
-    {
-        if (!strcmp(window->dataBinds[i].tag, tag))
-        {
-            window->dataBinds[i].data = NULL;
-            strcpy(window->dataBinds[i].tag, "");
-            return;
-        }
-    }
-}
-
-void *getBoundData(Window *window, char tag[256])
-{
-    int i;
-
-    if (!window) return NULL; // window is NULL
-
-    for (i = 0; i < GEUI_MAX_DATA_BINDS_PER_WINDOW; i++)
-    {
-        if (!strcmp(window->dataBinds[i].tag, tag))
-        {
-            return window->dataBinds[i].data;
-        }
-    }
-
-    return NULL;
-}
 
 
 // ..\source\geui\12-geui-screen-coords.c
@@ -3147,6 +3059,9 @@ void updateItemLayout(WindowItem *ptr)
                 DEBUG_MSG_FROM("Actor doesn't exist, layout for Embedder item not updated", "updateItemLayout");
             }
         break;
+        case GEUI_DataBind:
+            // DataBind is a non-visual window item type and thus has no layout.
+        break;
     }
 
     sprintf(temp, "Updated layout for item: %s/%s", ptr->parent->tag, ptr->tag);
@@ -3189,6 +3104,7 @@ void buildItem(WindowItem *ptr)
         case GEUI_Input: buildInputField(ptr); break;
         case GEUI_Panel: buildPanel(ptr); break;
         case GEUI_Embedder: buildEmbedder(ptr); break;
+        case GEUI_DataBind: break;
     }
 }
 
@@ -3228,6 +3144,9 @@ void eraseWindowItem(WindowItem *ptr)
         case GEUI_Embedder:
             VisibilityState(ptr->data.embedder.actorCName, DISABLE);
         break;
+        case GEUI_DataBind:
+            // DataBind is a non-visual window item type and thus has nothing to erase.
+        break;
 
         default: break;
     }
@@ -3262,6 +3181,9 @@ void destroyWindowItem(WindowItem *ptr)
         break;
         case GEUI_Embedder:
             DestroyActor(ptr->data.embedder.actorCName);
+        break;
+        case GEUI_DataBind:
+            ptr->data.dataBind = NULL;
         break;
 
         default: break;
@@ -3756,6 +3678,44 @@ void buildEmbedder(WindowItem *ptr)
                                 // (int)actor->y);
         // DEBUG_MSG_FROM(temp, "buildEmbedder");
     // }
+}
+
+
+// ..\source\geui\27-geui-item-databind.c
+WindowItem *addDataBind(Panel *panel, char tag[256], void *data);
+int updateDataBind(Panel *panel, char tag[256], void *data);
+void *getBoundData(Panel *panel, char tag[256]);
+
+WindowItem *addDataBind(Panel *panel, char tag[256], void *data)
+{
+    WindowItem *ptr = initNewItem(GEUI_DataBind, panel, tag);
+    if (!ptr) { DEBUG_MSG_FROM("item is NULL", "addDataBind"); return NULL; }
+
+    ptr->data.dataBind = data;
+
+    return addItemToWindow(ptr);
+}
+
+int updateDataBind(Panel *panel, char tag[256], void *data)
+{
+    WindowItem *ptr = getItemFromPanelByTag(panel, tag);
+
+    if (!ptr) { DEBUG_MSG_FROM("item not found", "getBoundData"); return 1; }
+    if (ptr->type != GEUI_DataBind) { DEBUG_MSG_FROM("item is not a valid DataBind item", "getBoundData"); return 2; }
+
+    ptr->data.dataBind = data;
+
+    return 0;
+}
+
+void *getBoundData(Panel *panel, char tag[256])
+{
+    WindowItem *ptr = getItemFromPanelByTag(panel, tag);
+
+    if (!ptr) { DEBUG_MSG_FROM("item not found", "getBoundData"); return NULL; }
+    if (ptr->type != GEUI_DataBind) { DEBUG_MSG_FROM("item is not a valid DataBind item", "getBoundData"); return NULL; }
+
+    return ptr->data.dataBind;
 }
 
 

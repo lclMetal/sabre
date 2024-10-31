@@ -80,7 +80,7 @@ Font textFontYes =
 
 void applyTextureConfig(GUIAction *action)
 {
-    SABRE_Texture *txr = getBoundData(action->window, "texture");
+    SABRE_Texture *txr = getBoundData(getWindowRootPanel(action->window), "texture");
 
     if (txr)
     {
@@ -120,7 +120,7 @@ void populateTextureConfigWindow(SABRE_Texture *txr)
         setCheckboxState(item, txr->isWindow);
     }
 
-    updateDataBind(window, "texture", txr);
+    updateDataBind(getWindowRootPanel(window), "texture", txr);
     openWindow(SWE_WINDOW_TXR_CONFIG, GEUI_WPOS_SCREEN_CENTER);
 }
 
@@ -214,7 +214,7 @@ void SWE_CreateWindows(Style *ctxMenuStyle, Style *sweMainStyle)
     window = createWindow(SWE_WINDOW_TXR_CONFIG, "Configure texture", sweMainStyle);
     // window = createWindow(SWE_WINDOW_TXR_CONFIG, GEUI_NO_TITLE, sweMainStyle);
     panel = getWindowRootPanel(window);
-    addDataBind(window, "texture", NULL);
+    addDataBind(panel, "texture", NULL);
     panel = getPanel(setPosition(addPanel(getWindowRootPanel(window), "contentPanel"), 0, 0));
     setPosition(addEmbedder(panel, "texturePreview", "animPreviewCanv", True), 0, 0);
     panel = getPanel(setPosition(addPanel(panel, "attributesPanel"), 0, 1));
