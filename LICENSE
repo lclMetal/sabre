@@ -6,6 +6,10 @@ Everything else is original work by Lassi unless otherwise stated (for example,
 misc-functions.c contains an algorithm by user Grumdrig on Stack Overflow,
 this is stated in a comment above the code).
 
+The parts of the project that are adapted from Lode Vandevenne's work are
+redistributed under his original QuickCG license. The rest of the source
+code of SABRE is distributed under the MIT License.
+
 
 
 
