@@ -2764,6 +2764,10 @@ void SABRE_Stop()
         SABRE_gameState = SABRE_INITIALIZED;
         SABRE_DisableActors();
         SABRE_DestroyScreen();
+
+        SABRE_FreeProjectileList();
+        SABRE_FreeEntityList();
+        SABRE_FreeRenderObjectList();
         DEBUG_MSG_FROM("SABRE stopped.", "SABRE_Stop");
     }
     else
