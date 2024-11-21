@@ -31,6 +31,7 @@ int refresh;
 int wait;
 int currentTexture = 0;
 int paintTexture = 0;
+int paintEntity = 0;
 int selectedTool;
 int editMode = EDIT_MODE_BLOCK;
 int renderMode = 0;
